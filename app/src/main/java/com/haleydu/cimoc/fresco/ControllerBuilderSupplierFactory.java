@@ -7,6 +7,7 @@ import com.facebook.drawee.backends.pipeline.PipelineDraweeControllerBuilderSupp
 import com.facebook.imagepipeline.core.ImagePipelineFactory;
 
 import okhttp3.Headers;
+import okhttp3.OkHttpClient;
 
 /**
  * Created by Hiroshi on 2016/9/5.
@@ -17,8 +18,8 @@ public class ControllerBuilderSupplierFactory {
         return new PipelineDraweeControllerBuilderSupplier(context.getApplicationContext(), factory, null);
     }
 
-    public static PipelineDraweeControllerBuilder get(Context context, Headers header) {
-        ImagePipelineFactory factory = ImagePipelineFactoryBuilder.build(context, header, false);
+    public static PipelineDraweeControllerBuilder get(Context context, Headers header, OkHttpClient client) {
+        ImagePipelineFactory factory = ImagePipelineFactoryBuilder.build(context, header, false, client);
         return new PipelineDraweeControllerBuilderSupplier(context.getApplicationContext(), factory, null).get();
     }
 

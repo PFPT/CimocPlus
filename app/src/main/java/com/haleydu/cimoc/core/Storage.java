@@ -4,7 +4,6 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.os.Environment;
 
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.ImageUrl;
@@ -19,10 +18,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import rx.Observable;
-import rx.Subscriber;
-import rx.schedulers.Schedulers;
-
 /**
  * Created by Hiroshi on 2016/10/16.
  */
@@ -34,13 +29,16 @@ public class Storage {
     private static String BACKUP = "backup";
 
     public static DocumentFile initRoot(Context context, String uri) {
-        if (uri == null) {
-            File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), "Cimoc");
+        if (uri == null || uri.isEmpty()) {
+            File dir = context.getExternalFilesDir(null);
+            if (dir == null) {
+                dir = context.getFilesDir();
+            }
+            File file = new File(dir, "Cimoc");
             if (file.exists() || file.mkdirs()) {
                 return DocumentFile.fromFile(file);
-            } else {
-                return null;
             }
+            return null;
         } else if (uri.startsWith("content")) {
             return DocumentFile.fromTreeUri(context, Uri.parse(uri));
         } else if (uri.startsWith("file")) {
@@ -50,11 +48,15 @@ public class Storage {
         }
     }
 
+    public interface ProgressCallback {
+        void onProgress(String message);
+    }
+
     private static boolean copyFile(ContentResolver resolver, DocumentFile src,
-                                    DocumentFile parent, Subscriber<? super String> subscriber) {
+                                    DocumentFile parent, ProgressCallback callback) {
         DocumentFile file = DocumentUtils.getOrCreateFile(parent, src.getName());
         if (file != null) {
-            subscriber.onNext(StringUtils.format("正在移动 %s...", src.getUri().getLastPathSegment()));
+            callback.onProgress(StringUtils.format("正在移动 %s...", src.getUri().getLastPathSegment()));
             try {
                 DocumentUtils.writeBinaryToFile(resolver, src, file);
                 return true;
@@ -66,15 +68,15 @@ public class Storage {
     }
 
     private static boolean copyDir(ContentResolver resolver, DocumentFile src,
-                                   DocumentFile parent, Subscriber<? super String> subscriber) {
+                                   DocumentFile parent, ProgressCallback callback) {
         if (src.isDirectory()) {
             DocumentFile dir = DocumentUtils.getOrCreateSubDirectory(parent, src.getName());
             for (DocumentFile file : src.listFiles()) {
                 if (file.isDirectory()) {
-                    if (!copyDir(resolver, file, dir, subscriber)) {
+                    if (!copyDir(resolver, file, dir, callback)) {
                         return false;
                     }
-                } else if (!copyFile(resolver, file, dir, subscriber)) {
+                } else if (!copyFile(resolver, file, dir, callback)) {
                     return false;
                 }
             }
@@ -83,18 +85,18 @@ public class Storage {
     }
 
     private static boolean copyDir(ContentResolver resolver, DocumentFile src,
-                                   DocumentFile dst, String name, Subscriber<? super String> subscriber) {
+                                   DocumentFile dst, String name, ProgressCallback callback) {
         DocumentFile file = src.findFile(name);
         if (file != null && file.isDirectory()) {
-            return copyDir(resolver, file, dst, subscriber);
+            return copyDir(resolver, file, dst, callback);
         }
         return true;
     }
 
-    private static void deleteDir(DocumentFile parent, String name, Subscriber<? super String> subscriber) {
+    private static void deleteDir(DocumentFile parent, String name, ProgressCallback callback) {
         DocumentFile file = parent.findFile(name);
         if (file != null && file.isDirectory()) {
-            subscriber.onNext(StringUtils.format("正在删除 %s", file.getUri().getLastPathSegment()));
+            callback.onProgress(StringUtils.format("正在删除 %s", file.getUri().getLastPathSegment()));
             file.delete();
         }
     }
@@ -104,45 +106,35 @@ public class Storage {
                 root.getUri().getPath().equals(dst.getUri().getPath());
     }
 
-    public static Observable<String> moveRootDir(final ContentResolver resolver, final DocumentFile root, final DocumentFile dst) {
-        return Observable.create(new Observable.OnSubscribe<String>() {
-            @Override
-            public void call(Subscriber<? super String> subscriber) {
-                if (dst.canRead() && !isDirSame(root, dst)) {
-                    root.refresh();
-                    if (copyDir(resolver, root, dst, BACKUP, subscriber) &&
-                            copyDir(resolver, root, dst, DOWNLOAD, subscriber) &&
-                            copyDir(resolver, root, dst, PICTURE, subscriber)) {
-                        deleteDir(root, BACKUP, subscriber);
-                        deleteDir(root, DOWNLOAD, subscriber);
-                        deleteDir(root, PICTURE, subscriber);
-                        subscriber.onCompleted();
-                    }
-                }
-                subscriber.onError(new Exception());
+    public static void moveRootDir(final ContentResolver resolver, final DocumentFile root, final DocumentFile dst,
+                                   ProgressCallback callback) {
+        if (dst.canRead() && !isDirSame(root, dst)) {
+            root.refresh();
+            if (copyDir(resolver, root, dst, BACKUP, callback) &&
+                    copyDir(resolver, root, dst, DOWNLOAD, callback) &&
+                    copyDir(resolver, root, dst, PICTURE, callback)) {
+                deleteDir(root, BACKUP, callback);
+                deleteDir(root, DOWNLOAD, callback);
+                deleteDir(root, PICTURE, callback);
+                return;
             }
-        }).subscribeOn(Schedulers.io());
+        }
+        throw new RuntimeException();
     }
 
-    public static Observable<Uri> savePicture(final ContentResolver resolver, final DocumentFile root,
-                                              final InputStream stream, final String filename) {
-        return Observable.create(new Observable.OnSubscribe<Uri>() {
-            @Override
-            public void call(Subscriber<? super Uri> subscriber) {
-                try {
-                    DocumentFile dir = DocumentUtils.getOrCreateSubDirectory(root, PICTURE);
-                    if (dir != null) {
-                        DocumentFile file = DocumentUtils.getOrCreateFile(dir, filename);
-                        DocumentUtils.writeBinaryToFile(resolver, file, stream);
-                        subscriber.onNext(file.getUri());
-                        subscriber.onCompleted();
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                subscriber.onError(new Exception());
+    public static Uri savePicture(final ContentResolver resolver, final DocumentFile root,
+                                  final InputStream stream, final String filename) {
+        try {
+            DocumentFile dir = DocumentUtils.getOrCreateSubDirectory(root, PICTURE);
+            if (dir != null) {
+                DocumentFile file = DocumentUtils.getOrCreateFile(dir, filename);
+                DocumentUtils.writeBinaryToFile(resolver, file, stream);
+                return file.getUri();
             }
-        }).subscribeOn(Schedulers.io());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        throw new RuntimeException();
     }
 
     public static List<ImageUrl> buildImageUrlFromDocumentFile(List<DocumentFile> list, String chapterStr, int max, Chapter chapter) {

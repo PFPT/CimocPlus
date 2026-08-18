@@ -1,21 +1,24 @@
 package com.haleydu.cimoc.service;
 
+import android.app.Notification;
 import android.app.Service;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ServiceInfo;
 import android.os.Binder;
+import android.os.Build;
 import android.os.IBinder;
 import androidx.annotation.Nullable;
 import androidx.collection.LongSparseArray;
+import androidx.core.content.ContextCompat;
 
 import android.util.Pair;
 
 import com.haleydu.cimoc.App;
 import com.haleydu.cimoc.R;
-import com.haleydu.cimoc.component.AppGetter;
 import com.haleydu.cimoc.core.Download;
-import com.haleydu.cimoc.core.Manga;
+import com.haleydu.cimoc.core.MangaImages;
 import com.haleydu.cimoc.global.Extra;
 import com.haleydu.cimoc.manager.ChapterManager;
 import com.haleydu.cimoc.manager.PreferenceManager;
@@ -25,8 +28,8 @@ import com.haleydu.cimoc.misc.NotificationWrapper;
 import com.haleydu.cimoc.model.ImageUrl;
 import com.haleydu.cimoc.model.Task;
 import com.haleydu.cimoc.parser.Parser;
-import com.haleydu.cimoc.rx.RxBus;
-import com.haleydu.cimoc.rx.RxEvent;
+import com.haleydu.cimoc.event.AppEventBus;
+import com.haleydu.cimoc.event.AppEvent;
 import com.haleydu.cimoc.saf.DocumentFile;
 import com.haleydu.cimoc.utils.DocumentUtils;
 import com.haleydu.cimoc.utils.JMTTUtil;
@@ -41,6 +44,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import javax.inject.Inject;
+
+import dagger.hilt.android.AndroidEntryPoint;
+
 import okhttp3.CacheControl;
 import okhttp3.Headers;
 import okhttp3.MediaType;
@@ -52,17 +59,22 @@ import okhttp3.ResponseBody;
 /**
  * Created by Hiroshi on 2016/9/1.
  */
-public class DownloadService extends Service implements AppGetter {
+@AndroidEntryPoint
+public class DownloadService extends Service {
 
     private static final String NOTIFICATION_DOWNLOAD = "NOTIFICATION_DOWNLOAD";
 
     private LongSparseArray<Pair<Worker, Future>> mWorkerArray;
     private ExecutorService mExecutorService;
-    private OkHttpClient mHttpClient;
     private NotificationWrapper mNotification;
-    private TaskManager mTaskManager;
-    private SourceManager mSourceManager;
-    private ChapterManager mChapterManager;
+    @Inject
+    TaskManager mTaskManager;
+    @Inject
+    SourceManager mSourceManager;
+    @Inject
+    ChapterManager mChapterManager;
+    @Inject
+    OkHttpClient mHttpClient;
     private ContentResolver mContentResolver;
 
     public static Intent createIntent(Context context, Task task) {
@@ -75,6 +87,10 @@ public class DownloadService extends Service implements AppGetter {
         Intent intent = new Intent(context, DownloadService.class);
         intent.putParcelableArrayListExtra(Extra.EXTRA_TASK, list);
         return intent;
+    }
+
+    public static void start(Context context, Intent intent) {
+        ContextCompat.startForegroundService(context, intent);
     }
 
     @Nullable
@@ -90,22 +106,19 @@ public class DownloadService extends Service implements AppGetter {
         int num = manager.getInt(PreferenceManager.PREF_DOWNLOAD_THREAD, 2);
         mWorkerArray = new LongSparseArray<>();
         mExecutorService = Executors.newFixedThreadPool(num);
-        mHttpClient = App.getHttpClient();
-        mTaskManager = TaskManager.getInstance(this);
-        mSourceManager = SourceManager.getInstance(this);
         mContentResolver = getContentResolver();
-        mChapterManager = ChapterManager.getInstance(this);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null) {
-            RxBus.getInstance().post(new RxEvent(RxEvent.EVENT_DOWNLOAD_START));
+            AppEventBus.post(new AppEvent(AppEvent.EVENT_DOWNLOAD_START));
             if (mNotification == null) {
                 mNotification = new NotificationWrapper(this, NOTIFICATION_DOWNLOAD,
                         R.drawable.ic_file_download_white_24dp, true);
                 mNotification.post(getString(R.string.download_service_doing), true);
             }
+            startAsForeground();
             List<Task> list = intent.getParcelableArrayListExtra(Extra.EXTRA_TASK);
             for (Task task : list) {
                 Worker worker = new Worker(task);
@@ -113,7 +126,17 @@ public class DownloadService extends Service implements AppGetter {
                 addWorker(task.getId(), worker, future);
             }
         }
-        return super.onStartCommand(intent, flags, startId);
+        return START_NOT_STICKY;
+    }
+
+    private void startAsForeground() {
+        Notification notification = mNotification.getNotification();
+        int id = mNotification.getId();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(id, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+        } else {
+            startForeground(id, notification);
+        }
     }
 
     @Override
@@ -125,7 +148,6 @@ public class DownloadService extends Service implements AppGetter {
         }
     }
 
-    @Override
     public App getAppInstance() {
         return (App) getApplication();
     }
@@ -158,8 +180,13 @@ public class DownloadService extends Service implements AppGetter {
             mNotification.cancel();
             mNotification = null;
         }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE);
+        } else {
+            stopForeground(true);
+        }
         mWorkerArray.clear();
-        RxBus.getInstance().post(new RxEvent(RxEvent.EVENT_DOWNLOAD_STOP));
+        AppEventBus.post(new AppEvent(AppEvent.EVENT_DOWNLOAD_STOP));
     }
 
     public synchronized void initTask(List<Task> list) {
@@ -200,13 +227,13 @@ public class DownloadService extends Service implements AppGetter {
                             while (count++ < 20 && !success) {
                                 String[] urls = image.getUrls();
                                 for (int j = 0; !success && j < urls.length; ++j) {
-                                    String url = image.isLazy() ? Manga.getLazyUrl(mParse, urls[j]) : urls[j];
+                                    String url = image.isLazy() ? MangaImages.getLazyUrl(mHttpClient, mParse, urls[j]) : urls[j];
                                     Request request = buildRequest(mParse.getHeader(url), url);
                                     success = RequestAndWrite(dir, request, i + 1, url);
                                 }
                             }
                             if (!success) {     // 单页下载错误
-                                RxBus.getInstance().post(new RxEvent(RxEvent.EVENT_TASK_STATE_CHANGE, Task.STATE_ERROR, mTask.getId()));
+                                AppEventBus.post(new AppEvent(AppEvent.EVENT_TASK_STATE_CHANGE, Task.STATE_ERROR, mTask.getId()));
                                 break;
                             }
                         }
@@ -214,13 +241,13 @@ public class DownloadService extends Service implements AppGetter {
                             onDownloadProgress(size);
                         }
                     } else {
-                        RxBus.getInstance().post(new RxEvent(RxEvent.EVENT_TASK_STATE_CHANGE, Task.STATE_ERROR, mTask.getId()));
+                        AppEventBus.post(new AppEvent(AppEvent.EVENT_TASK_STATE_CHANGE, Task.STATE_ERROR, mTask.getId()));
                     }
                 } else {
-                    RxBus.getInstance().post(new RxEvent(RxEvent.EVENT_TASK_STATE_CHANGE, Task.STATE_ERROR, mTask.getId()));
+                    AppEventBus.post(new AppEvent(AppEvent.EVENT_TASK_STATE_CHANGE, Task.STATE_ERROR, mTask.getId()));
                 }
             } catch (InterruptedIOException e) {
-                RxBus.getInstance().post(new RxEvent(RxEvent.EVENT_TASK_STATE_CHANGE, Task.STATE_PAUSE, mTask.getId()));
+                AppEventBus.post(new AppEvent(AppEvent.EVENT_TASK_STATE_CHANGE, Task.STATE_PAUSE, mTask.getId()));
             }
 
             completeDownload(mTask.getId());
@@ -243,7 +270,7 @@ public class DownloadService extends Service implements AppGetter {
                                     if ( cha < 220980) return response1;
                                     byte[] res = new JMTTUtil().decodeImage(response1.body().byteStream());
                                     MediaType mediaType = MediaType.parse("image/avif,image/webp,image/apng,image/*,*/*");
-                                    ResponseBody outputBytes = ResponseBody.create(mediaType, res);
+                                    ResponseBody outputBytes = ResponseBody.create(res, mediaType);
                                     return response1.newBuilder().body(outputBytes).build();
                                 })
                                 .build();
@@ -299,14 +326,14 @@ public class DownloadService extends Service implements AppGetter {
 
         private List<ImageUrl> onDownloadParse() throws InterruptedIOException {
             mTask.setState(Task.STATE_PARSE);
-            RxBus.getInstance().post(new RxEvent(RxEvent.EVENT_TASK_STATE_CHANGE, Task.STATE_PARSE, mTask.getId()));
-            return Manga.getImageUrls(mParse, mTask.getSource(), mTask.getCid(), mTask.getPath(), mTask.getTitle(), mChapterManager);
+            AppEventBus.post(new AppEvent(AppEvent.EVENT_TASK_STATE_CHANGE, Task.STATE_PARSE, mTask.getId()));
+            return MangaImages.getImageUrls(mHttpClient, mParse, mTask.getSource(), mTask.getCid(), mTask.getPath(), mTask.getTitle(), mChapterManager);
         }
 
         private void onDownloadProgress(int progress) {
             mTask.setProgress(progress);
             mTaskManager.update(mTask);
-            RxBus.getInstance().post(new RxEvent(RxEvent.EVENT_TASK_PROCESS, mTask.getId(), progress, mTask.getMax()));
+            AppEventBus.post(new AppEvent(AppEvent.EVENT_TASK_PROCESS, mTask.getId(), progress, mTask.getMax()));
         }
 
     }

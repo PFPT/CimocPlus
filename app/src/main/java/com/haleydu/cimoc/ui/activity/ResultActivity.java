@@ -10,29 +10,33 @@ import android.util.SparseArray;
 import android.view.View;
 import android.widget.FrameLayout;
 
+import androidx.lifecycle.ViewModelProvider;
+
 import com.google.firebase.analytics.FirebaseAnalytics;
-import com.haleydu.cimoc.App;
 import com.haleydu.cimoc.R;
+import com.haleydu.cimoc.databinding.ActivityResultBinding;
 import com.haleydu.cimoc.fresco.ControllerBuilderProvider;
 import com.haleydu.cimoc.global.Extra;
 import com.haleydu.cimoc.manager.PreferenceManager;
-import com.haleydu.cimoc.manager.SourceManager;
 import com.haleydu.cimoc.model.Comic;
-import com.haleydu.cimoc.presenter.BasePresenter;
-import com.haleydu.cimoc.presenter.ResultPresenter;
+import com.haleydu.cimoc.ui.FlowExtKt;
 import com.haleydu.cimoc.ui.adapter.BaseAdapter;
 import com.haleydu.cimoc.ui.adapter.ResultAdapter;
-import com.haleydu.cimoc.ui.view.ResultView;
+import dagger.hilt.android.AndroidEntryPoint;
 
 import java.util.LinkedList;
 import java.util.List;
 
-import butterknife.BindView;
+import javax.inject.Inject;
+
+import okhttp3.OkHttpClient;
+
 
 /**
  * Created by Hiroshi on 2016/7/3.
  */
-public class ResultActivity extends BackActivity implements ResultView, BaseAdapter.OnItemClickListener {
+@AndroidEntryPoint
+public class ResultActivity extends BackActivity implements BaseAdapter.OnItemClickListener {
 
     /**
      * 根据用户输入的关键词搜索
@@ -44,15 +48,17 @@ public class ResultActivity extends BackActivity implements ResultView, BaseAdap
      * Extra: 格式 图源
      */
     public static final int LAUNCH_MODE_CATEGORY = 1;
-    @BindView(R.id.result_recycler_view)
     RecyclerView mRecyclerView;
-    @BindView(R.id.result_layout)
     FrameLayout mLayoutView;
     private ResultAdapter mResultAdapter;
     private LinearLayoutManager mLayoutManager;
-    private ResultPresenter mPresenter;
+    private ResultViewModel vm;
+    private ActivityResultBinding binding;
     private ControllerBuilderProvider mProvider;
     private int type;
+
+    @Inject
+    OkHttpClient httpClient;
 
     public static Intent createIntent(Context context, String keyword, int source, int type) {
         return createIntent(context, keyword, new int[]{source}, type);
@@ -84,13 +90,12 @@ public class ResultActivity extends BackActivity implements ResultView, BaseAdap
     public static SparseArray<String> searchUrls = new SparseArray<>();
 
     @Override
-    protected BasePresenter initPresenter() {
+    protected void initViewModel() {
         String keyword = getIntent().getStringExtra(Extra.EXTRA_KEYWORD);
         int[] source = getIntent().getIntArrayExtra(Extra.EXTRA_SOURCE);
         boolean strictSearch = getIntent().getBooleanExtra(Extra.EXTRA_STRICT, true);
-        mPresenter = new ResultPresenter(source, keyword, strictSearch);
-        mPresenter.attachView(this);
-        return mPresenter;
+        vm = new ViewModelProvider(this).get(ResultViewModel.class);
+        vm.setup(source, keyword, strictSearch);
     }
 
     @Override
@@ -99,9 +104,9 @@ public class ResultActivity extends BackActivity implements ResultView, BaseAdap
         mLayoutManager = new LinearLayoutManager(this);
         mResultAdapter = new ResultAdapter(this, new LinkedList<Comic>());
         mResultAdapter.setOnItemClickListener(this);
-        mProvider = new ControllerBuilderProvider(this, SourceManager.getInstance(this).new HeaderGetter(), true);
+        mProvider = new ControllerBuilderProvider(this, vm.headerGetter(), true, httpClient);
         mResultAdapter.setProvider(mProvider);
-        mResultAdapter.setTitleGetter(SourceManager.getInstance(this).new TitleGetter());
+        mResultAdapter.setTitleGetter(vm.titleGetter());
         mRecyclerView.setHasFixedSize(true);
         mRecyclerView.setLayoutManager(mLayoutManager);
         mRecyclerView.addItemDecoration(mResultAdapter.getItemDecoration());
@@ -131,6 +136,10 @@ public class ResultActivity extends BackActivity implements ResultView, BaseAdap
     @Override
     protected void initData() {
         type = getIntent().getIntExtra(Extra.EXTRA_MODE, -1);
+        FlowExtKt.collectOnStart(vm.getSearchSuccess(), this, this::onSearchSuccess);
+        FlowExtKt.collectOnStart(vm.getSearchError(), this, unit -> onSearchError());
+        FlowExtKt.collectOnStart(vm.getLoadSuccess(), this, this::onLoadSuccess);
+        FlowExtKt.collectOnStart(vm.getLoadFail(), this, unit -> onLoadFail());
         load();
     }
 
@@ -145,10 +154,10 @@ public class ResultActivity extends BackActivity implements ResultView, BaseAdap
     private void load() {
         switch (type) {
             case LAUNCH_MODE_SEARCH:
-                mPresenter.loadSearch();
+                vm.loadSearch();
                 break;
             case LAUNCH_MODE_CATEGORY:
-                mPresenter.loadCategory();
+                vm.loadCategory();
                 break;
         }
     }
@@ -160,11 +169,10 @@ public class ResultActivity extends BackActivity implements ResultView, BaseAdap
         startActivity(intent);
     }
 
-    @Override
     public void onSearchSuccess(Comic comic) {
         hideProgressBar();
         mResultAdapter.add(comic);
-        if(App.getPreferenceManager().getBoolean(PreferenceManager.PREF_OTHER_FIREBASE_EVENT, true)) {
+        if(mPreference.getBoolean(PreferenceManager.PREF_OTHER_FIREBASE_EVENT, true)) {
             Bundle bundle = new Bundle();
             bundle.putString(FirebaseAnalytics.Param.CHARACTER, getIntent().getStringExtra(Extra.EXTRA_KEYWORD));
             bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "bySearch");
@@ -176,23 +184,20 @@ public class ResultActivity extends BackActivity implements ResultView, BaseAdap
         }
     }
 
-    @Override
     public void onLoadSuccess(List<Comic> list) {
         hideProgressBar();
         mResultAdapter.addAll(list);
     }
 
-    @Override
     public void onLoadFail() {
         hideProgressBar();
         showSnackbar(R.string.common_parse_error);
     }
 
-    @Override
     public void onSearchError() {
         hideProgressBar();
         showSnackbar(R.string.result_empty);
-        if(App.getPreferenceManager().getBoolean(PreferenceManager.PREF_OTHER_FIREBASE_EVENT, true)) {
+        if(mPreference.getBoolean(PreferenceManager.PREF_OTHER_FIREBASE_EVENT, true)) {
             Bundle bundle = new Bundle();
             bundle.putString(FirebaseAnalytics.Param.CHARACTER, getIntent().getStringExtra(Extra.EXTRA_KEYWORD));
             bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "bySearch");
@@ -209,6 +214,12 @@ public class ResultActivity extends BackActivity implements ResultView, BaseAdap
     }
 
     @Override
+    protected View inflateContentView() {
+        binding = ActivityResultBinding.inflate(getLayoutInflater());
+        return binding.getRoot();
+    }
+
+    @Override
     protected int getLayoutRes() {
         return R.layout.activity_result;
     }
@@ -221,6 +232,14 @@ public class ResultActivity extends BackActivity implements ResultView, BaseAdap
     @Override
     protected boolean isNavTranslation() {
         return true;
+    }
+
+
+    @Override
+    protected void bindViews() {
+        super.bindViews();
+        mRecyclerView = binding.resultRecyclerView;
+        mLayoutView = binding.resultLayout;
     }
 
 }

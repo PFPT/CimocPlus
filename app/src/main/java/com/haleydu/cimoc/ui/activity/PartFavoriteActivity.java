@@ -10,41 +10,45 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
+import androidx.lifecycle.ViewModelProvider;
+
 import com.haleydu.cimoc.App;
 import com.haleydu.cimoc.R;
+import com.haleydu.cimoc.component.DialogCaller;
+import com.haleydu.cimoc.databinding.ActivityPartFavoriteBinding;
 import com.haleydu.cimoc.global.Extra;
-import com.haleydu.cimoc.manager.SourceManager;
 import com.haleydu.cimoc.manager.TagManager;
 import com.haleydu.cimoc.model.MiniComic;
-import com.haleydu.cimoc.presenter.BasePresenter;
-import com.haleydu.cimoc.presenter.PartFavoritePresenter;
+import com.haleydu.cimoc.event.AppEventBus;
+import com.haleydu.cimoc.event.AppEvent;
+import com.haleydu.cimoc.ui.FlowExtKt;
 import com.haleydu.cimoc.ui.adapter.BaseAdapter;
 import com.haleydu.cimoc.ui.adapter.GridAdapter;
 import com.haleydu.cimoc.ui.fragment.dialog.MessageDialogFragment;
 import com.haleydu.cimoc.ui.fragment.dialog.MultiDialogFragment;
-import com.haleydu.cimoc.ui.view.PartFavoriteView;
 import com.haleydu.cimoc.utils.HintUtils;
+import dagger.hilt.android.AndroidEntryPoint;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import butterknife.BindView;
 
 /**
  * Created by Hiroshi on 2016/10/11.
  */
 
-public class PartFavoriteActivity extends BackActivity implements PartFavoriteView, BaseAdapter.OnItemClickListener,
+@AndroidEntryPoint
+public class PartFavoriteActivity extends BackActivity implements DialogCaller, BaseAdapter.OnItemClickListener,
         BaseAdapter.OnItemLongClickListener {
 
     private static final int DIALOG_REQUEST_DELETE = 0;
     private static final int DIALOG_REQUEST_ADD = 1;
 
-    @BindView(R.id.part_favorite_recycler_view)
     RecyclerView mRecyclerView;
 
-    private PartFavoritePresenter mPresenter;
+    private PartFavoriteViewModel vm;
+    private ActivityPartFavoriteBinding binding;
     private GridAdapter mGridAdapter;
 
     private MiniComic mSavedComic;
@@ -58,10 +62,8 @@ public class PartFavoriteActivity extends BackActivity implements PartFavoriteVi
     }
 
     @Override
-    protected BasePresenter initPresenter() {
-        mPresenter = new PartFavoritePresenter();
-        mPresenter.attachView(this);
-        return mPresenter;
+    protected void initViewModel() {
+        vm = new ViewModelProvider(this).get(PartFavoriteViewModel.class);
     }
 
     @Override
@@ -70,7 +72,7 @@ public class PartFavoriteActivity extends BackActivity implements PartFavoriteVi
         mGridAdapter = new GridAdapter(this, new LinkedList<Object>());
         mGridAdapter.setSymbol(true);
         mGridAdapter.setProvider(((App) getApplication()).getBuilderProvider());
-        mGridAdapter.setTitleGetter(SourceManager.getInstance(this).new TitleGetter());
+        mGridAdapter.setTitleGetter(vm.titleGetter());
         mGridAdapter.setOnItemClickListener(this);
         mGridAdapter.setOnItemLongClickListener(this);
         mRecyclerView.setLayoutManager(new GridLayoutManager(this, 3));
@@ -84,7 +86,29 @@ public class PartFavoriteActivity extends BackActivity implements PartFavoriteVi
     protected void initData() {
         long id = getIntent().getLongExtra(Extra.EXTRA_ID, -1);
         isDeletable = id != TagManager.TAG_CONTINUE && id != TagManager.TAG_FINISH;
-        mPresenter.load(id);
+        FlowExtKt.collectOnStart(vm.getComics(), this, this::onComicLoadSuccess);
+        FlowExtKt.collectOnStart(vm.getLoadFail(), this, unit -> onComicLoadFail());
+        FlowExtKt.collectOnStart(vm.getTitles(), this, this::onComicTitleLoadSuccess);
+        FlowExtKt.collectOnStart(vm.getTitleFail(), this, unit -> onComicTitleLoadFail());
+        FlowExtKt.collectOnStart(vm.getInsertSuccess(), this, this::onComicInsertSuccess);
+        FlowExtKt.collectOnStart(vm.getInsertFail(), this, unit -> onComicInsertFail());
+        FlowExtKt.collectOnStart(AppEventBus.observe(AppEvent.EVENT_COMIC_UNFAVORITE), this, event ->
+                onComicRemove((long) event.getData()));
+        FlowExtKt.collectOnStart(AppEventBus.observe(AppEvent.EVENT_TAG_UPDATE), this, event -> {
+            long comicId = (long) event.getData();
+            @SuppressWarnings("unchecked")
+            List<Long> list = (List<Long>) event.getData(1);
+            if (list.contains(id)) {
+                onComicAdd(new MiniComic(vm.loadComic(comicId)));
+            } else {
+                onComicRemove(comicId);
+            }
+        });
+        FlowExtKt.collectOnStart(AppEventBus.observe(AppEvent.EVENT_COMIC_CANCEL_HIGHLIGHT), this, event ->
+                onHighlightCancel((MiniComic) event.getData()));
+        FlowExtKt.collectOnStart(AppEventBus.observe(AppEvent.EVENT_COMIC_READ), this, event ->
+                onComicRead((MiniComic) event.getData()));
+        vm.load(id);
     }
 
     @Override
@@ -100,7 +124,7 @@ public class PartFavoriteActivity extends BackActivity implements PartFavoriteVi
         switch (item.getItemId()) {
             case R.id.part_favorite_add:
                 showProgressDialog();
-                mPresenter.loadComicTitle(mGridAdapter.getDateSet());
+                vm.loadComicTitle(mGridAdapter.getDateSet());
                 break;
         }
         return super.onOptionsItemSelected(item);
@@ -130,32 +154,29 @@ public class PartFavoriteActivity extends BackActivity implements PartFavoriteVi
         switch (requestCode) {
             case DIALOG_REQUEST_DELETE:
                 long id = mSavedComic.getId();
-                mPresenter.delete(id);
+                vm.delete(id);
                 mGridAdapter.remove(mSavedComic);
                 HintUtils.showToast(this, R.string.common_execute_success);
                 break;
             case DIALOG_REQUEST_ADD:
                 showProgressDialog();
                 boolean[] check = bundle.getBooleanArray(EXTRA_DIALOG_RESULT_VALUE);
-                mPresenter.insert(check);
+                vm.insert(check);
                 break;
         }
     }
 
-    @Override
     public void onComicLoadFail() {
         hideProgressBar();
         HintUtils.showToast(this, R.string.common_data_load_fail);
     }
 
-    @Override
     public void onComicLoadSuccess(List<Object> list) {
         hideProgressBar();
         mGridAdapter.addAll(list);
 
     }
 
-    @Override
     public void onComicTitleLoadSuccess(List<String> list) {
         hideProgressDialog();
         MultiDialogFragment fragment = MultiDialogFragment.newInstance(R.string.part_favorite_select,
@@ -163,41 +184,34 @@ public class PartFavoriteActivity extends BackActivity implements PartFavoriteVi
         fragment.show(getSupportFragmentManager(), null);
     }
 
-    @Override
     public void onComicTitleLoadFail() {
         hideProgressDialog();
         HintUtils.showToast(this, R.string.common_data_load_fail);
     }
 
-    @Override
     public void onComicInsertSuccess(List<Object> list) {
         hideProgressDialog();
         mGridAdapter.addAll(list);
         HintUtils.showToast(this, R.string.common_execute_success);
     }
 
-    @Override
     public void onComicInsertFail() {
         hideProgressDialog();
         HintUtils.showToast(this, R.string.common_execute_fail);
     }
 
-    @Override
     public void onHighlightCancel(MiniComic comic) {
         mGridAdapter.moveItemTop(comic);
     }
 
-    @Override
     public void onComicRead(MiniComic comic) {
         mGridAdapter.moveItemTop(comic);
     }
 
-    @Override
     public void onComicRemove(long id) {
         mGridAdapter.removeItemById(id);
     }
 
-    @Override
     public void onComicAdd(MiniComic comic) {
         if (!mGridAdapter.contains(comic)) {
             mGridAdapter.add(0, comic);
@@ -210,6 +224,12 @@ public class PartFavoriteActivity extends BackActivity implements PartFavoriteVi
     }
 
     @Override
+    protected View inflateContentView() {
+        binding = ActivityPartFavoriteBinding.inflate(getLayoutInflater());
+        return binding.getRoot();
+    }
+
+    @Override
     protected int getLayoutRes() {
         return R.layout.activity_part_favorite;
     }
@@ -218,4 +238,11 @@ public class PartFavoriteActivity extends BackActivity implements PartFavoriteVi
     protected boolean isNavTranslation() {
         return true;
     }
+
+    @Override
+    protected void bindViews() {
+        super.bindViews();
+        mRecyclerView = binding.partFavoriteRecyclerView;
+    }
+
 }

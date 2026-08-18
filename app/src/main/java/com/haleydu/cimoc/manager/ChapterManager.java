@@ -1,73 +1,49 @@
 package com.haleydu.cimoc.manager;
 
-import android.util.Log;
-
-import com.haleydu.cimoc.component.AppGetter;
+import com.haleydu.cimoc.db.ChapterDao;
+import com.haleydu.cimoc.db.CimocDatabase;
 import com.haleydu.cimoc.model.Chapter;
-import com.haleydu.cimoc.model.ChapterDao;
-import com.haleydu.cimoc.model.ChapterDao.Properties;
-import com.haleydu.cimoc.model.Comic;
-import com.haleydu.cimoc.model.ComicDao;
 
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import rx.Observable;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
-
-/**
- * Created by Hiroshi on 2016/7/9.
- */
+@Singleton
 public class ChapterManager {
 
-    private static ChapterManager mInstance;
-
+    private final CimocDatabase database;
     private ChapterDao mChapterDao;
 
-    private ChapterManager(AppGetter getter) {
-        mChapterDao = getter.getAppInstance().getDaoSession().getChapterDao();
-    }
-
-    public static ChapterManager getInstance(AppGetter getter) {
-        if (mInstance == null) {
-            synchronized (ChapterManager.class) {
-                if (mInstance == null) {
-                    mInstance = new ChapterManager(getter);
-                }
-            }
-        }
-        return mInstance;
+    @Inject
+    public ChapterManager(CimocDatabase database, ChapterDao chapterDao) {
+        this.database = database;
+        mChapterDao = chapterDao;
     }
 
     public void runInTx(Runnable runnable) {
-        mChapterDao.getSession().runInTx(runnable);
+        database.runInTransaction(runnable);
     }
 
     public <T> T callInTx(Callable<T> callable) {
-        return mChapterDao.getSession().callInTxNoException(callable);
+        return database.runInTransaction(callable);
     }
 
-    public Observable<List<Chapter>> getListChapter(Long sourceComic) {
-        return mChapterDao.queryBuilder()
-                .where(Properties.SourceComic.eq(sourceComic))
-                .rx()
-                .list();
+    public List<Chapter> getListChapter(Long sourceComic) {
+        return mChapterDao.getListChapter(sourceComic);
     }
 
-    public List<Chapter> getChapter(String path,String title) {
-        return mChapterDao.queryBuilder()
-                .where(ChapterDao.Properties.Path.eq(path),ChapterDao.Properties.Title.eq(title))
-                .list();
+    public List<Chapter> getChapter(String path, String title) {
+        return mChapterDao.getChapter(path, title);
     }
-
 
     public Chapter load(long id) {
         return mChapterDao.load(id);
     }
 
-
     public void cancelHighlight() {
-        mChapterDao.getDatabase().execSQL("UPDATE \"COMIC\" SET \"HIGHLIGHT\" = 0 WHERE \"HIGHLIGHT\" = 1");
+        database.comicDao().cancelHighlight();
     }
 
     public void updateOrInsert(List<Chapter> chapterList) {
@@ -81,15 +57,15 @@ public class ChapterManager {
     }
 
     public void insertOrReplace(List<Chapter> chapterList) {
-        for (Chapter chapter:chapterList) {
-            if (chapter.getId()!=null) {
+        for (Chapter chapter : chapterList) {
+            if (chapter.getId() != null) {
                 mChapterDao.insertOrReplace(chapter);
             }
         }
     }
 
     public void update(Chapter chapter) {
-        if (chapter.getId()!=null) {
+        if (chapter.getId() != null) {
             mChapterDao.update(chapter);
         }
     }

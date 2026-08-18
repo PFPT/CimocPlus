@@ -2,7 +2,6 @@ package com.haleydu.cimoc.source;
 
 import android.util.Log;
 
-import com.haleydu.cimoc.App;
 import com.haleydu.cimoc.manager.PreferenceManager;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
@@ -30,10 +29,10 @@ public class HHAAZZ extends MangaParser {
     public static String baseUrl = "";
     public static String sw = "";
 
-    public HHAAZZ(Source source) {
+    public HHAAZZ(Source source, PreferenceManager preferenceManager) {
         init(source, null);
-        baseUrl = App.getPreferenceManager().getString(PreferenceManager.PREF_HHAAZZ_BASEURL, "");
-        sw = App.getPreferenceManager().getString(PreferenceManager.PREF_HHAAZZ_SW, "");
+        baseUrl = preferenceManager.getString(PreferenceManager.PREF_HHAAZZ_BASEURL, "");
+        sw = preferenceManager.getString(PreferenceManager.PREF_HHAAZZ_SW, "");
     }
 
     public static Source getDefaultSource() {

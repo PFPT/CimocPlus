@@ -103,6 +103,31 @@
     <string name="reader_picture_loading">正在加载中..</string>
     <string name="reader_picture_save_success">保存成功</string>
     <string name="reader_picture_save_fail">保存失败</string>
+    <string name="reader_menu_catalog">目录</string>
+    <string name="reader_menu_auto">自动</string>
+    <string name="reader_menu_color">色彩</string>
+    <string name="reader_menu_settings">设置</string>
+    <string name="reader_brightness">亮度</string>
+    <string name="reader_style">阅读模式</string>
+    <string name="reader_style_page">翻页模式</string>
+    <string name="reader_style_stream">卷纸模式</string>
+    <string name="reader_style_manga">日漫模式</string>
+    <string name="reader_white_edge">去除白边</string>
+    <string name="reader_stitch">上下拼接</string>
+    <string name="reader_preload">预加载</string>
+    <string name="reader_preload_count">预加载 %d 章</string>
+    <string name="reader_info_position">漫画信息位置</string>
+    <string name="reader_info_top">右上</string>
+    <string name="reader_info_bottom">底部</string>
+    <string name="reader_color_red">红色</string>
+    <string name="reader_color_green">绿色</string>
+    <string name="reader_color_blue">蓝色</string>
+    <string name="reader_color_invert">反色</string>
+    <string name="reader_color_gray">黑白</string>
+    <string name="reader_auto_interval">自动翻页间隔</string>
+    <string name="reader_auto_interval_value">%d 秒</string>
+    <string name="settings_reader_hide_load_toast">漫画加载成功不弹出提示</string>
+    <string name="settings_reader_info_bottom">漫画信息显示在底部</string>
 
     <string name="reader_config_title">阅读配置</string>
     <string name="reader_config_page">翻页模式</string>
@@ -196,8 +221,6 @@
     <string name="settings_other_clear_cache_summary">清理在线漫画的缓存数据</string>
     <string name="settings_other_firebase_event">Firebase数据收集</string>
     <string name="settings_other_firebase_event_summary">允许程序通过Firebase收集您的使用情况，以便于分析程序和漫画源的工作状态。</string>
-    <string name="settings_other_reduce_ad">减少页面广告</string>
-    <string name="settings_other_reduce_ad_summary">减少历史和收藏页广告，下载和本地页不显示广告</string>
 
     <string name="backup_save">备份</string>
     <string name="backup_save_comic_auto">自动备份</string>
@@ -307,6 +330,7 @@
     <string name="common_data_load_fail">读取数据失败</string>
     <string name="common_keyword_empty">关键字为空</string>
     <string name="common_parse_error">解析错误</string>
+    <string name="common_network_error">网络错误</string>
     <string name="common_execute_success">操作成功</string>
     <string name="common_execute_clear_success">清理成功</string>
     <string name="common_execute_clear_fail">清理失败</string>

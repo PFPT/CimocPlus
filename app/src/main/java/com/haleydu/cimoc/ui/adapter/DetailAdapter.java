@@ -15,17 +15,15 @@ import android.graphics.Typeface;
 import android.text.TextPaint;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 
 import com.facebook.drawee.backends.pipeline.PipelineDraweeControllerBuilderSupplier;
-import com.facebook.drawee.view.SimpleDraweeView;
 import com.haleydu.cimoc.R;
+import com.haleydu.cimoc.databinding.ItemChapterBinding;
+import com.haleydu.cimoc.databinding.ItemChapterHeaderBinding;
 import com.haleydu.cimoc.model.Chapter;
-import com.haleydu.cimoc.ui.widget.ChapterButton;
 
 import java.util.List;
 
-import butterknife.BindView;
 
 /**
  * Created by Hiroshi on 2016/7/2.
@@ -156,11 +154,9 @@ public class DetailAdapter extends BaseAdapter<Chapter> {
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         if (viewType == 0) {
-            View view = mInflater.inflate(R.layout.item_chapter_header, parent, false);
-            return new HeaderHolder(view);
+            return new HeaderHolder(ItemChapterHeaderBinding.inflate(mInflater, parent, false));
         }
-        View view = mInflater.inflate(R.layout.item_chapter, parent, false);
-        return new ChapterHolder(view);
+        return new ChapterHolder(ItemChapterBinding.inflate(mInflater, parent, false));
     }
 
     public void setInfo(String cover, String title, String author, String intro, Boolean finish, String update, String last, Boolean isReverseOrder) {
@@ -190,27 +186,27 @@ public class DetailAdapter extends BaseAdapter<Chapter> {
                 HeaderHolder headerHolder = (HeaderHolder) holder;
                 if (title != null) {
                     if (cover != null) {
-                        headerHolder.mComicImage.setController(mControllerSupplier.get().setUri(cover).build());
+                        headerHolder.binding.itemHeaderComicImage.setController(mControllerSupplier.get().setUri(cover).build());
                     }
-                    headerHolder.mComicTitle.setText(title);
-                    headerHolder.mComicIntro.setText(intro);
+                    headerHolder.binding.itemHeaderComicTitle.setText(title);
+                    headerHolder.binding.itemHeaderComicIntro.setText(intro);
                     if (finish != null) {
-                        headerHolder.mComicStatus.setText(finish ? "完结" : "连载中");
+                        headerHolder.binding.itemHeaderComicStatus.setText(finish ? "完结" : "连载中");
                     }
                     if (update != null) {
-                        headerHolder.mComicUpdate.setText("最后更新：".concat(update));
+                        headerHolder.binding.itemHeaderComicUpdate.setText("最后更新：".concat(update));
                     }
-                    headerHolder.mComicAuthor.setText(author);
+                    headerHolder.binding.itemHeaderComicAuthor.setText(author);
                 }
             } else {
                 Chapter chapter = mDataSet.get(position - 1);
                 ChapterHolder viewHolder = (ChapterHolder) holder;
-                viewHolder.chapterButton.setText(chapter.getTitle());
-                viewHolder.chapterButton.setDownload(chapter.isComplete());
+                viewHolder.binding.getRoot().setText(chapter.getTitle());
+                viewHolder.binding.getRoot().setDownload(chapter.isComplete());
                 if (chapter.getPath() != null && chapter.getPath().equals(last)) {
-                    viewHolder.chapterButton.setSelected(true);
-                } else if (viewHolder.chapterButton.isSelected()) {
-                    viewHolder.chapterButton.setSelected(false);
+                    viewHolder.binding.getRoot().setSelected(true);
+                } else if (viewHolder.binding.getRoot().isSelected()) {
+                    viewHolder.binding.getRoot().setSelected(false);
                 }
             }
         } catch (Exception e) {
@@ -256,30 +252,20 @@ public class DetailAdapter extends BaseAdapter<Chapter> {
     }
 
     static class ChapterHolder extends BaseViewHolder {
-        @BindView(R.id.item_chapter_button)
-        ChapterButton chapterButton;
+        final ItemChapterBinding binding;
 
-        ChapterHolder(View view) {
-            super(view);
+        ChapterHolder(ItemChapterBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
         }
     }
 
-    class HeaderHolder extends BaseViewHolder {
-        @BindView(R.id.item_header_comic_image)
-        SimpleDraweeView mComicImage;
-        @BindView(R.id.item_header_comic_title)
-        TextView mComicTitle;
-        @BindView(R.id.item_header_comic_intro)
-        TextView mComicIntro;
-        @BindView(R.id.item_header_comic_status)
-        TextView mComicStatus;
-        @BindView(R.id.item_header_comic_update)
-        TextView mComicUpdate;
-        @BindView(R.id.item_header_comic_author)
-        TextView mComicAuthor;
+    static class HeaderHolder extends BaseViewHolder {
+        final ItemChapterHeaderBinding binding;
 
-        HeaderHolder(View view) {
-            super(view);
+        HeaderHolder(ItemChapterHeaderBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
         }
     }
 

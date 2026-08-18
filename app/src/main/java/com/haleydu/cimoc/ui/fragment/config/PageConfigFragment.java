@@ -9,6 +9,7 @@ import android.view.View;
 
 import com.haleydu.cimoc.R;
 import com.haleydu.cimoc.component.DialogCaller;
+import com.haleydu.cimoc.databinding.FragmentPageConfigBinding;
 import com.haleydu.cimoc.global.ClickEvents;
 import com.haleydu.cimoc.manager.PreferenceManager;
 import com.haleydu.cimoc.ui.activity.settings.EventSettingsActivity;
@@ -18,8 +19,6 @@ import com.haleydu.cimoc.ui.widget.preference.CheckBoxPreference;
 import com.haleydu.cimoc.ui.widget.preference.ChoicePreference;
 import com.haleydu.cimoc.ui.widget.preference.SliderPreference;
 
-import butterknife.BindView;
-import butterknife.OnClick;
 
 /**
  * Created by Hiroshi on 2016/10/13.
@@ -35,22 +34,15 @@ public class PageConfigFragment extends BaseFragment implements DialogCaller {
     private static final int OPERATION_VOLUME_UP = 0;
     private static final int OPERATION_VOLUME_DOWN = 1;
 
-    @BindView(R.id.settings_reader_load_prev)
     CheckBoxPreference mReaderLoadPrev;
-    @BindView(R.id.settings_reader_load_next)
     CheckBoxPreference mReaderLoadNext;
-    @BindView(R.id.settings_reader_ban_turn)
     CheckBoxPreference mReaderBanTurn;
-    @BindView(R.id.settings_reader_quick_turn)
     CheckBoxPreference mReaderQuickTurn;
-    @BindView(R.id.settings_reader_orientation)
     ChoicePreference mReaderOrientation;
-    @BindView(R.id.settings_reader_turn)
     ChoicePreference mReaderTurn;
-    @BindView(R.id.settings_reader_trigger)
     SliderPreference mReaderTrigger;
 
-//    @BindView(R.id.settings_reader_volume_click_event) View mReaderVolumeEvent;
+//    View mReaderVolumeEvent;
 
     @Override
     protected void initView() {
@@ -71,7 +63,6 @@ public class PageConfigFragment extends BaseFragment implements DialogCaller {
                 R.string.settings_reader_trigger, DIALOG_REQUEST_TRIGGER);
     }
 
-    @OnClick({R.id.settings_reader_click_event, R.id.settings_reader_long_click_event})
     void onReaderEventClick(View view) {
         boolean isLong = view.getId() == R.id.settings_reader_long_click_event;
         Intent intent = EventSettingsActivity.createIntent(getActivity(), isLong,
@@ -79,8 +70,7 @@ public class PageConfigFragment extends BaseFragment implements DialogCaller {
         startActivity(intent);
     }
 
-//    @OnClick(R.id.settings_reader_volume_click_event)
-//    void onReaderVolumeEventClick() {
+//    //    void onReaderVolumeEventClick() {
 //        String[] items = {"音量上键", "音量下键"};
 //        ItemDialogFragment fragment = ItemDialogFragment.newInstance(R.string.common_operation_select,
 //                items, DIALOG_REQUEST_OPERATION);
@@ -127,6 +117,22 @@ public class PageConfigFragment extends BaseFragment implements DialogCaller {
     @Override
     protected int getLayoutRes() {
         return R.layout.fragment_page_config;
+    }
+
+
+    @Override
+    protected void bindViews(View view) {
+        super.bindViews(view);
+        FragmentPageConfigBinding binding = FragmentPageConfigBinding.bind(view);
+        mReaderLoadPrev = binding.settingsReaderLoadPrev;
+        mReaderLoadNext = binding.settingsReaderLoadNext;
+        mReaderBanTurn = binding.settingsReaderBanTurn;
+        mReaderQuickTurn = binding.settingsReaderQuickTurn;
+        mReaderOrientation = binding.settingsReaderOrientation;
+        mReaderTurn = binding.settingsReaderTurn;
+        mReaderTrigger = binding.settingsReaderTrigger;
+        binding.settingsReaderClickEvent.setOnClickListener(this::onReaderEventClick);
+        binding.settingsReaderLongClickEvent.setOnClickListener(this::onReaderEventClick);
     }
 
 }

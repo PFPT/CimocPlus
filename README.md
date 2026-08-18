@@ -37,14 +37,15 @@ Online manga reader based on Android
 
 # 感谢以下的开源项目及作者
 - [Android Open Source Project](http://source.android.com/)
-- [ButterKnife](https://github.com/JakeWharton/butterknife)
-- [GreenDAO](https://github.com/greenrobot/greenDAO)
+- [AndroidX](https://developer.android.com/jetpack/androidx)
+- [Room](https://developer.android.com/training/data-storage/room)
+- [Hilt](https://developer.android.com/training/dependency-injection/hilt-android)
+- [ViewBinding](https://developer.android.com/topic/libraries/view-binding)
+- [Kotlin Coroutines](https://github.com/Kotlin/kotlinx.coroutines)
 - [OkHttp](https://github.com/square/okhttp)
 - [Fresco](https://github.com/facebook/fresco)
 - [Jsoup](https://github.com/jhy/jsoup)
 - [DiscreteSeekBar](https://github.com/AnderWeb/discreteSeekBar)
-- [RxJava](https://github.com/ReactiveX/RxJava)
-- [RxAndroid](https://github.com/ReactiveX/RxAndroid)
 - [RecyclerViewPager](https://github.com/lsjwzh/RecyclerViewPager)
 - [PhotoDraweeView](https://github.com/ongakuer/PhotoDraweeView)
 - [Rhino](https://github.com/mozilla/rhino)
@@ -55,10 +56,14 @@ Online manga reader based on Android
 # 应用截图
 <img src="./screenshot/01.png" width="250">
 
+# 开发约定
+- 新增类、工具方法、数据模型使用 Kotlin
+- 现有 Java 不强制改写，新旧栈按模块共存
+
 # 增加图源（欢迎pr）
 - 继承 MangaParser 类，参照 Parser 接口的注释
-> 在app\src\main\java\com\hiroshi\cimoc\source目录里面随便找一个复制一下
-> 注释是这个：app\src\main\java\com\hiroshi\cimoc\parser\MangaParser.java
+> 在 `app/src/main/java/com/haleydu/cimoc/source` 目录里面随便找一个复制一下
+> 注释是这个：`app/src/main/java/com/haleydu/cimoc/parser/MangaParser.java`
 - （可选）继承 MangaCategory 类，参照 Category 接口的注释
 > 这个没什么大用的感觉，个人不常用，直接删掉不会有什么影响
 - 在 SourceManger 的 getParser() 方法中加入相应分支

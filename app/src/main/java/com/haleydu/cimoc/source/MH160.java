@@ -1,7 +1,9 @@
 package com.haleydu.cimoc.source;
 
+import android.net.Uri;
 import android.util.Log;
 
+import com.haleydu.cimoc.manager.SourceConfigManager;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.ImageUrl;
@@ -33,14 +35,28 @@ public class MH160 extends MangaParser {
 
     public static final int TYPE = 28;
     public static final String DEFAULT_TITLE = "漫画160";
-    private static final String baseUrl = "https://www.mh160.xyz";
+    private final SourceConfigManager sourceConfigManager;
 
     public static Source getDefaultSource() {
         return new Source(null, DEFAULT_TITLE, TYPE, true);
     }
 
-    public MH160(Source source) {
+    public MH160(Source source, SourceConfigManager sourceConfigManager) {
+        this.sourceConfigManager = sourceConfigManager;
         init(source, null);
+    }
+
+    private String host() {
+        return sourceConfigManager.getUrl("MH160", "https://www.mh160mh.com");
+    }
+
+    private String hostName() {
+        try {
+            String name = Uri.parse(host()).getHost();
+            return name == null ? "www.mh160mh.com" : name;
+        } catch (Exception e) {
+            return "www.mh160mh.com";
+        }
     }
 
     @Override
@@ -48,10 +64,10 @@ public class MH160 extends MangaParser {
         if (page != 1) {
             return null;
         }
-        String url = StringUtils.format(baseUrl+"/statics/search.aspx?key=%s", keyword);
+        String url = StringUtils.format(host()+"/statics/search.aspx?key=%s", keyword);
         return new Request.Builder()
-                .addHeader("Referer", baseUrl)
-                .addHeader("Host","www.mh160.xyz")
+                .addHeader("Referer", host())
+                .addHeader("Host", hostName())
                 .url(url)
                 .build();
     }
@@ -73,11 +89,12 @@ public class MH160 extends MangaParser {
 
     @Override
     public String getUrl(String cid) {
-        return baseUrl + cid;
+        return host() + cid;
     }
 
     @Override
     protected void initUrlFilterList() {
+        filter.add(new UrlFilter("www.mh160mh.com", "(//(.+s)//)"));
         filter.add(new UrlFilter("www.mh160.xyz", "(//(.+s)//)"));
         filter.add(new UrlFilter("m.mh160.xyz", "/kanmanhua//(.+s)//"));
 
@@ -85,11 +102,11 @@ public class MH160 extends MangaParser {
 
     @Override
     public Request getInfoRequest(String cid) {
-        String url = baseUrl + cid;
+        String url = host() + cid;
         return new Request.Builder()
                 .url(url)
-                .addHeader("Referer", baseUrl)
-                .addHeader("Host","www.mh160.xyz")
+                .addHeader("Referer", host())
+                .addHeader("Host", hostName())
                 .build();
     }
 
@@ -121,11 +138,11 @@ public class MH160 extends MangaParser {
 
     @Override
     public Request getImagesRequest(String cid, String path) {
-        String url = baseUrl + path;
+        String url = host() + path;
         return new Request.Builder()
                 .url(url)
-                .addHeader("Referer", baseUrl)
-                .addHeader("Host","www.mh160.xyz")
+                .addHeader("Referer", host())
+                .addHeader("Host", hostName())
                 .build();
     }
 

@@ -1,9 +1,9 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
-apply plugin: 'org.greenrobot.greendao'
-apply plugin: 'com.google.gms.google-services'  // Google Services plugin
+apply plugin: 'kotlin-kapt'
+apply plugin: 'com.google.gms.google-services'
 apply plugin: 'com.google.firebase.crashlytics'
-apply plugin: 'com.huawei.agconnect'
+apply plugin: 'dagger.hilt.android.plugin'
 
 def buildVersion = 329
 def version = "v1.5.2"
@@ -22,23 +22,36 @@ else {
 }
 
 android {
-    compileSdkVersion 30
-    buildToolsVersion '30.0.3'
+    namespace 'com.haleydu.cimoc'
+    compileSdk 35
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    buildFeatures {
+        buildConfig true
+        viewBinding true
+        compose true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion '1.5.14'
     }
 
     defaultConfig {
         applicationId "com.haleydu.cimoc"
-        minSdkVersion 16
-        targetSdkVersion 30
+        minSdkVersion 21
+        targetSdkVersion 35
         versionCode buildVersion
         versionName version
         resConfigs "en", "zh"
         multiDexEnabled true
-
     }
     signingConfigs {
         release {
@@ -76,39 +89,61 @@ android {
             }
         }
     }
-    dexOptions {
-        additionalParameters = ["--minimal-main-dex"]
-    }
 }
 
-greendao {
-    schemaVersion 12
+tasks.withType(JavaCompile).configureEach {
+    options.fork = true
+    options.forkOptions.jvmArgs += [
+            '--add-opens=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED',
+            '--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED',
+            '--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED',
+            '--add-opens=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED',
+            '--add-opens=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED',
+            '--add-opens=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED',
+            '--add-opens=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED',
+            '--add-opens=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED',
+            '--add-opens=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED',
+            '--add-opens=jdk.compiler/com.sun.tools.javac.jvm=ALL-UNNAMED'
+    ]
 }
 
 dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation 'androidx.legacy:legacy-support-v13:1.0.0'
-    implementation 'androidx.appcompat:appcompat:1.3.0'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
     implementation 'androidx.recyclerview:recyclerview:1.2.1'
     implementation 'com.google.android.material:material:1.4.0'
-    implementation 'com.jakewharton:butterknife:10.2.1'
-    annotationProcessor 'com.jakewharton:butterknife-compiler:10.1.0'
-    implementation 'org.greenrobot:greendao:3.3.0'
-    //noinspection GradleDependency : for support android low api devices,not update OKHTTP
-    implementation 'com.squareup.okhttp3:okhttp:3.12.3'
+    implementation project(':core:database')
+    implementation project(':core:network')
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'com.facebook.fresco:fresco:2.3.0'
     implementation 'org.jsoup:jsoup:1.13.1'
     implementation 'org.adw.library:discrete-seekbar:1.0.1'
-    implementation 'io.reactivex:rxjava:1.3.8'
-    implementation 'io.reactivex:rxandroid:1.2.1'
     api 'com.google.guava:guava:27.0.1-android'
 
     implementation 'androidx.multidex:multidex:2.0.1'
     implementation 'com.google.code.gson:gson:2.8.6'
     implementation 'com.alibaba:fastjson:1.2.62'
-    implementation "androidx.core:core-ktx:1.6.0"
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.5.10"
+    implementation "androidx.core:core-ktx:1.13.1"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.24"
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.6.2'
+    implementation 'androidx.activity:activity-ktx:1.8.2'
+    implementation 'androidx.fragment:fragment-ktx:1.6.2'
+    implementation 'com.google.dagger:hilt-android:2.51.1'
+    kapt 'com.google.dagger:hilt-compiler:2.51.1'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2'
+    implementation 'androidx.activity:activity-compose:1.8.2'
+    implementation platform('androidx.compose:compose-bom:2024.02.00')
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.foundation:foundation'
+    implementation 'androidx.compose.material:material'
+    implementation 'androidx.compose.runtime:runtime'
+    implementation 'androidx.room:room-runtime:2.6.1'
+    implementation 'androidx.room:room-ktx:2.6.1'
+    kapt 'androidx.room:room-compiler:2.6.1'
     implementation 'com.google.firebase:firebase-analytics:19.0.0'
     implementation 'com.google.firebase:firebase-crashlytics:18.1.0'
     implementation 'com.google.firebase:firebase-config:21.0.0'
@@ -116,7 +151,4 @@ dependencies {
     implementation 'com.king.app:app-dialog:1.0.8-androidx'
     implementation 'com.iqiyi.xcrash:xcrash-android-lib:3.0.0'
 
-}
-repositories {
-    mavenCentral()
 }

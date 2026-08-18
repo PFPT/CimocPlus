@@ -1,10 +1,7 @@
 package com.haleydu.cimoc.source;
 
-import android.util.Base64;
-
-import com.facebook.common.util.Hex;
 import com.google.common.collect.Lists;
-import com.haleydu.cimoc.App;
+import com.haleydu.cimoc.manager.SourceConfigManager;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.ImageUrl;
@@ -13,8 +10,6 @@ import com.haleydu.cimoc.parser.JsonIterator;
 import com.haleydu.cimoc.parser.MangaParser;
 import com.haleydu.cimoc.parser.SearchIterator;
 import com.haleydu.cimoc.parser.UrlFilter;
-import com.haleydu.cimoc.soup.Node;
-import com.haleydu.cimoc.utils.DecryptionUtils;
 import com.haleydu.cimoc.utils.StringUtils;
 
 import org.json.JSONArray;
@@ -26,6 +21,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import okhttp3.Headers;
+import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import taobe.tec.jcc.JChineseConvertor;
 
@@ -34,39 +30,90 @@ import static com.haleydu.cimoc.core.Manga.getResponseBody;
 public class CopyMH extends MangaParser {
     public static final int TYPE = 26;
     public static final String DEFAULT_TITLE = "拷贝漫画";
-    public static final String website = "https://copymanga.com/";
+
+    private final SourceConfigManager sourceConfigManager;
+    private final OkHttpClient httpClient;
 
     public static Source getDefaultSource() {
         return new Source(null, DEFAULT_TITLE, TYPE, true);
     }
 
-    public CopyMH(Source source) {
+    public CopyMH(Source source, SourceConfigManager sourceConfigManager, OkHttpClient httpClient) {
+        this.sourceConfigManager = sourceConfigManager;
+        this.httpClient = httpClient;
         init(source, null);
+    }
+
+    private Request apiRequest(String path) {
+        List<String> hosts = sourceConfigManager.getCopyApiHosts();
+        String primary = hosts.get(0) + path;
+        Request.Builder builder = new Request.Builder()
+                .url(primary)
+                .addHeader("User-Agent", "COPY/3.0.0")
+                .addHeader("Accept", "application/json")
+                .addHeader("version", sourceConfigManager.getCopyVersion())
+                .addHeader("platform", "1")
+                .addHeader("webp", "1")
+                .addHeader("region", "1");
+        if (hosts.size() > 1) {
+            StringBuilder fallback = new StringBuilder();
+            for (int i = 1; i < hosts.size(); i++) {
+                if (fallback.length() > 0) {
+                    fallback.append(',');
+                }
+                fallback.append(hosts.get(i)).append(path);
+            }
+            builder.header("X-Cimoc-Fallback", fallback.toString());
+        }
+        return builder.build();
+    }
+
+    private String webBase() {
+        return sourceConfigManager.getCopyWebBase();
     }
 
     @Override
     public Request getSearchRequest(String keyword, int page) {
-        String url = "";
-        if (page == 1) {
-//            JChineseConvertor jChineseConvertor = JChineseConvertor.getInstance();
-//            keyword = jChineseConvertor.s2t(keyword);
-            url = StringUtils.format("https://api.copymanga.com/api/v3/search/comic?platform=1&limit=30&offset=0&q=%s", keyword);
-            return new Request.Builder()
-                .url(url)
-                .addHeader("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36")
-                .build();
+        String path = StringUtils.format("/api/v3/search/comic?platform=1&limit=30&offset=%d&q=%s",
+                (page - 1) * 30, keyword);
+        List<String> hosts = sourceConfigManager.getCopyWebHosts();
+        String primary = hosts.get(0) + path;
+        Request.Builder builder = new Request.Builder()
+                .url(primary)
+                .addHeader("User-Agent", "COPY/3.0.0")
+                .addHeader("Accept", "application/json")
+                .addHeader("version", sourceConfigManager.getCopyVersion())
+                .addHeader("platform", "1")
+                .addHeader("webp", "1")
+                .addHeader("region", "1");
+        if (hosts.size() > 1) {
+            StringBuilder fallback = new StringBuilder();
+            for (int i = 1; i < hosts.size(); i++) {
+                if (fallback.length() > 0) {
+                    fallback.append(',');
+                }
+                fallback.append(hosts.get(i)).append(path);
+            }
+            builder.header("X-Cimoc-Fallback", fallback.toString());
         }
-        return null;
+        return builder.build();
     }
 
     @Override
     public String getUrl(String cid) {
-        return "https://copymanga.com/h5/details/comic/".concat(cid);
+        return webBase() + "/comic/".concat(cid);
     }
 
     @Override
     protected void initUrlFilterList() {
+        filter.add(new UrlFilter("copy3000.com", "\\w+", 0));
+        filter.add(new UrlFilter("2026copy.com", "\\w+", 0));
+        filter.add(new UrlFilter("2025copy.com", "\\w+", 0));
+        filter.add(new UrlFilter("mangacopy.com", "\\w+", 0));
         filter.add(new UrlFilter("copymanga.com", "\\w+", 0));
+        filter.add(new UrlFilter("copy20.com", "\\w+", 0));
+        filter.add(new UrlFilter("copy2000.site", "\\w+", 0));
+        filter.add(new UrlFilter("copy2000.online", "\\w+", 0));
     }
 
     @Override
@@ -97,46 +144,32 @@ public class CopyMH extends MangaParser {
 
     @Override
     public Request getInfoRequest(String cid) {
-        String url = "https://api.copymanga.com/api/v3/comic2/".concat(cid);
-        return new Request.Builder()
-            .url(url)
-            .addHeader("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36")
-            .build();
+        return apiRequest("/api/v3/comic2/".concat(cid) + "?platform=1");
     }
 
     @Override
     public Comic parseInfo(String html, Comic comic) {
-        JSONObject body = null;
         try {
             JSONObject comicInfo = new JSONObject(html).getJSONObject("results");
-            body = comicInfo.getJSONObject("comic");
+            JSONObject body = comicInfo.getJSONObject("comic");
             String cover = body.getString("cover");
             String intro = body.getString("brief");
             String title = body.getString("name");
             String update = body.getString("datetime_updated");
             String author = ((JSONObject) body.getJSONArray("author").get(0)).getString("name");
-            // 连载状态
             boolean finish = body.getJSONObject("status").getInt("value") != 0;
             JSONObject group = comicInfo.getJSONObject("groups");
             comic.note = group;
-
-
             comic.setInfo(title, cover, update, intro, author, finish);
         } catch (JSONException e) {
             e.printStackTrace();
         }
-
-
         return comic;
     }
 
     @Override
     public Request getChapterRequest(String html, String cid) {
-        String url = String.format("https://api.copymanga.com/api/v3/comic/%s/group/default/chapters?limit=500&offset=0", cid);
-        return new Request.Builder()
-            .url(url)
-            .addHeader("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36")
-            .build();
+        return apiRequest(String.format("/api/v3/comic/%s/group/default/chapters?limit=500&offset=0&platform=1", cid));
     }
 
     @Override
@@ -144,10 +177,11 @@ public class CopyMH extends MangaParser {
         List<Chapter> list = new LinkedList<>();
         JSONObject jsonObject = new JSONObject(html);
         JSONArray array = jsonObject.getJSONObject("results").getJSONArray("list");
+        int index = 0;
         for (int i = 0; i < array.length(); ++i) {
             String title = array.getJSONObject(i).getString("name");
             String path = array.getJSONObject(i).getString("uuid");
-            list.add(new Chapter(Long.parseLong(sourceComic + "000" + i), sourceComic, title, path, "默认"));
+            list.add(new Chapter(Long.parseLong(sourceComic + "000" + index++), sourceComic, title, path, "默认"));
         }
         try {
             JSONObject groups = (JSONObject) comic.note;
@@ -157,61 +191,36 @@ public class CopyMH extends MangaParser {
                 if (key.equals("default")) continue;
                 String path_word = groups.getJSONObject(key).getString("path_word");
                 String PathName = groups.getJSONObject(key).getString("name");
-                String url = String.format("https://api.copymanga.com/api/v3/comic/%s/group/%s/chapters?limit=500&offset=0", comic.getCid(), path_word);
-                Request request = new Request.Builder()
-                    .url(url)
-                    .addHeader("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36")
-                    .build();
-                html = getResponseBody(App.getHttpClient(), request);
+                html = getResponseBody(httpClient, apiRequest(String.format("/api/v3/comic/%s/group/%s/chapters?limit=500&offset=0&platform=1", comic.getCid(), path_word)));
                 jsonObject = new JSONObject(html);
                 array = jsonObject.getJSONObject("results").getJSONArray("list");
                 for (int i = 0; i < array.length(); ++i) {
                     String title = array.getJSONObject(i).getString("name");
                     String path = array.getJSONObject(i).getString("uuid");
-                    list.add(new Chapter(Long.parseLong(sourceComic + "000" + i), sourceComic, title, path, PathName));
+                    list.add(new Chapter(Long.parseLong(sourceComic + "000" + index++), sourceComic, title, path, PathName));
                 }
-
             }
-
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-
         return Lists.reverse(list);
     }
 
     @Override
     public Request getImagesRequest(String cid, String path) {
-        String url = StringUtils.format("https://copymanga.com/comic/%s/chapter/%s", cid, path);
-        return new Request.Builder()
-            .url(url)
-            .addHeader("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36")
-            .build();
+        return apiRequest(StringUtils.format("/api/v3/comic/%s/chapter2/%s?platform=1", cid, path));
     }
 
     @Override
-    public List<ImageUrl> parseImages(String html, Chapter chapter) {
+    public List<ImageUrl> parseImages(String html, Chapter chapter) throws JSONException {
         List<ImageUrl> list = new LinkedList<>();
-        Node body = new Node(html);
-        String data = body.attr("div.disposableData", "disposable");
-        String key = body.attr("div.disposablePass", "disposable").trim();
-        String iv = data.substring(0, 0x10).trim();
-        String result = data.substring(0x10).trim();
-        byte[] hexCode = Hex.decodeHex(result);
-        String encode = Base64.encodeToString(hexCode, 0, hexCode.length, Base64.NO_WRAP);
-
-        try {
-            String jsonString = DecryptionUtils.aesDecrypt(encode, key, iv);
-            JSONArray array = new JSONArray(jsonString);
-            for (int i = 0; i < array.length(); ++i) {
-                Long comicChapter = chapter.getId();
-                Long id = Long.parseLong(comicChapter + "000" + i);
-                String url = array.getJSONObject(i).getString("url");
-                list.add(new ImageUrl(id, comicChapter,i + 1, url, false));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        JSONObject jsonObject = new JSONObject(html);
+        JSONArray array = jsonObject.getJSONObject("results").getJSONObject("chapter").getJSONArray("contents");
+        for (int i = 0; i < array.length(); ++i) {
+            Long comicChapter = chapter.getId();
+            Long id = Long.parseLong(comicChapter + "000" + i);
+            String url = array.getJSONObject(i).getString("url");
+            list.add(new ImageUrl(id, comicChapter, i + 1, url, false));
         }
         return list;
     }
@@ -235,6 +244,6 @@ public class CopyMH extends MangaParser {
 
     @Override
     public Headers getHeader() {
-        return Headers.of("Referer", website);
+        return Headers.of("Referer", webBase() + "/", "User-Agent", "COPY/3.0.0");
     }
 }

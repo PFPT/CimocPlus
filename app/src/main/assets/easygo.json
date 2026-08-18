@@ -21,7 +21,7 @@
         ],
         "Activities": [
           {
-            "name": "com.haleydu.cimoc.ui.activity.PageReaderActivity",
+            "name": "com.haleydu.cimoc.ui.reader.PageReaderActivity",
             "defaultFullScreen": "true"
           }
         ],

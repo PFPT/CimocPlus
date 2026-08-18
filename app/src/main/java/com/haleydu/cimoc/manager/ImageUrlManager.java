@@ -1,52 +1,32 @@
 package com.haleydu.cimoc.manager;
 
-import com.haleydu.cimoc.component.AppGetter;
+import com.haleydu.cimoc.db.CimocDatabase;
+import com.haleydu.cimoc.db.ImageUrlDao;
 import com.haleydu.cimoc.model.ImageUrl;
-import com.haleydu.cimoc.model.ImageUrlDao;
 
 import java.util.List;
 
-import rx.Observable;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
-/**
- * Created by HaleyDu on 2020/8/27.
- */
+@Singleton
 public class ImageUrlManager {
 
-    private static ImageUrlManager mInstance;
-
+    private final CimocDatabase database;
     private ImageUrlDao mImageUrlDao;
 
-    private ImageUrlManager(AppGetter getter) {
-        mImageUrlDao = getter.getAppInstance().getDaoSession().getImageUrlDao();
-    }
-
-    public static ImageUrlManager getInstance(AppGetter getter) {
-        if (mInstance == null) {
-            synchronized (ImageUrlManager.class) {
-                if (mInstance == null) {
-                    mInstance = new ImageUrlManager(getter);
-                }
-            }
-        }
-        return mInstance;
+    @Inject
+    public ImageUrlManager(CimocDatabase database, ImageUrlDao imageUrlDao) {
+        this.database = database;
+        mImageUrlDao = imageUrlDao;
     }
 
     public void runInTx(Runnable runnable) {
-        mImageUrlDao.getSession().runInTx(runnable);
-    }
-
-    public Observable<List<ImageUrl>> getListImageUrlRX(Long comicChapter) {
-        return mImageUrlDao.queryBuilder()
-                .where(ImageUrlDao.Properties.ComicChapter.eq(comicChapter))
-                .rx()
-                .list();
+        database.runInTransaction(runnable);
     }
 
     public List<ImageUrl> getListImageUrl(Long comicChapter) {
-        return mImageUrlDao.queryBuilder()
-                .where(ImageUrlDao.Properties.ComicChapter.eq(comicChapter))
-                .list();
+        return mImageUrlDao.getListImageUrl(comicChapter);
     }
 
     public ImageUrl load(long id) {
@@ -64,8 +44,8 @@ public class ImageUrlManager {
     }
 
     public void insertOrReplace(List<ImageUrl> imageUrlList) {
-        for (ImageUrl imageurl:imageUrlList) {
-            if (imageurl.getId()!=null) {
+        for (ImageUrl imageurl : imageUrlList) {
+            if (imageurl.getId() != null) {
                 mImageUrlDao.insertOrReplace(imageurl);
             }
         }

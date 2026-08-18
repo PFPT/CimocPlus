@@ -8,16 +8,20 @@ import com.google.android.material.tabs.TabLayout;
 import androidx.core.content.ContextCompat;
 import androidx.viewpager.widget.ViewPager;
 import android.view.Menu;
+import android.view.View;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 
+import androidx.lifecycle.ViewModelProvider;
+
 import com.haleydu.cimoc.R;
+import com.haleydu.cimoc.component.DialogCaller;
 import com.haleydu.cimoc.component.ThemeResponsive;
+import com.haleydu.cimoc.databinding.FragmentComicBinding;
 import com.haleydu.cimoc.manager.PreferenceManager;
 import com.haleydu.cimoc.manager.TagManager;
 import com.haleydu.cimoc.model.Tag;
-import com.haleydu.cimoc.presenter.BasePresenter;
-import com.haleydu.cimoc.presenter.ComicPresenter;
+import com.haleydu.cimoc.ui.FlowExtKt;
 import com.haleydu.cimoc.ui.activity.PartFavoriteActivity;
 import com.haleydu.cimoc.ui.activity.SearchActivity;
 import com.haleydu.cimoc.ui.adapter.TabPagerAdapter;
@@ -27,38 +31,30 @@ import com.haleydu.cimoc.ui.fragment.recyclerview.grid.FavoriteFragment;
 import com.haleydu.cimoc.ui.fragment.recyclerview.grid.GridFragment;
 import com.haleydu.cimoc.ui.fragment.recyclerview.grid.HistoryFragment;
 import com.haleydu.cimoc.ui.fragment.recyclerview.grid.LocalFragment;
-import com.haleydu.cimoc.ui.view.ComicView;
 import com.haleydu.cimoc.utils.HintUtils;
+import dagger.hilt.android.AndroidEntryPoint;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import butterknife.BindView;
 
 /**
  * Created by Hiroshi on 2016/10/11.
  */
 
-public class ComicFragment extends BaseFragment implements ComicView {
+@AndroidEntryPoint
+public class ComicFragment extends BaseFragment implements DialogCaller, ThemeResponsive {
 
     private static final int DIALOG_REQUEST_FILTER = 0;
 
-    @BindView(R.id.comic_tab_layout)
     TabLayout mTabLayout;
-    @BindView(R.id.comic_view_pager)
     ViewPager mViewPager;
 
-    private ComicPresenter mPresenter;
+    private ComicViewModel vm;
+    private FragmentComicBinding binding;
     private TabPagerAdapter mTabAdapter;
     private List<Tag> mTagList;
-
-    @Override
-    protected BasePresenter initPresenter() {
-        mPresenter = new ComicPresenter();
-        mPresenter.attachView(this);
-        return mPresenter;
-    }
 
     @Override
     protected void initView() {
@@ -94,6 +90,13 @@ public class ComicFragment extends BaseFragment implements ComicView {
     }
 
     @Override
+    protected void initData() {
+        vm = new ViewModelProvider(this).get(ComicViewModel.class);
+        FlowExtKt.collectOnStart(vm.getTags(), getViewLifecycleOwner(), this::onTagLoadSuccess);
+        FlowExtKt.collectOnStart(vm.getFail(), getViewLifecycleOwner(), unit -> onTagLoadFail());
+    }
+
+    @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.menu_comic, menu);
@@ -105,7 +108,7 @@ public class ComicFragment extends BaseFragment implements ComicView {
             case R.id.comic_filter:
                 showProgressDialog();
                 mTagList.clear();
-                mPresenter.loadTag();
+                vm.loadTag();
                 break;
             case R.id.comic_search:
                 Intent intent = new Intent(getActivity(), SearchActivity.class);
@@ -144,7 +147,6 @@ public class ComicFragment extends BaseFragment implements ComicView {
         }
     }
 
-    @Override
     public void onTagLoadSuccess(List<Tag> list) {
         hideProgressDialog();
         mTagList.add(new Tag(TagManager.TAG_FINISH, getString(R.string.comic_status_finish)));
@@ -160,7 +162,6 @@ public class ComicFragment extends BaseFragment implements ComicView {
         fragment.show(requireActivity().getSupportFragmentManager(), null);
     }
 
-    @Override
     public void onTagLoadFail() {
         hideProgressDialog();
         HintUtils.showToast(getActivity(), R.string.comic_load_tag_fail);
@@ -177,6 +178,15 @@ public class ComicFragment extends BaseFragment implements ComicView {
     @Override
     protected int getLayoutRes() {
         return R.layout.fragment_comic;
+    }
+
+
+    @Override
+    protected void bindViews(View view) {
+        super.bindViews(view);
+        binding = FragmentComicBinding.bind(view);
+        mTabLayout = binding.comicTabLayout;
+        mViewPager = binding.comicViewPager;
     }
 
 }

@@ -9,6 +9,8 @@ import com.facebook.imagepipeline.core.ImagePipeline;
 import com.facebook.imagepipeline.core.ImagePipelineFactory;
 import com.haleydu.cimoc.manager.SourceManager;
 
+import okhttp3.OkHttpClient;
+
 /**
  * Created by Hiroshi on 2016/9/5.
  */
@@ -19,20 +21,22 @@ public class ControllerBuilderProvider {
     private SparseArray<ImagePipeline> mPipelineArray;
     private SourceManager.HeaderGetter mHeaderGetter;
     private boolean mCover;
+    private OkHttpClient mHttpClient;
 
-    public ControllerBuilderProvider(Context context, SourceManager.HeaderGetter getter, boolean cover) {
+    public ControllerBuilderProvider(Context context, SourceManager.HeaderGetter getter, boolean cover, OkHttpClient client) {
         mSupplierArray = new SparseArray<>();
         mPipelineArray = new SparseArray<>();
         mContext = context;
         mHeaderGetter = getter;
         mCover = cover;
+        mHttpClient = client;
     }
 
     public PipelineDraweeControllerBuilder get(int type) {
         PipelineDraweeControllerBuilderSupplier supplier = mSupplierArray.get(type);
         if (supplier == null) {
             ImagePipelineFactory factory = ImagePipelineFactoryBuilder
-                    .build(mContext, type < 0 ? null : mHeaderGetter.getHeader(type), mCover);
+                    .build(mContext, type < 0 ? null : mHeaderGetter.getHeader(type), mCover, mHttpClient);
             supplier = ControllerBuilderSupplierFactory.get(mContext, factory);
             mSupplierArray.put(type, supplier);
             mPipelineArray.put(type, factory.getImagePipeline());

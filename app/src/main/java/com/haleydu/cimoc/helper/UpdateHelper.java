@@ -1,13 +1,12 @@
 package com.haleydu.cimoc.helper;
 
 import com.haleydu.cimoc.BuildConfig;
+import com.haleydu.cimoc.db.SourceDao;
 import com.haleydu.cimoc.manager.PreferenceManager;
-import com.haleydu.cimoc.model.Comic;
-import com.haleydu.cimoc.model.ComicDao;
-import com.haleydu.cimoc.model.DaoSession;
 import com.haleydu.cimoc.model.Source;
 import com.haleydu.cimoc.source.*;
 import com.haleydu.cimoc.source.WebtoonDongManManHua;
+import com.haleydu.cimoc.manager.SourceConfigManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,38 +20,61 @@ public class UpdateHelper {
     // 1.04.08.008
     private static final int VERSION = BuildConfig.VERSION_CODE;
 
-    public static void update(PreferenceManager manager, final DaoSession session) {
+    public static void update(PreferenceManager manager, SourceConfigManager sourceConfigManager, SourceDao sourceDao) {
         int version = manager.getInt(PreferenceManager.PREF_APP_VERSION, 0);
         if (version != VERSION) {
-            initSource(session);
+            initSource(sourceDao);
             manager.putInt(PreferenceManager.PREF_APP_VERSION, VERSION);
         }
+        sourceConfigManager.applyToDatabase();
+        restoreEnabledSources(manager, sourceConfigManager, sourceDao);
     }
 
-    /**
-     * app: 1.4.8.0 -> 1.4.8.1
-     * 删除本地漫画中 download 字段的值
-     */
-    private static void deleteDownloadFromLocal(final DaoSession session) {
-        session.runInTx(new Runnable() {
-            @Override
-            public void run() {
-                ComicDao dao = session.getComicDao();
-                List<Comic> list = dao.queryBuilder().where(ComicDao.Properties.Local.eq(true)).list();
-                if (!list.isEmpty()) {
-                    for (Comic comic : list) {
-                        comic.setDownload(null);
-                    }
-                    dao.updateInTx(list);
-                }
+    private static final int[] RESTORE_TYPES = {
+            CopyMH.TYPE,
+            Ohmanhua.TYPE,
+            Tencent.TYPE,
+            IKanman.TYPE,
+            DM5.TYPE,
+            MH160.TYPE,
+            YKMH.TYPE,
+            HotManga.TYPE,
+            ManHuaDB.TYPE,
+            GuFeng.TYPE,
+            Manhuatai.TYPE,
+            DmzjFix.TYPE,
+            JMTT.TYPE,
+            MangaBZ.TYPE,
+            PuFei.TYPE,
+            Cartoonmad.TYPE,
+            Webtoon.TYPE,
+            WebtoonDongManManHua.TYPE,
+            U17.TYPE
+    };
+
+    private static void restoreEnabledSources(PreferenceManager manager, SourceConfigManager sourceConfigManager,
+                                              SourceDao sourceDao) {
+        if (manager.getBoolean(PreferenceManager.PREF_SOURCE_RESTORE_ENABLE, false)) {
+            return;
+        }
+        for (int type : RESTORE_TYPES) {
+            Source source = sourceDao.load(type);
+            if (source != null && !source.getEnable()) {
+                source.setEnable(true);
+                sourceDao.update(source);
             }
-        });
+        }
+        for (Source generic : sourceConfigManager.listGenericSources()) {
+            Source source = sourceDao.load(generic.getType());
+            if (source != null && !source.getEnable()) {
+                source.setEnable(true);
+                sourceDao.update(source);
+            }
+        }
+        manager.putBoolean(PreferenceManager.PREF_SOURCE_RESTORE_ENABLE, true);
     }
 
-    /**
-     * 初始化图源
-     */
-    private static void initSource(DaoSession session) {
+    private static void initSource(SourceDao dao) {
         List<Source> list = new ArrayList<>();
         list.add(IKanman.getDefaultSource());
         list.add(Dmzj.getDefaultSource());
@@ -100,6 +122,14 @@ public class UpdateHelper {
         list.add(QiMiaoMH.getDefaultSource());
         list.add(YKMH.getDefaultSource());
         list.add(DmzjFix.getDefaultSource());
-        session.getSourceDao().insertOrReplaceInTx(list);
+        for (Source source : list) {
+            Source existing = dao.load(source.getType());
+            if (existing == null) {
+                dao.insert(source);
+            } else if (!source.getTitle().equals(existing.getTitle())) {
+                existing.setTitle(source.getTitle());
+                dao.update(existing);
+            }
+        }
     }
 }

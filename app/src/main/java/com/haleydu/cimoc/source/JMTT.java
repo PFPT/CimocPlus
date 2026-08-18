@@ -29,7 +29,7 @@ public class JMTT extends MangaParser {
 
     public static final int TYPE = 72;
     public static final String DEFAULT_TITLE = "禁漫天堂";
-    public static final String baseUrl = "https://18comic1.one/"; //https://cm365.xyz/7MJX9t
+    public static final String baseUrl = "https://comic18j-rita.cc";
 
     public static Source getDefaultSource() {
         return new Source(null, DEFAULT_TITLE, TYPE, false);
@@ -70,11 +70,13 @@ public class JMTT extends MangaParser {
     @Override
     protected void initUrlFilterList() {
         filter.add(new UrlFilter(baseUrl));
+        filter.add(new UrlFilter("https://comic18j-rita.cc"));
+        filter.add(new UrlFilter("https://comic18j-rita.me"));
+        filter.add(new UrlFilter("https://jm18c-dfg.org"));
         filter.add(new UrlFilter("https://18comic1.one/"));
         filter.add(new UrlFilter("https://18comic2.one/"));
         filter.add(new UrlFilter("https://18comic.vip"));
         filter.add(new UrlFilter("18comic.org"));
-        filter.add(new UrlFilter("https://cm365.xyz/7MJX9t"));
     }
 
     @Override

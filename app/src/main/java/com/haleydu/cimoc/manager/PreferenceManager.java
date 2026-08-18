@@ -46,6 +46,8 @@ public class PreferenceManager {
     public static final String PREF_READER_SCALE_FACTOR = "pref_reader_scale_factor";
     public static final String PREF_READER_CONTROLLER_TRIG_THRESHOLD = "pref_reader_controller_trig_threshold";
     public static final String PREF_READER_VOLUME_KEY_CONTROLS_PAGE_TURNING = "pref_reader_volume_key_controls_page_turning";
+    public static final String PREF_READER_PRELOAD = "pref_reader_preload";
+    public static final String PREF_READER_PRELOAD_COUNT = "pref_reader_preload_count";
 
     public static final String PREF_READER_PAGE_TURN = "pref_reader_page_turn";
     public static final String PREF_READER_PAGE_ORIENTATION = "pref_reader_page_orientation";
@@ -105,6 +107,16 @@ public class PreferenceManager {
     public static final String PREF_READER_STREAM_LOAD_NEXT = "pref_reader_stream_load_next";
     public static final String PREF_READER_STREAM_INTERVAL = "pref_reader_stream_interval";
 
+    public static final String PREF_READER_AUTO_INTERVAL = "pref_reader_auto_interval";
+    public static final String PREF_READER_BRIGHTNESS = "pref_reader_brightness";
+    public static final String PREF_READER_COLOR_RED = "pref_reader_color_red";
+    public static final String PREF_READER_COLOR_GREEN = "pref_reader_color_green";
+    public static final String PREF_READER_COLOR_BLUE = "pref_reader_color_blue";
+    public static final String PREF_READER_COLOR_INVERT = "pref_reader_color_invert";
+    public static final String PREF_READER_COLOR_GRAY = "pref_reader_color_gray";
+    public static final String PREF_READER_INFO_BOTTOM = "pref_reader_info_bottom";
+    public static final String PREF_READER_HIDE_LOAD_TOAST = "pref_reader_hide_load_toast";
+
     public static final String PREF_NIGHT = "pref_night";
 
     public static final String PREF_UPDATE_APP_AUTO = "pref_update_app_auto";
@@ -116,7 +128,6 @@ public class PreferenceManager {
     public static final String PREF_OTHER_CONNECT_ONLY_WIFI = "pref_other_connect_only_wifi";
     public static final String PREF_OTHER_LOADCOVER_ONLY_WIFI = "pref_other_loadcover_only_wifi";
     public static final String PREF_OTHER_FIREBASE_EVENT = "pref_other_firebase_event";
-    public static final String PREF_OTHER_REDUCE_AD = "pref_other_reduce_ad";
     public static final String PREF_OTHER_CHECK_UPDATE_LAST = "pref_other_check_update_last";
     public static final String PREF_OTHER_STORAGE = "pref_other_storage";
     public static final String PREF_OTHER_THEME = "pref_other_theme";
@@ -144,6 +155,7 @@ public class PreferenceManager {
 
     public static final String PREF_HHAAZZ_BASEURL = "pref_hhaazz_baseurl";
     public static final String PREF_HHAAZZ_SW = "pref_hhaazz_sw";
+    public static final String PREF_SOURCE_RESTORE_ENABLE = "pref_source_restore_enable_v1";
 
     private SharedPreferences mSharedPreferences;
 

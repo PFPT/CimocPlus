@@ -4,28 +4,29 @@ import android.content.Context;
 import android.content.Intent;
 import android.view.View;
 
+import androidx.lifecycle.ViewModelProvider;
+
 import com.haleydu.cimoc.R;
 import com.haleydu.cimoc.global.Extra;
 import com.haleydu.cimoc.misc.Switcher;
 import com.haleydu.cimoc.model.Tag;
-import com.haleydu.cimoc.presenter.BasePresenter;
-import com.haleydu.cimoc.presenter.TagEditorPresenter;
+import com.haleydu.cimoc.ui.FlowExtKt;
 import com.haleydu.cimoc.ui.adapter.BaseAdapter;
 import com.haleydu.cimoc.ui.adapter.TagEditorAdapter;
-import com.haleydu.cimoc.ui.view.TagEditorView;
+import dagger.hilt.android.AndroidEntryPoint;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import butterknife.OnClick;
 
 /**
  * Created by Hiroshi on 2016/12/2.
  */
 
-public class TagEditorActivity extends CoordinatorActivity implements TagEditorView {
+@AndroidEntryPoint
+public class TagEditorActivity extends CoordinatorActivity {
 
-    private TagEditorPresenter mPresenter;
+    private TagEditorViewModel vm;
     private TagEditorAdapter mTagAdapter;
 
     public static Intent createIntent(Context context, long id) {
@@ -35,10 +36,8 @@ public class TagEditorActivity extends CoordinatorActivity implements TagEditorV
     }
 
     @Override
-    protected BasePresenter initPresenter() {
-        mPresenter = new TagEditorPresenter();
-        mPresenter.attachView(this);
-        return mPresenter;
+    protected void initViewModel() {
+        vm = new ViewModelProvider(this).get(TagEditorViewModel.class);
     }
 
     @Override
@@ -57,28 +56,28 @@ public class TagEditorActivity extends CoordinatorActivity implements TagEditorV
     @Override
     protected void initData() {
         long id = getIntent().getLongExtra(Extra.EXTRA_ID, -1);
-        mPresenter.load(id);
+        FlowExtKt.collectOnStart(vm.getTags(), this, this::onTagLoadSuccess);
+        FlowExtKt.collectOnStart(vm.getLoadFail(), this, unit -> onTagLoadFail());
+        FlowExtKt.collectOnStart(vm.getUpdateSuccess(), this, unit -> onTagUpdateSuccess());
+        FlowExtKt.collectOnStart(vm.getUpdateFail(), this, unit -> onTagUpdateFail());
+        vm.load(id);
     }
 
-    @Override
     public void onTagLoadSuccess(List<Switcher<Tag>> list) {
         hideProgressBar();
         mTagAdapter.addAll(list);
     }
 
-    @Override
     public void onTagLoadFail() {
         hideProgressDialog();
         showSnackbar(R.string.common_data_load_fail);
     }
 
-    @Override
     public void onTagUpdateSuccess() {
         hideProgressDialog();
         showSnackbar(R.string.common_execute_success);
     }
 
-    @Override
     public void onTagUpdateFail() {
         hideProgressDialog();
         showSnackbar(R.string.common_execute_fail);
@@ -91,7 +90,6 @@ public class TagEditorActivity extends CoordinatorActivity implements TagEditorV
         mTagAdapter.notifyItemChanged(position);
     }
 
-    @OnClick(R.id.coordinator_action_button)
     void onActionButtonClick() {
         showProgressDialog();
         List<Long> list = new ArrayList<>();
@@ -100,12 +98,19 @@ public class TagEditorActivity extends CoordinatorActivity implements TagEditorV
                 list.add(switcher.getElement().getId());
             }
         }
-        mPresenter.updateRef(list);
+        vm.updateRef(list);
     }
 
     @Override
     protected String getDefaultTitle() {
         return getString(R.string.tag_editor);
+    }
+
+
+    @Override
+    protected void bindViews() {
+        super.bindViews();
+        mActionButton.setOnClickListener(v -> onActionButtonClick());
     }
 
 }

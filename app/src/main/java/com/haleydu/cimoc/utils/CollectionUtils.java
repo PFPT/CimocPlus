@@ -4,13 +4,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import rx.functions.Func1;
-
-/**
- * Created by Hiroshi on 2016/12/2.
- */
-
 public class CollectionUtils {
+
+    public interface Mapper<T, R> {
+        R map(T value);
+    }
 
     public static <E> Collection<E> minus(Collection<E> lhs, Collection<E> rhs) {
         Collection<E> collection = new ArrayList<>(lhs);
@@ -18,10 +16,10 @@ public class CollectionUtils {
         return collection;
     }
 
-    public static <T, R> List<R> map(Collection<T> origin, Func1<T, R> func) {
+    public static <T, R> List<R> map(Collection<T> origin, Mapper<T, R> func) {
         List<R> result = new ArrayList<>(origin.size());
         for (T element : origin) {
-            result.add(func.call(element));
+            result.add(func.map(element));
         }
         return result;
     }

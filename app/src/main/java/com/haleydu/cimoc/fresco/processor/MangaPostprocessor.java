@@ -12,8 +12,8 @@ import com.facebook.common.references.CloseableReference;
 import com.facebook.imagepipeline.bitmaps.PlatformBitmapFactory;
 import com.facebook.imagepipeline.request.BasePostprocessor;
 import com.haleydu.cimoc.model.ImageUrl;
-import com.haleydu.cimoc.rx.RxBus;
-import com.haleydu.cimoc.rx.RxEvent;
+import com.haleydu.cimoc.event.AppEventBus;
+import com.haleydu.cimoc.event.AppEvent;
 import com.haleydu.cimoc.utils.StringUtils;
 
 import java.util.Objects;
@@ -83,7 +83,7 @@ public class MangaPostprocessor extends BasePostprocessor {
             mWidth = mWidth / 2;
             if (mImage.getState() == ImageUrl.STATE_NULL) {
                 mImage.setState(ImageUrl.STATE_PAGE_1);
-                RxBus.getInstance().post(new RxEvent(RxEvent.EVENT_PICTURE_PAGING, mImage));
+                AppEventBus.post(new AppEvent(AppEvent.EVENT_PICTURE_PAGING, mImage));
             }
             mPosX = mImage.getState() == ImageUrl.STATE_PAGE_1 ? mWidth : 0;
             if (reverse)
@@ -93,7 +93,7 @@ public class MangaPostprocessor extends BasePostprocessor {
             mHeight = mHeight / 2;
             if (mImage.getState() == ImageUrl.STATE_NULL) {
                 mImage.setState(ImageUrl.STATE_PAGE_1);
-                RxBus.getInstance().post(new RxEvent(RxEvent.EVENT_PICTURE_PAGING, mImage));
+                AppEventBus.post(new AppEvent(AppEvent.EVENT_PICTURE_PAGING, mImage));
             }
             mPosX = 0;
             mPosY = mImage.getState() == ImageUrl.STATE_PAGE_1 ? 0 : mHeight;
@@ -192,7 +192,13 @@ public class MangaPostprocessor extends BasePostprocessor {
 
     @Override
     public CacheKey getPostprocessorCacheKey() {
-        return new SimpleCacheKey(StringUtils.format("%s-post-%d", mImage.getUrl(), mImage.getId()));
+        return new SimpleCacheKey(StringUtils.format(
+                "%s-post-%d-%b-%b-%b",
+                mImage.getUrl(),
+                mImage.getId(),
+                isPaging,
+                isPagingReverse,
+                isWhiteEdge));
     }
 
     /**

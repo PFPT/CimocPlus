@@ -5,21 +5,113 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_alignParentBottom="true"
-    android:background="@color/trans_light_black"
-    android:padding="8dp"
+    android:background="@color/trans_black"
+    android:clickable="true"
+    android:focusable="true"
+    android:paddingLeft="8dp"
+    android:paddingTop="8dp"
+    android:paddingRight="8dp"
+    android:paddingBottom="4dp"
     android:visibility="gone">
 
-
-    <com.haleydu.cimoc.ui.widget.ReverseSeekBar
-        android:id="@+id/reader_seek_bar"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        app:dsb_indicatorColor="?attr/colorPrimary"
-        app:dsb_min="1"
-        app:dsb_progressColor="?attr/colorPrimary"
-        app:dsb_rippleColor="?attr/colorPrimary"
-        app:dsb_thumbSize="12dp"
-        app:dsb_trackColor="@color/white"
-        app:dsb_trackHeight="4dp" />
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingRight="8dp"
+                android:text="@string/reader_brightness"
+                android:textColor="@color/white"
+                android:textSize="12sp" />
+
+            <org.adw.library.widgets.discreteseekbar.DiscreteSeekBar
+                android:id="@+id/reader_brightness_bar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                app:dsb_indicatorColor="?attr/colorPrimary"
+                app:dsb_indicatorPopupEnabled="false"
+                app:dsb_max="100"
+                app:dsb_min="1"
+                app:dsb_progressColor="?attr/colorPrimary"
+                app:dsb_rippleColor="?attr/colorPrimary"
+                app:dsb_thumbSize="10dp"
+                app:dsb_trackColor="@color/white"
+                app:dsb_trackHeight="3dp" />
+        </LinearLayout>
+
+        <com.haleydu.cimoc.ui.widget.ReverseSeekBar
+            android:id="@+id/reader_seek_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            app:dsb_indicatorColor="?attr/colorPrimary"
+            app:dsb_min="1"
+            app:dsb_progressColor="?attr/colorPrimary"
+            app:dsb_rippleColor="?attr/colorPrimary"
+            app:dsb_thumbSize="12dp"
+            app:dsb_trackColor="@color/white"
+            app:dsb_trackHeight="4dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp">
+
+            <TextView
+                android:id="@+id/reader_menu_catalog"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:background="?android:attr/selectableItemBackground"
+                android:gravity="center"
+                android:text="@string/reader_menu_catalog"
+                android:textColor="@color/white"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/reader_menu_auto"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:background="?android:attr/selectableItemBackground"
+                android:gravity="center"
+                android:text="@string/reader_menu_auto"
+                android:textColor="@color/white"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/reader_menu_color"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:background="?android:attr/selectableItemBackground"
+                android:gravity="center"
+                android:text="@string/reader_menu_color"
+                android:textColor="@color/white"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/reader_menu_settings"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:background="?android:attr/selectableItemBackground"
+                android:gravity="center"
+                android:text="@string/reader_menu_settings"
+                android:textColor="@color/white"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </LinearLayout>
 </FrameLayout>

@@ -7,6 +7,7 @@ import android.view.View;
 
 import com.haleydu.cimoc.R;
 import com.haleydu.cimoc.component.DialogCaller;
+import com.haleydu.cimoc.databinding.FragmentStreamConfigBinding;
 import com.haleydu.cimoc.global.ClickEvents;
 import com.haleydu.cimoc.manager.PreferenceManager;
 import com.haleydu.cimoc.ui.activity.settings.EventSettingsActivity;
@@ -16,8 +17,6 @@ import com.haleydu.cimoc.ui.fragment.dialog.ItemDialogFragment;
 import com.haleydu.cimoc.ui.widget.preference.CheckBoxPreference;
 import com.haleydu.cimoc.ui.widget.preference.ChoicePreference;
 
-import butterknife.BindView;
-import butterknife.OnClick;
 
 /**
  * Created by Hiroshi on 2016/10/13.
@@ -32,18 +31,13 @@ public class StreamConfigFragment extends BaseFragment implements DialogCaller {
     private static final int OPERATION_VOLUME_UP = 0;
     private static final int OPERATION_VOLUME_DOWN = 1;
 
-    @BindView(R.id.settings_reader_interval)
     CheckBoxPreference mReaderInterval;
-    @BindView(R.id.settings_reader_load_prev)
     CheckBoxPreference mReaderLoadPrev;
-    @BindView(R.id.settings_reader_load_next)
     CheckBoxPreference mReaderLoadNext;
-    @BindView(R.id.settings_reader_orientation)
     ChoicePreference mReaderOrientation;
-    @BindView(R.id.settings_reader_turn)
     ChoicePreference mReaderTurn;
 
-//    @BindView(R.id.settings_reader_volume_click_event) View mReaderVolumeEvent;
+//    View mReaderVolumeEvent;
 
     @Override
     protected void initView() {
@@ -61,7 +55,6 @@ public class StreamConfigFragment extends BaseFragment implements DialogCaller {
                 PreferenceManager.READER_TURN_LTR, R.array.reader_turn_items, DIALOG_REQUEST_TURN);
     }
 
-    @OnClick({R.id.settings_reader_click_event, R.id.settings_reader_long_click_event})
     void onReaderEventClick(View view) {
         boolean isLong = view.getId() == R.id.settings_reader_long_click_event;
         Intent intent = EventSettingsActivity.createIntent(getActivity(), isLong,
@@ -69,8 +62,7 @@ public class StreamConfigFragment extends BaseFragment implements DialogCaller {
         startActivity(intent);
     }
 
-//    @OnClick(R.id.settings_reader_volume_click_event)
-//    void onReaderVolumeEventClick() {
+//    //    void onReaderVolumeEventClick() {
 //        String[] items = {"音量上键", "音量下键"};
 //        ItemDialogFragment fragment = ItemDialogFragment.newInstance(R.string.common_operation_select,
 //                items, DIALOG_REQUEST_OPERATION);
@@ -114,6 +106,20 @@ public class StreamConfigFragment extends BaseFragment implements DialogCaller {
     @Override
     protected int getLayoutRes() {
         return R.layout.fragment_stream_config;
+    }
+
+
+    @Override
+    protected void bindViews(View view) {
+        super.bindViews(view);
+        FragmentStreamConfigBinding binding = FragmentStreamConfigBinding.bind(view);
+        mReaderInterval = binding.settingsReaderInterval;
+        mReaderLoadPrev = binding.settingsReaderLoadPrev;
+        mReaderLoadNext = binding.settingsReaderLoadNext;
+        mReaderOrientation = binding.settingsReaderOrientation;
+        mReaderTurn = binding.settingsReaderTurn;
+        binding.settingsReaderClickEvent.setOnClickListener(this::onReaderEventClick);
+        binding.settingsReaderLongClickEvent.setOnClickListener(this::onReaderEventClick);
     }
 
 }

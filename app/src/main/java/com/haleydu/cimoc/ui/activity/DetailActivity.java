@@ -12,46 +12,55 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
+import androidx.lifecycle.ViewModelProvider;
+
 import com.facebook.imagepipeline.core.ImagePipelineFactory;
 import com.google.common.collect.Lists;
 import com.google.firebase.analytics.FirebaseAnalytics;
-import com.haleydu.cimoc.App;
 import com.haleydu.cimoc.R;
+import com.haleydu.cimoc.ui.reader.ReaderActivity;
 import com.haleydu.cimoc.fresco.ControllerBuilderSupplierFactory;
 import com.haleydu.cimoc.fresco.ImagePipelineFactoryBuilder;
 import com.haleydu.cimoc.global.Extra;
 import com.haleydu.cimoc.manager.PreferenceManager;
-import com.haleydu.cimoc.manager.SourceManager;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.Task;
-import com.haleydu.cimoc.presenter.BasePresenter;
-import com.haleydu.cimoc.presenter.DetailPresenter;
+import com.haleydu.cimoc.event.AppEventBus;
+import com.haleydu.cimoc.event.AppEvent;
 import com.haleydu.cimoc.service.DownloadService;
+import com.haleydu.cimoc.ui.FlowExtKt;
 import com.haleydu.cimoc.ui.adapter.BaseAdapter;
 import com.haleydu.cimoc.ui.adapter.DetailAdapter;
-import com.haleydu.cimoc.ui.view.DetailView;
 import com.haleydu.cimoc.utils.StringUtils;
+import dagger.hilt.android.AndroidEntryPoint;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import butterknife.OnClick;
+import javax.inject.Inject;
+
+import okhttp3.OkHttpClient;
+
 
 import static com.haleydu.cimoc.utils.interpretationUtils.isReverseOrder;
 
 /**
  * Created by Hiroshi on 2016/7/2.
  */
-public class DetailActivity extends CoordinatorActivity implements DetailView {
+@AndroidEntryPoint
+public class DetailActivity extends CoordinatorActivity {
 
     public static final int REQUEST_CODE_DOWNLOAD = 0;
 
     private DetailAdapter mDetailAdapter;
-    private DetailPresenter mPresenter;
+    private DetailViewModel vm;
     private ImagePipelineFactory mImagePipelineFactory;
+
+    @Inject
+    OkHttpClient httpClient;
 
     private boolean mAutoBackup;
     private int mBackupCount;
@@ -65,10 +74,8 @@ public class DetailActivity extends CoordinatorActivity implements DetailView {
     }
 
     @Override
-    protected BasePresenter initPresenter() {
-        mPresenter = new DetailPresenter();
-        mPresenter.attachView(this);
-        return mPresenter;
+    protected void initViewModel() {
+        vm = new ViewModelProvider(this).get(DetailViewModel.class);
     }
 
     @Override
@@ -91,7 +98,30 @@ public class DetailActivity extends CoordinatorActivity implements DetailView {
         long id = getIntent().getLongExtra(Extra.EXTRA_ID, -1);
         int source = getIntent().getIntExtra(Extra.EXTRA_SOURCE, -1);
         String cid = getIntent().getStringExtra(Extra.EXTRA_CID);
-        mPresenter.load(id, source, cid);
+        FlowExtKt.collectOnStart(vm.getEvents(), this, event -> {
+            if (event instanceof DetailViewModel.Event.PreLoad) {
+                DetailViewModel.Event.PreLoad preLoad = (DetailViewModel.Event.PreLoad) event;
+                onPreLoadSuccess(preLoad.getList(), preLoad.getComic());
+            } else if (event instanceof DetailViewModel.Event.ComicLoaded) {
+                onComicLoadSuccess(((DetailViewModel.Event.ComicLoaded) event).getComic());
+            } else if (event instanceof DetailViewModel.Event.ChapterLoaded) {
+                onChapterLoadSuccess(((DetailViewModel.Event.ChapterLoaded) event).getList());
+            } else if (event instanceof DetailViewModel.Event.ParseError) {
+                onParseError();
+            } else if (event instanceof DetailViewModel.Event.NetworkError) {
+                onNetworkError();
+            } else if (event instanceof DetailViewModel.Event.TaskAddSuccess) {
+                onTaskAddSuccess(((DetailViewModel.Event.TaskAddSuccess) event).getList());
+            } else if (event instanceof DetailViewModel.Event.TaskAddFail) {
+                onTaskAddFail();
+            } else if (event instanceof DetailViewModel.Event.LastChange) {
+                onLastChange(((DetailViewModel.Event.LastChange) event).getLast());
+            }
+        });
+        FlowExtKt.collectOnStart(AppEventBus.observe(AppEvent.EVENT_COMIC_UPDATE), this, event -> vm.refreshFromUpdate());
+        FlowExtKt.collectOnStart(AppEventBus.observe(AppEvent.EVENT_COMIC_UPDATE_INFO), this, event ->
+                vm.applyUpdateInfo((Comic) event.getData()));
+        vm.load(id, source, cid);
 
 
     }
@@ -125,7 +155,7 @@ public class DetailActivity extends CoordinatorActivity implements DetailView {
             switch (item.getItemId()) {
 //                case R.id.detail_history:
 //                    if (!mDetailAdapter.getDateSet().isEmpty()) {
-//                        String path = mPresenter.getComic().getLast();
+//                        String path = vm.getComic().getLast();
 //                        if (path == null) {
 //                            path = mDetailAdapter.getItem(mDetailAdapter.getDateSet().size() - 1).getPath();
 //                        }
@@ -139,39 +169,39 @@ public class DetailActivity extends CoordinatorActivity implements DetailView {
                     }
                     break;
                 case R.id.detail_tag:
-                    if (mPresenter.getComic().getFavorite() != null) {
-                        intent = TagEditorActivity.createIntent(this, mPresenter.getComic().getId());
+                    if (vm.getComic().getFavorite() != null) {
+                        intent = TagEditorActivity.createIntent(this, vm.getComic().getId());
                         startActivity(intent);
                     } else {
                         showSnackbar(R.string.detail_tag_favorite);
                     }
                     break;
                 case R.id.detail_search_title:
-                    if (!StringUtils.isEmpty(mPresenter.getComic().getTitle())) {
-                        if(App.getPreferenceManager().getBoolean(PreferenceManager.PREF_OTHER_FIREBASE_EVENT, true)) {
+                    if (!StringUtils.isEmpty(vm.getComic().getTitle())) {
+                        if(mPreference.getBoolean(PreferenceManager.PREF_OTHER_FIREBASE_EVENT, true)) {
                             Bundle bundle = new Bundle();
-                            bundle.putString(FirebaseAnalytics.Param.CONTENT, mPresenter.getComic().getTitle());
+                            bundle.putString(FirebaseAnalytics.Param.CONTENT, vm.getComic().getTitle());
                             bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "byTitle");
-                            bundle.putInt(FirebaseAnalytics.Param.SOURCE, mPresenter.getComic().getSource());
+                            bundle.putInt(FirebaseAnalytics.Param.SOURCE, vm.getComic().getSource());
                             FirebaseAnalytics mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
                             mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SEARCH, bundle);
                         }
-                        intent = ResultActivity.createIntent(this, mPresenter.getComic().getTitle(), null, ResultActivity.LAUNCH_MODE_SEARCH);
+                        intent = ResultActivity.createIntent(this, vm.getComic().getTitle(), null, ResultActivity.LAUNCH_MODE_SEARCH);
                         startActivity(intent);
                     } else {
                         showSnackbar(R.string.common_keyword_empty);
                     }
                     break;
                 case R.id.detail_search_author:
-                    if (!StringUtils.isEmpty(mPresenter.getComic().getAuthor())) {
-                        intent = ResultActivity.createIntent(this, mPresenter.getComic().getAuthor(), null, ResultActivity.LAUNCH_MODE_SEARCH);
+                    if (!StringUtils.isEmpty(vm.getComic().getAuthor())) {
+                        intent = ResultActivity.createIntent(this, vm.getComic().getAuthor(), null, ResultActivity.LAUNCH_MODE_SEARCH);
                         startActivity(intent);
                     } else {
                         showSnackbar(R.string.common_keyword_empty);
                     }
                     break;
                 case R.id.detail_share_url:
-                    String url = mPresenter.getComic().getUrl();
+                    String url = vm.getComic().getUrl();
                     intent = new Intent(Intent.ACTION_SEND);
                     intent.setType("text/plain");
                     intent.putExtra(Intent.EXTRA_TEXT, url);
@@ -179,10 +209,10 @@ public class DetailActivity extends CoordinatorActivity implements DetailView {
                     startActivity(Intent.createChooser(intent, url));
 
                     // firebase analytics
-                    if(App.getPreferenceManager().getBoolean(PreferenceManager.PREF_OTHER_FIREBASE_EVENT, true)) {
+                    if(mPreference.getBoolean(PreferenceManager.PREF_OTHER_FIREBASE_EVENT, true)) {
                         Bundle bundle = new Bundle();
                         bundle.putString(FirebaseAnalytics.Param.CONTENT, url);
-                        bundle.putInt(FirebaseAnalytics.Param.SOURCE, mPresenter.getComic().getSource());
+                        bundle.putInt(FirebaseAnalytics.Param.SOURCE, vm.getComic().getSource());
                         FirebaseAnalytics mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
                         mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SHARE, bundle);
                     }
@@ -191,7 +221,7 @@ public class DetailActivity extends CoordinatorActivity implements DetailView {
                     mDetailAdapter.reverse();
                     break;
 //                case R.id.detail_disqus:
-//                    intent = new Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.home_page_cimqus_url) + "/cimoc/" + mPresenter.getComic().getTitle()));
+//                    intent = new Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.home_page_cimqus_url) + "/cimoc/" + vm.getComic().getTitle()));
 //                    try {
 //                        startActivity(intent);
 //                    } catch (Exception e) {
@@ -211,32 +241,30 @@ public class DetailActivity extends CoordinatorActivity implements DetailView {
                 case REQUEST_CODE_DOWNLOAD:
                     showProgressDialog();
                     List<Chapter> list = data.getParcelableArrayListExtra(Extra.EXTRA_CHAPTER);
-                    mPresenter.addTask(mDetailAdapter.getDateSet(), list);
+                    vm.addTask(mDetailAdapter.getDateSet(), list);
                     break;
             }
         }
     }
 
-    @OnClick(R.id.coordinator_action_button)
     void onActionButtonClick() {
         //todo: add comic to mangodb
-        if (mPresenter.getComic().getFavorite() != null) {
-            mPresenter.unfavoriteComic();
+        if (vm.getComic().getFavorite() != null) {
+            vm.unfavoriteComic();
             increment();
             mActionButton.setImageResource(R.drawable.ic_favorite_border_white_24dp);
             showSnackbar(R.string.detail_unfavorite);
         } else {
-            mPresenter.favoriteComic();
+            vm.favoriteComic();
             increment();
             mActionButton.setImageResource(R.drawable.ic_favorite_white_24dp);
             showSnackbar(R.string.detail_favorite);
         }
     }
 
-    @OnClick(R.id.coordinator_action_button2)
     void onActionButton2Click() {
         if (!mDetailAdapter.getDateSet().isEmpty()) {
-            String path = mPresenter.getComic().getLast();
+            String path = vm.getComic().getLast();
             if (path == null) {
                 path = mDetailAdapter.getItem(mDetailAdapter.getDateSet().size() - 1).getPath();
             }
@@ -266,31 +294,21 @@ public class DetailActivity extends CoordinatorActivity implements DetailView {
 
 
     private void startReader(String path) {
-        long id = mPresenter.updateLast(path);
+        long id = vm.updateLast(path);
         mDetailAdapter.setLast(path);
         int mode = mPreference.getInt(PreferenceManager.PREF_READER_MODE, PreferenceManager.READER_MODE_PAGE);
-        List<Chapter> c = mDetailAdapter.getDateSet();
-        if (mDetailAdapter.isReverseOrder()) {
-            if (!mDetailAdapter.isReversed()) {
-                c = Lists.reverse(mDetailAdapter.getDateSet());
-            }
-        } else if (mDetailAdapter.isReversed()) {
-            c = Lists.reverse(mDetailAdapter.getDateSet());
-        }
-        Intent intent = ReaderActivity.createIntent(DetailActivity.this, id, c, mode);
+        Intent intent = ReaderActivity.createIntent(DetailActivity.this, id, mDetailAdapter.getDateSet(), mode);
         startActivity(intent);
     }
 
-    @Override
     public void onLastChange(String last) {
         mDetailAdapter.setLast(last);
     }
 
 
-    @Override
     public void onTaskAddSuccess(ArrayList<Task> list) {
         Intent intent = DownloadService.createIntent(this, list);
-        startService(intent);
+        DownloadService.start(this, intent);
         updateChapterList(list);
         showSnackbar(R.string.detail_download_queue_success);
         hideProgressDialog();
@@ -308,19 +326,17 @@ public class DetailActivity extends CoordinatorActivity implements DetailView {
         }
     }
 
-    @Override
     public void onTaskAddFail() {
         hideProgressDialog();
         showSnackbar(R.string.detail_download_queue_fail);
     }
 
-    @Override
     public void onComicLoadSuccess(Comic comic) {
         mDetailAdapter.setInfo(comic.getCover(), comic.getTitle(), comic.getAuthor(),
                 comic.getIntro(), comic.getFinish(), comic.getUpdate(), comic.getLast(), isReverseOrder(comic));
 
         if (comic.getTitle() != null && comic.getCover() != null) {
-            mImagePipelineFactory = ImagePipelineFactoryBuilder.build(this, SourceManager.getInstance(this).getParser(comic.getSource()).getHeader(), false);
+            mImagePipelineFactory = ImagePipelineFactoryBuilder.build(this, vm.parserHeader(), false, httpClient);
             mDetailAdapter.setControllerSupplier(ControllerBuilderSupplierFactory.get(this, mImagePipelineFactory));
 
             int resId = comic.getFavorite() != null ? R.drawable.ic_favorite_white_24dp : R.drawable.ic_favorite_border_white_24dp;
@@ -330,26 +346,24 @@ public class DetailActivity extends CoordinatorActivity implements DetailView {
         }
     }
 
-    @Override
     public void onChapterLoadSuccess(List<Chapter> list) {
         hideProgressBar();
-        if (mPresenter.getComic().getTitle() != null && mPresenter.getComic().getCover() != null) {
+        if (vm.getComic().getTitle() != null && vm.getComic().getCover() != null) {
             mDetailAdapter.clear();
             mDetailAdapter.addAll(list);
             mDetailAdapter.notifyDataSetChanged();
         }
-        if(App.getPreferenceManager().getBoolean(PreferenceManager.PREF_OTHER_FIREBASE_EVENT, true)) {
+        if(mPreference.getBoolean(PreferenceManager.PREF_OTHER_FIREBASE_EVENT, true)) {
             Bundle bundle = new Bundle();
-            bundle.putString(FirebaseAnalytics.Param.CONTENT, mPresenter.getComic().getTitle());
+            bundle.putString(FirebaseAnalytics.Param.CONTENT, vm.getComic().getTitle());
             bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "Title");
-            bundle.putInt(FirebaseAnalytics.Param.SOURCE, mPresenter.getComic().getSource());
+            bundle.putInt(FirebaseAnalytics.Param.SOURCE, vm.getComic().getSource());
             bundle.putBoolean(FirebaseAnalytics.Param.SUCCESS, true);
             FirebaseAnalytics mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
             mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.VIEW_ITEM, bundle);
         }
     }
 
-    @Override
     public void onPreLoadSuccess(List<Chapter> list, Comic comic) {
         hideProgressBar();
         if (isReverseOrder(comic)){
@@ -361,7 +375,7 @@ public class DetailActivity extends CoordinatorActivity implements DetailView {
                 comic.getIntro(), comic.getFinish(), comic.getUpdate(), comic.getLast(), isReverseOrder(comic));
 
         if (comic.getTitle() != null && comic.getCover() != null) {
-            mImagePipelineFactory = ImagePipelineFactoryBuilder.build(this, SourceManager.getInstance(this).getParser(comic.getSource()).getHeader(), false);
+            mImagePipelineFactory = ImagePipelineFactoryBuilder.build(this, vm.parserHeader(), false, httpClient);
             mDetailAdapter.setControllerSupplier(ControllerBuilderSupplierFactory.get(this, mImagePipelineFactory));
 
             int resId = comic.getFavorite() != null ? R.drawable.ic_favorite_white_24dp : R.drawable.ic_favorite_border_white_24dp;
@@ -372,34 +386,44 @@ public class DetailActivity extends CoordinatorActivity implements DetailView {
 
     }
 
-    @Override
     public void onParseError() {
-        if(App.getPreferenceManager().getBoolean(PreferenceManager.PREF_OTHER_FIREBASE_EVENT, true)) {
+        if(mPreference.getBoolean(PreferenceManager.PREF_OTHER_FIREBASE_EVENT, true)) {
             Bundle bundle = new Bundle();
-            bundle.putString(FirebaseAnalytics.Param.CONTENT, mPresenter.getComic().getTitle());
+            bundle.putString(FirebaseAnalytics.Param.CONTENT, vm.getComic().getTitle());
             bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "Title");
-            bundle.putInt(FirebaseAnalytics.Param.SOURCE, mPresenter.getComic().getSource());
+            bundle.putInt(FirebaseAnalytics.Param.SOURCE, vm.getComic().getSource());
             bundle.putBoolean(FirebaseAnalytics.Param.SUCCESS, false);
             FirebaseAnalytics mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
             mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.VIEW_ITEM, bundle);
         }
         hideProgressBar();
         showSnackbar(R.string.common_parse_error);
+    }
 
-
+    public void onNetworkError() {
+        hideProgressBar();
+        showSnackbar(R.string.common_network_error);
     }
 
     private void increment() {
         if (mAutoBackup && ++mBackupCount == 10) {
             mBackupCount = 0;
             mPreference.putInt(PreferenceManager.PREF_BACKUP_SAVE_COMIC_COUNT, 0);
-            mPresenter.backup();
+            vm.backup();
         }
     }
 
     @Override
     protected String getDefaultTitle() {
         return getString(R.string.detail);
+    }
+
+
+    @Override
+    protected void bindViews() {
+        super.bindViews();
+        mActionButton.setOnClickListener(v -> onActionButtonClick());
+        mActionButton2.setOnClickListener(v -> onActionButton2Click());
     }
 
 }

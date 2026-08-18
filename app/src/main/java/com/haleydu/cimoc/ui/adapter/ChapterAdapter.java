@@ -5,17 +5,15 @@ import android.graphics.Rect;
 import androidx.recyclerview.widget.RecyclerView;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CheckBox;
-import android.widget.TextView;
 
-import com.haleydu.cimoc.R;
+import com.haleydu.cimoc.databinding.ItemChapterBinding;
+import com.haleydu.cimoc.databinding.ItemSelectBinding;
 import com.haleydu.cimoc.misc.Switcher;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.ui.widget.ChapterButton;
 
 import java.util.List;
 
-import butterknife.BindView;
 
 /**
  * Created by Hiroshi on 2016/11/15.
@@ -40,11 +38,9 @@ public class ChapterAdapter extends BaseAdapter<Switcher<Chapter>> {
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         if (viewType == TYPE_ITEM) {
-            View view = mInflater.inflate(R.layout.item_select, parent, false);
-            return new ItemHolder(view);
+            return new ItemHolder(ItemSelectBinding.inflate(mInflater, parent, false));
         }
-        View view = mInflater.inflate(R.layout.item_chapter, parent, false);
-        return new ButtonHolder(view);
+        return new ButtonHolder(ItemChapterBinding.inflate(mInflater, parent, false));
     }
 
     @Override
@@ -63,9 +59,9 @@ public class ChapterAdapter extends BaseAdapter<Switcher<Chapter>> {
             }
         } else {
             ItemHolder viewHolder = (ItemHolder) holder;
-            viewHolder.chapterTitle.setText(switcher.getElement().getTitle());
-            viewHolder.chapterChoice.setEnabled(!switcher.getElement().isDownload());
-            viewHolder.chapterChoice.setChecked(switcher.isEnable());
+            viewHolder.binding.itemSelectTitle.setText(switcher.getElement().getTitle());
+            viewHolder.binding.itemSelectCheckbox.setEnabled(!switcher.getElement().isDownload());
+            viewHolder.binding.itemSelectCheckbox.setChecked(switcher.isEnable());
         }
     }
 
@@ -90,22 +86,20 @@ public class ChapterAdapter extends BaseAdapter<Switcher<Chapter>> {
     }
 
     static class ItemHolder extends BaseAdapter.BaseViewHolder {
-        @BindView(R.id.item_select_title)
-        TextView chapterTitle;
-        @BindView(R.id.item_select_checkbox)
-        CheckBox chapterChoice;
+        final ItemSelectBinding binding;
 
-        ItemHolder(View view) {
-            super(view);
+        ItemHolder(ItemSelectBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
         }
     }
 
     static class ButtonHolder extends BaseAdapter.BaseViewHolder {
-        @BindView(R.id.item_chapter_button)
-        ChapterButton chapterButton;
+        final ChapterButton chapterButton;
 
-        ButtonHolder(View view) {
-            super(view);
+        ButtonHolder(ItemChapterBinding binding) {
+            super(binding.getRoot());
+            chapterButton = (ChapterButton) binding.getRoot();
         }
     }
 

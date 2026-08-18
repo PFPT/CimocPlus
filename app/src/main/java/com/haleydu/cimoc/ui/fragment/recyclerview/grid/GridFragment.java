@@ -9,6 +9,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.view.View;
 
 import com.haleydu.cimoc.R;
+import com.haleydu.cimoc.component.DialogCaller;
+import com.haleydu.cimoc.component.ThemeResponsive;
+import com.haleydu.cimoc.databinding.FragmentGridBinding;
 import com.haleydu.cimoc.manager.SourceManager;
 import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.MiniComic;
@@ -19,7 +22,6 @@ import com.haleydu.cimoc.ui.adapter.GridAdapter;
 import com.haleydu.cimoc.ui.fragment.dialog.ItemDialogFragment;
 import com.haleydu.cimoc.ui.fragment.dialog.MessageDialogFragment;
 import com.haleydu.cimoc.ui.fragment.recyclerview.RecyclerViewFragment;
-import com.haleydu.cimoc.ui.view.GridView;
 import com.haleydu.cimoc.utils.HintUtils;
 import com.haleydu.cimoc.utils.StringUtils;
 
@@ -29,26 +31,27 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import butterknife.BindView;
-import butterknife.OnClick;
+import javax.inject.Inject;
+
 
 /**
  * Created by Hiroshi on 2016/9/22.
  */
 
-public abstract class GridFragment extends RecyclerViewFragment implements GridView {
+public abstract class GridFragment extends RecyclerViewFragment implements DialogCaller, ThemeResponsive {
 
     protected static final int DIALOG_REQUEST_OPERATION = 0;
     protected GridAdapter mGridAdapter;
     protected long mSavedId = -1;
-    @BindView(R.id.grid_action_button)
     FloatingActionButton mActionButton;
+    @Inject
+    SourceManager sourceManager;
 
     @Override
     protected BaseAdapter initAdapter() {
         mGridAdapter = new GridAdapter(getActivity(), new LinkedList<>());
         mGridAdapter.setProvider(getAppInstance().getBuilderProvider());
-        mGridAdapter.setTitleGetter(SourceManager.getInstance(this).new TitleGetter());
+        mGridAdapter.setTitleGetter(sourceManager.new TitleGetter());
         mRecyclerView.setRecycledViewPool(getAppInstance().getGridRecycledPool());
         mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
@@ -74,7 +77,6 @@ public abstract class GridFragment extends RecyclerViewFragment implements GridV
         return manager;
     }
 
-    @OnClick(R.id.grid_action_button)
     void onActionButtonClick() {
         performActionButtonClick();
     }
@@ -97,17 +99,14 @@ public abstract class GridFragment extends RecyclerViewFragment implements GridV
         return true;
     }
 
-    @Override
     public void onComicLoadSuccess(List<Object> list) {
         mGridAdapter.addAll(list);
     }
 
-    @Override
     public void onComicLoadFail() {
         HintUtils.showToast(getActivity(), R.string.common_data_load_fail);
     }
 
-    @Override
     public void onExecuteFail() {
         hideProgressDialog();
         HintUtils.showToast(getActivity(), R.string.common_execute_fail);
@@ -131,7 +130,7 @@ public abstract class GridFragment extends RecyclerViewFragment implements GridV
                         getString(R.string.comic_info_title),
                         comic.getTitle(),
                         getString(R.string.comic_info_source),
-                        SourceManager.getInstance(this).getParser(comic.getSource()).getTitle(),
+                        sourceManager.getParser(comic.getSource()).getTitle(),
                         getString(R.string.comic_info_status),
                         comic.getFinish() == null ? getString(R.string.comic_status_finish) :
                                 getString(R.string.comic_status_continue),
@@ -156,4 +155,14 @@ public abstract class GridFragment extends RecyclerViewFragment implements GridV
     protected int getLayoutRes() {
         return R.layout.fragment_grid;
     }
+
+    @Override
+    protected void bindViews(View view) {
+        super.bindViews(view);
+        FragmentGridBinding binding = FragmentGridBinding.bind(view);
+        mRecyclerView = binding.recyclerViewContent;
+        mActionButton = binding.gridActionButton;
+        binding.gridActionButton.setOnClickListener(v -> onActionButtonClick());
+    }
+
 }

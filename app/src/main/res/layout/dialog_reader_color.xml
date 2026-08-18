@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingLeft="20dp"
+    android:paddingTop="16dp"
+    android:paddingRight="20dp"
+    android:paddingBottom="24dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="8dp"
+        android:text="@string/reader_menu_color"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/reader_color_red"
+        android:textColor="?android:attr/textColorSecondary"
+        android:textSize="12sp" />
+
+    <org.adw.library.widgets.discreteseekbar.DiscreteSeekBar
+        android:id="@+id/reader_color_red"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:dsb_indicatorPopupEnabled="false"
+        app:dsb_max="150"
+        app:dsb_min="50"
+        app:dsb_progressColor="?attr/colorPrimary"
+        app:dsb_rippleColor="?attr/colorPrimary"
+        app:dsb_thumbSize="10dp"
+        app:dsb_trackHeight="3dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/reader_color_green"
+        android:textColor="?android:attr/textColorSecondary"
+        android:textSize="12sp" />
+
+    <org.adw.library.widgets.discreteseekbar.DiscreteSeekBar
+        android:id="@+id/reader_color_green"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:dsb_indicatorPopupEnabled="false"
+        app:dsb_max="150"
+        app:dsb_min="50"
+        app:dsb_progressColor="?attr/colorPrimary"
+        app:dsb_rippleColor="?attr/colorPrimary"
+        app:dsb_thumbSize="10dp"
+        app:dsb_trackHeight="3dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/reader_color_blue"
+        android:textColor="?android:attr/textColorSecondary"
+        android:textSize="12sp" />
+
+    <org.adw.library.widgets.discreteseekbar.DiscreteSeekBar
+        android:id="@+id/reader_color_blue"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:dsb_indicatorPopupEnabled="false"
+        app:dsb_max="150"
+        app:dsb_min="50"
+        app:dsb_progressColor="?attr/colorPrimary"
+        app:dsb_rippleColor="?attr/colorPrimary"
+        app:dsb_thumbSize="10dp"
+        app:dsb_trackHeight="3dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/reader_color_invert"
+            android:textColor="?android:attr/textColorPrimary" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/reader_color_invert"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/reader_color_gray"
+            android:textColor="?android:attr/textColorPrimary" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/reader_color_gray"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+</LinearLayout>

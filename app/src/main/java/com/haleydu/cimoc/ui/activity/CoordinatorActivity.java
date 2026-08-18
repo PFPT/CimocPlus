@@ -7,9 +7,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.view.View;
 
 import com.haleydu.cimoc.R;
+import com.haleydu.cimoc.databinding.ActivityCoordinatorBinding;
 import com.haleydu.cimoc.ui.adapter.BaseAdapter;
 
-import butterknife.BindView;
 
 /**
  * Created by Hiroshi on 2016/12/1.
@@ -18,14 +18,11 @@ import butterknife.BindView;
 public abstract class CoordinatorActivity extends BackActivity implements
         BaseAdapter.OnItemClickListener, BaseAdapter.OnItemLongClickListener {
 
-    @BindView(R.id.coordinator_action_button)
-    FloatingActionButton mActionButton;
-    @BindView(R.id.coordinator_action_button2)
-    FloatingActionButton mActionButton2;
-    @BindView(R.id.coordinator_recycler_view)
-    RecyclerView mRecyclerView;
-    @BindView(R.id.coordinator_layout)
-    CoordinatorLayout mLayoutView;
+    protected FloatingActionButton mActionButton;
+    protected FloatingActionButton mActionButton2;
+    protected RecyclerView mRecyclerView;
+    protected CoordinatorLayout mLayoutView;
+    private ActivityCoordinatorBinding binding;
 
     @Override
     protected void initView() {
@@ -63,6 +60,12 @@ public abstract class CoordinatorActivity extends BackActivity implements
     }
 
     @Override
+    protected View inflateContentView() {
+        binding = ActivityCoordinatorBinding.inflate(getLayoutInflater());
+        return binding.getRoot();
+    }
+
+    @Override
     protected int getLayoutRes() {
         return R.layout.activity_coordinator;
     }
@@ -70,6 +73,15 @@ public abstract class CoordinatorActivity extends BackActivity implements
     @Override
     protected View getLayoutView() {
         return mLayoutView;
+    }
+
+    @Override
+    protected void bindViews() {
+        super.bindViews();
+        mActionButton = binding.coordinatorActionButton;
+        mActionButton2 = binding.coordinatorActionButton2;
+        mRecyclerView = binding.coordinatorRecyclerView;
+        mLayoutView = binding.coordinatorLayout;
     }
 
 }

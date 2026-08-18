@@ -9,24 +9,24 @@ import android.view.View;
  * Created by Hiroshi on 2017/5/27.
  */
 
-class FlingRunnable implements Runnable {
+public class FlingRunnable implements Runnable {
 
     private final View mView;
     private final OnFlingRunningListener mListener;
     private final ScrollerCompat mScroller;
     private int mCurrentX, mCurrentY;
 
-    FlingRunnable(Context context, OnFlingRunningListener listener, View view) {
+    public FlingRunnable(Context context, OnFlingRunningListener listener, View view) {
         mScroller = ScrollerCompat.create(context);
         mListener = listener;
         mView = view;
     }
 
-    void cancelFling() {
+    public void cancelFling() {
         mScroller.abortAnimation();
     }
 
-    void fling(RectF rect, int viewWidth, int viewHeight, int velocityX, int velocityY) {
+    public void fling(RectF rect, int viewWidth, int viewHeight, int velocityX, int velocityY) {
         final int startX = Math.round(-rect.left);
         final int minX, maxX, minY, maxY;
 
@@ -69,7 +69,7 @@ class FlingRunnable implements Runnable {
         }
     }
 
-    interface OnFlingRunningListener {
+    public interface OnFlingRunningListener {
         void onFlingRunning(int dx, int dy);
     }
 

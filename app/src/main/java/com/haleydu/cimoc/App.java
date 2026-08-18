@@ -14,43 +14,31 @@ import android.os.Environment;
 import android.util.DisplayMetrics;
 import android.view.WindowManager;
 
-import com.facebook.drawee.backends.pipeline.Fresco;
+import com.haleydu.cimoc.utils.FrescoUtils;
 import com.haleydu.cimoc.component.AppGetter;
 import com.haleydu.cimoc.core.Storage;
 import com.haleydu.cimoc.fresco.ControllerBuilderProvider;
-import com.haleydu.cimoc.helper.DBOpenHelper;
+import com.haleydu.cimoc.db.CimocDatabase;
 import com.haleydu.cimoc.helper.UpdateHelper;
 import com.haleydu.cimoc.manager.PreferenceManager;
+import com.haleydu.cimoc.manager.SourceConfigManager;
 import com.haleydu.cimoc.manager.SourceManager;
 import com.haleydu.cimoc.misc.ActivityLifecycle;
-import com.haleydu.cimoc.model.DaoMaster;
-import com.haleydu.cimoc.model.DaoSession;
 import com.haleydu.cimoc.saf.DocumentFile;
 import com.haleydu.cimoc.ui.adapter.GridAdapter;
 import com.haleydu.cimoc.utils.DocumentUtils;
 import com.haleydu.cimoc.utils.StringUtils;
-
-import org.greenrobot.greendao.identityscope.IdentityScopeType;
-
-import java.security.SecureRandom;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 
 import okhttp3.OkHttpClient;
 import xcrash.XCrash;
 
 import androidx.multidex.MultiDexApplication;
 
-/**
- * Created by Hiroshi on 2016/7/5.
- */
+import dagger.hilt.android.HiltAndroidApp;
+
+import javax.inject.Inject;
+
+@HiltAndroidApp
 public class App extends MultiDexApplication implements AppGetter, Thread.UncaughtExceptionHandler {
 
     public static int mWidthPixels;
@@ -59,20 +47,28 @@ public class App extends MultiDexApplication implements AppGetter, Thread.Uncaug
     public static int mCoverHeightPixels;
     public static int mLargePixels;
 
-    private static OkHttpClient mHttpClient;
-
     private DocumentFile mDocumentFile;
     private static PreferenceManager mPreferenceManager;
     private ControllerBuilderProvider mBuilderProvider;
     
     private RecyclerView.RecycledViewPool mRecycledPool;
-    private DaoSession mDaoSession;
     private ActivityLifecycle mActivityLifecycle;
 
 
     private static WifiManager manager_wifi;
     private static App mApp;
     private static Activity sActivity;
+
+    @Inject
+    PreferenceManager preferenceManager;
+    @Inject
+    SourceManager sourceManager;
+    @Inject
+    SourceConfigManager sourceConfigManager;
+    @Inject
+    CimocDatabase database;
+    @Inject
+    OkHttpClient httpClient;
 
     // 默认Github源
     private static String UPDATE_CURRENT_URL = "https://api.github.com/repos/Haleydu/Cimoc/releases/latest";
@@ -85,11 +81,9 @@ public class App extends MultiDexApplication implements AppGetter, Thread.Uncaug
         Thread.setDefaultUncaughtExceptionHandler(this);
         mActivityLifecycle = new ActivityLifecycle();
         registerActivityLifecycleCallbacks(mActivityLifecycle);
-        mPreferenceManager = new PreferenceManager(this);
-        DBOpenHelper helper = new DBOpenHelper(this, "cimoc.db");
-        mDaoSession = new DaoMaster(helper.getWritableDatabase()).newSession(IdentityScopeType.None);
-        UpdateHelper.update(mPreferenceManager, getDaoSession());
-        Fresco.initialize(this);
+        mPreferenceManager = preferenceManager;
+        UpdateHelper.update(mPreferenceManager, sourceConfigManager, database.sourceDao());
+        FrescoUtils.init(this, 250);
         initPixels();
 
         manager_wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
@@ -200,10 +194,6 @@ public class App extends MultiDexApplication implements AppGetter, Thread.Uncaug
         return mDocumentFile;
     }
 
-    public DaoSession getDaoSession() {
-        return mDaoSession;
-    }
-
     public static PreferenceManager getPreferenceManager() {
         return mPreferenceManager;
     }
@@ -219,7 +209,7 @@ public class App extends MultiDexApplication implements AppGetter, Thread.Uncaug
     public ControllerBuilderProvider getBuilderProvider() {
         if (mBuilderProvider == null) {
             mBuilderProvider = new ControllerBuilderProvider(getApplicationContext(),
-                    SourceManager.getInstance(this).new HeaderGetter(), true);
+                    sourceManager.new HeaderGetter(), true, httpClient);
         }
         return mBuilderProvider;
     }
@@ -236,66 +226,6 @@ public class App extends MultiDexApplication implements AppGetter, Thread.Uncaug
 
     public static String getUpdateCurrentUrl() {
         return UPDATE_CURRENT_URL;
-    }
-
-    public static OkHttpClient getHttpClient() {
-
-        //OkHttpClient返回null实现"仅WiFi联网"，后面要注意空指针处理
-        if (!manager_wifi.isWifiEnabled() && mPreferenceManager.getBoolean(PreferenceManager.PREF_OTHER_CONNECT_ONLY_WIFI, false)) {
-            return null;
-        }
-
-        if (mHttpClient == null) {
-
-            // 3.OkHttp访问https的Client实例
-            mHttpClient = new OkHttpClient().newBuilder()
-                    .sslSocketFactory(createSSLSocketFactory())
-                    .hostnameVerifier(new TrustAllHostnameVerifier())
-                    .followRedirects(true)
-                    .followSslRedirects(true)
-                    .retryOnConnectionFailure(true)
-                    .build();
-        }
-
-        return mHttpClient;
-    }
-
-    // 1.实现X509TrustManager接口
-    private static class TrustAllCerts implements X509TrustManager {
-        @Override
-        public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-        }
-
-        @Override
-        public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-        }
-
-        @Override
-        public X509Certificate[] getAcceptedIssuers() {
-            return new X509Certificate[0];
-        }
-    }
-
-    // 2.实现HostnameVerifier接口
-    private static class TrustAllHostnameVerifier implements HostnameVerifier {
-        @Override
-        public boolean verify(String hostname, SSLSession session) {
-            return true;
-        }
-    }
-
-    private static SSLSocketFactory createSSLSocketFactory() {
-        SSLSocketFactory ssfFactory = null;
-
-        try {
-            SSLContext sc = SSLContext.getInstance("TLS");
-            sc.init(null, new TrustManager[]{new TrustAllCerts()}, new SecureRandom());
-
-            ssfFactory = sc.getSocketFactory();
-        } catch (Exception e) {
-        }
-
-        return ssfFactory;
     }
 
     private void initXCrash(){

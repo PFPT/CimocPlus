@@ -2,70 +2,49 @@ package com.haleydu.cimoc.manager;
 
 import android.util.SparseArray;
 
-import com.haleydu.cimoc.component.AppGetter;
+import com.haleydu.cimoc.db.SourceDao;
 import com.haleydu.cimoc.model.Source;
-import com.haleydu.cimoc.model.SourceDao;
-import com.haleydu.cimoc.model.SourceDao.Properties;
+import com.haleydu.cimoc.model.SourceConfig;
 import com.haleydu.cimoc.parser.Parser;
 import com.haleydu.cimoc.source.*;
 import com.haleydu.cimoc.source.WebtoonDongManManHua;
 
 import java.util.List;
 
-import okhttp3.Headers;
-import rx.Observable;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
-/**
- * Created by Hiroshi on 2016/8/11.
- */
+import okhttp3.Headers;
+import okhttp3.OkHttpClient;
+
+@Singleton
 public class SourceManager {
 
-    private static SourceManager mInstance;
-
     private SourceDao mSourceDao;
+    private SourceConfigManager sourceConfigManager;
+    private PreferenceManager preferenceManager;
+    private OkHttpClient httpClient;
     private SparseArray<Parser> mParserArray = new SparseArray<>();
 
-    private SourceManager(AppGetter getter) {
-        mSourceDao = getter.getAppInstance().getDaoSession().getSourceDao();
+    @Inject
+    public SourceManager(SourceDao sourceDao, SourceConfigManager sourceConfigManager,
+                         PreferenceManager preferenceManager, OkHttpClient httpClient) {
+        mSourceDao = sourceDao;
+        this.sourceConfigManager = sourceConfigManager;
+        this.preferenceManager = preferenceManager;
+        this.httpClient = httpClient;
     }
 
-    public static SourceManager getInstance(AppGetter getter) {
-        if (mInstance == null) {
-            synchronized (SourceManager.class) {
-                if (mInstance == null) {
-                    mInstance = new SourceManager(getter);
-                }
-            }
-        }
-        return mInstance;
-    }
-
-    public Observable<List<Source>> list() {
-        return mSourceDao.queryBuilder()
-                .orderAsc(Properties.Type)
-                .rx()
-                .list();
-    }
-
-    public Observable<List<Source>> listEnableInRx() {
-        return mSourceDao.queryBuilder()
-                .where(Properties.Enable.eq(true))
-                .orderAsc(Properties.Type)
-                .rx()
-                .list();
+    public List<Source> list() {
+        return mSourceDao.list();
     }
 
     public List<Source> listEnable() {
-        return mSourceDao.queryBuilder()
-                .where(Properties.Enable.eq(true))
-                .orderAsc(Properties.Type)
-                .list();
+        return mSourceDao.listEnable();
     }
 
     public Source load(int type) {
-        return mSourceDao.queryBuilder()
-                .where(Properties.Type.eq(type))
-                .unique();
+        return mSourceDao.load(type);
     }
 
     public long insert(Source source) {
@@ -88,7 +67,7 @@ public class SourceManager {
                     parser = new Dmzj(source);
                     break;
                 case HHAAZZ.TYPE:
-                    parser = new HHAAZZ(source);
+                    parser = new HHAAZZ(source, preferenceManager);
                     break;
                 case CCTuku.TYPE:
                     parser = new CCTuku(source);
@@ -109,7 +88,7 @@ public class SourceManager {
                     parser = new MH57(source);
                     break;
                 case MH50.TYPE:
-                    parser = new MH50(source);
+                    parser = new MH50(source, preferenceManager);
                     break;
                 case Dmzjv2.TYPE:
                     parser = new Dmzjv2(source);
@@ -123,7 +102,7 @@ public class SourceManager {
 
                 //feilong
                 case PuFei.TYPE:
-                    parser = new PuFei(source);
+                    parser = new PuFei(source, sourceConfigManager);
                     break;
                 case Tencent.TYPE:
                     parser = new Tencent(source);
@@ -168,10 +147,10 @@ public class SourceManager {
                     parser = new ManHuaDB(source);
                     break;
                 case Manhuatai.TYPE:
-                    parser = new Manhuatai(source);
+                    parser = new Manhuatai(source, httpClient, sourceConfigManager);
                     break;
                 case GuFeng.TYPE:
-                    parser = new GuFeng(source);
+                    parser = new GuFeng(source, sourceConfigManager);
                     break;
                 case CCMH.TYPE:
                     parser = new CCMH(source);
@@ -191,39 +170,48 @@ public class SourceManager {
                     parser = new Mangakakalot(source);
                     break;
                 case Ohmanhua.TYPE:
-                    parser = new Ohmanhua(source);
+                    parser = new Ohmanhua(source, sourceConfigManager);
                     break;
                 case CopyMH.TYPE:
-                    parser = new CopyMH(source);
+                    parser = new CopyMH(source, sourceConfigManager, httpClient);
                     break;
                 case HotManga.TYPE:
-                    parser = new HotManga(source);
+                    parser = new HotManga(source, httpClient, sourceConfigManager);
                     break;
                 case MangaBZ.TYPE:
                     parser = new MangaBZ(source);
                     break;
                 case WebtoonDongManManHua.TYPE:
-                    parser = new WebtoonDongManManHua(source);
+                    parser = new WebtoonDongManManHua(source, httpClient);
                     break;
                 case MH160.TYPE:
-                    parser = new MH160(source);
+                    parser = new MH160(source, sourceConfigManager);
                     break;
                 case QiMiaoMH.TYPE:
-                    parser = new QiMiaoMH(source);
+                    parser = new QiMiaoMH(source, httpClient);
                     break;
                 case YKMH.TYPE:
-                    parser = new YKMH(source);
+                    parser = new YKMH(source, sourceConfigManager);
                     break;
                 case DmzjFix.TYPE:
                     parser = new DmzjFix(source);
                     break;
                 default:
-                    parser = new Null();
+                    SourceConfig config = sourceConfigManager.getConfig(type);
+                    if (config != null) {
+                        parser = new GenericHtmlParser(source, config);
+                    } else {
+                        parser = new Null();
+                    }
                     break;
             }
             mParserArray.put(type, parser);
         }
         return parser;
+    }
+
+    public void clearParserCache() {
+        mParserArray.clear();
     }
 
     public class TitleGetter {

@@ -1,5 +1,8 @@
 package com.haleydu.cimoc.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by Hiroshi on 2016/7/27.
  */
@@ -23,6 +26,14 @@ public class MiniComic {
         this.finish = comic.getFinish();
         this.highlight = comic.getHighlight();
         this.local = comic.getLocal();
+    }
+
+    public static List<Object> listOf(List<Comic> comics) {
+        List<Object> result = new ArrayList<>(comics.size());
+        for (Comic comic : comics) {
+            result.add(new MiniComic(comic));
+        }
+        return result;
     }
 
     @Override

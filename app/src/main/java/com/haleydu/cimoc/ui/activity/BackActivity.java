@@ -9,15 +9,12 @@ import android.widget.ProgressBar;
 import com.haleydu.cimoc.R;
 import com.haleydu.cimoc.utils.ThemeUtils;
 
-import butterknife.BindView;
 
 /**
  * Created by Hiroshi on 2016/9/11.
  */
 public abstract class BackActivity extends BaseActivity {
 
-    @Nullable
-    @BindView(R.id.custom_progress_bar)
     ProgressBar mProgressBar;
 
     @Override
@@ -49,6 +46,13 @@ public abstract class BackActivity extends BaseActivity {
         if (mProgressBar != null) {
             mProgressBar.setVisibility(View.GONE);
         }
+    }
+
+
+    @Override
+    protected void bindViews() {
+        super.bindViews();
+        mProgressBar = mContentRoot.findViewById(R.id.custom_progress_bar);
     }
 
 }

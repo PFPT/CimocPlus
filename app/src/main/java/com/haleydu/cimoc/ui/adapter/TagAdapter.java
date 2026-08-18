@@ -6,14 +6,12 @@ import androidx.annotation.ColorInt;
 import androidx.recyclerview.widget.RecyclerView;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 
-import com.haleydu.cimoc.R;
+import com.haleydu.cimoc.databinding.ItemTagBinding;
 import com.haleydu.cimoc.model.Tag;
 
 import java.util.List;
 
-import butterknife.BindView;
 
 /**
  * Created by Hiroshi on 2016/10/11.
@@ -30,8 +28,7 @@ public class TagAdapter extends BaseAdapter<Tag> {
 
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View view = mInflater.inflate(R.layout.item_tag, parent, false);
-        return new TagHolder(view);
+        return new TagHolder(ItemTagBinding.inflate(mInflater, parent, false));
     }
 
     @Override
@@ -39,9 +36,9 @@ public class TagAdapter extends BaseAdapter<Tag> {
         super.onBindViewHolder(holder, position);
         Tag tag = mDataSet.get(position);
         TagHolder viewHolder = (TagHolder) holder;
-        viewHolder.tagTitle.setText(tag.getTitle());
+        viewHolder.binding.itemTagTitle.setText(tag.getTitle());
         if (color != -1) {
-            viewHolder.tagTitle.setBackgroundColor(color);
+            viewHolder.binding.itemTagTitle.setBackgroundColor(color);
         }
     }
 
@@ -61,11 +58,11 @@ public class TagAdapter extends BaseAdapter<Tag> {
     }
 
     static class TagHolder extends BaseViewHolder {
-        @BindView(R.id.item_tag_title)
-        TextView tagTitle;
+        final ItemTagBinding binding;
 
-        TagHolder(final View view) {
-            super(view);
+        TagHolder(ItemTagBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
         }
     }
 

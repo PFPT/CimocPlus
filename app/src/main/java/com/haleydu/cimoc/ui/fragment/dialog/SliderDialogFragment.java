@@ -10,6 +10,7 @@ import android.view.View;
 
 import com.haleydu.cimoc.R;
 import com.haleydu.cimoc.component.DialogCaller;
+import com.haleydu.cimoc.databinding.DialogSliderBinding;
 
 import org.adw.library.widgets.discreteseekbar.DiscreteSeekBar;
 
@@ -34,9 +35,10 @@ public class SliderDialogFragment extends DialogFragment implements DialogInterf
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        View view = getActivity().getLayoutInflater().inflate(R.layout.dialog_slider, null);
+        DialogSliderBinding binding = DialogSliderBinding.inflate(getActivity().getLayoutInflater());
+        View view = binding.getRoot();
         int[] item = getArguments().getIntArray(DialogCaller.EXTRA_DIALOG_ITEMS);
-        mSeekBar = view.findViewById(R.id.dialog_slider_bar);
+        mSeekBar = binding.dialogSliderBar;
         mSeekBar.setMin(item[0]);
         mSeekBar.setMax(item[1]);
         mSeekBar.setProgress(item[1]);

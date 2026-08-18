@@ -1,6 +1,5 @@
 package com.haleydu.cimoc.source;
 
-import com.haleydu.cimoc.App;
 import com.haleydu.cimoc.core.Manga;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
@@ -21,6 +20,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import okhttp3.Headers;
+import okhttp3.OkHttpClient;
 import okhttp3.Request;
 
 import static com.haleydu.cimoc.core.Manga.getResponseBody;
@@ -35,7 +35,10 @@ public class WebtoonDongManManHua extends MangaParser {
     public static final String DEFAULT_TITLE = "咚漫漫画";
     public static final String baseUrl = "https://www.dongmanmanhua.cn";
 
-    public WebtoonDongManManHua(Source source) {
+    private final OkHttpClient httpClient;
+
+    public WebtoonDongManManHua(Source source, OkHttpClient httpClient) {
+        this.httpClient = httpClient;
         init(source, null);
     }
 
@@ -120,7 +123,7 @@ public class WebtoonDongManManHua extends MangaParser {
                             .url(pageTagUrl)
                             .addHeader("Referer", "www.dongmanmanhua.cn")
                             .build();
-                    String htmlPage = getResponseBody(App.getHttpClient(), request);
+                    String htmlPage = getResponseBody(httpClient, request);
                     list.addAll(parseChapter(new Node(htmlPage), sourceComic));
                 } catch (Manga.NetworkErrorException e) {
                     e.printStackTrace();
@@ -132,7 +135,7 @@ public class WebtoonDongManManHua extends MangaParser {
                             .url(pageTagUrl)
                             .addHeader("Referer", "www.dongmanmanhua.cn")
                             .build();
-                    String htmlPageNext = getResponseBody(App.getHttpClient(), request);
+                    String htmlPageNext = getResponseBody(httpClient, request);
                     list.addAll(parseChapter(htmlPageNext,comic,sourceComic));
                 } catch (Manga.NetworkErrorException e) {
                     e.printStackTrace();
@@ -165,7 +168,7 @@ public class WebtoonDongManManHua extends MangaParser {
         String motiontoonPath = StringUtils.match("jpg:.*?'(.*?)\\{", html, 0);
         try {
             if (docUrl == null) return list;
-            String html1 = getResponseBody(App.getHttpClient(),
+            String html1 = getResponseBody(httpClient,
                     new Request.Builder().url(docUrl)
                             .addHeader("Referer", "www.dongmanmanhua.cn")
                             .build()

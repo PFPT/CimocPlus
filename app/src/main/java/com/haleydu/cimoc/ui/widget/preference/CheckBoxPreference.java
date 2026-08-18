@@ -14,7 +14,6 @@ import com.haleydu.cimoc.App;
 import com.haleydu.cimoc.R;
 import com.haleydu.cimoc.manager.PreferenceManager;
 
-import butterknife.ButterKnife;
 
 /**
  * Created by Hiroshi on 2017/1/10.

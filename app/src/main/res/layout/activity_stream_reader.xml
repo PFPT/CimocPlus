@@ -23,11 +23,17 @@
             android:text="@string/reader_picture_loading"
             android:textColor="@color/white" />
 
-        <include layout="@layout/custom_reader_info" />
+        <include
+            android:id="@+id/reader_info"
+            layout="@layout/custom_reader_info" />
 
-        <include layout="@layout/custom_back_btn" />
+        <include
+            android:id="@+id/reader_back"
+            layout="@layout/custom_back_btn" />
 
-        <include layout="@layout/custom_seek_bar" />
+        <include
+            android:id="@+id/reader_seek"
+            layout="@layout/custom_seek_bar" />
     </RelativeLayout>
 
     <include layout="@layout/custom_night_mask" />

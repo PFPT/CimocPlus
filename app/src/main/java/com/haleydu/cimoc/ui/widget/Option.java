@@ -9,7 +9,6 @@ import android.widget.TextView;
 
 import com.haleydu.cimoc.R;
 
-import butterknife.ButterKnife;
 
 /**
  * Created by Hiroshi on 2017/1/11.

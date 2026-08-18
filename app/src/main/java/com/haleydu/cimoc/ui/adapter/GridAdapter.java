@@ -7,21 +7,18 @@ import java.util.List;
 import androidx.recyclerview.widget.RecyclerView;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 import com.facebook.drawee.interfaces.DraweeController;
-import com.facebook.drawee.view.SimpleDraweeView;
 import com.facebook.imagepipeline.common.ResizeOptions;
 import com.facebook.imagepipeline.request.ImageRequest;
 import com.facebook.imagepipeline.request.ImageRequestBuilder;
 import com.haleydu.cimoc.App;
-import com.haleydu.cimoc.R;
+import com.haleydu.cimoc.databinding.ItemGridBinding;
 import com.haleydu.cimoc.fresco.ControllerBuilderProvider;
 import com.haleydu.cimoc.manager.PreferenceManager;
 import com.haleydu.cimoc.manager.SourceManager;
 import com.haleydu.cimoc.model.MiniComic;
 import com.haleydu.cimoc.utils.FrescoUtils;
 import org.jetbrains.annotations.NotNull;
-import butterknife.BindView;
 
 /**
  * Created by Hiroshi on 2016/7/1.
@@ -46,8 +43,7 @@ public class GridAdapter extends BaseAdapter<Object> {
     @NotNull
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View view = mInflater.inflate(R.layout.item_grid, parent, false);
-        return new GridHolder(view);
+        return new GridHolder(ItemGridBinding.inflate(mInflater, parent, false));
     }
 
     @Override
@@ -59,8 +55,8 @@ public class GridAdapter extends BaseAdapter<Object> {
             default:
                 MiniComic comic = (MiniComic) mDataSet.get(position);
                 GridHolder gridHolder = (GridHolder) holder;
-                gridHolder.comicTitle.setText(comic.getTitle());
-                gridHolder.comicSource.setText(mTitleGetter.getTitle(comic.getSource()));
+                gridHolder.binding.itemGridTitle.setText(comic.getTitle());
+                gridHolder.binding.itemGridSubtitle.setText(mTitleGetter.getTitle(comic.getSource()));
                 if (mProvider != null) {
                     //            ImageRequest request = ImageRequestBuilder
                     //                    .newBuilderWithSource(Uri.parse(comic.getCover()))
@@ -101,12 +97,12 @@ public class GridAdapter extends BaseAdapter<Object> {
                         e.printStackTrace();
                     }
                     DraweeController controller = mProvider.get(comic.getSource())
-                            .setOldController(gridHolder.comicImage.getController())
+                            .setOldController(gridHolder.binding.itemGridImage.getController())
                             .setImageRequest(request)
                             .build();
-                    gridHolder.comicImage.setController(controller);
+                    gridHolder.binding.itemGridImage.setController(controller);
                 }
-                gridHolder.comicHighlight.setVisibility(symbol && comic.isHighlight() ? View.VISIBLE : View.INVISIBLE);
+                gridHolder.binding.itemGridSymbol.setVisibility(symbol && comic.isHighlight() ? View.VISIBLE : View.INVISIBLE);
         }
     }
 
@@ -178,17 +174,11 @@ public class GridAdapter extends BaseAdapter<Object> {
     }
 
     static class GridHolder extends BaseViewHolder {
-        @BindView(R.id.item_grid_image)
-        SimpleDraweeView comicImage;
-        @BindView(R.id.item_grid_title)
-        TextView comicTitle;
-        @BindView(R.id.item_grid_subtitle)
-        TextView comicSource;
-        @BindView(R.id.item_grid_symbol)
-        View comicHighlight;
+        final ItemGridBinding binding;
 
-        GridHolder(View view) {
-            super(view);
+        GridHolder(ItemGridBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
         }
     }
 }

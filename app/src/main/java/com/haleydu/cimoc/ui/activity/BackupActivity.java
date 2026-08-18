@@ -3,43 +3,71 @@ package com.haleydu.cimoc.ui.activity;
 import android.os.Bundle;
 import android.view.View;
 
+import androidx.lifecycle.ViewModelProvider;
+
 import com.haleydu.cimoc.R;
+import com.haleydu.cimoc.component.DialogCaller;
+import com.haleydu.cimoc.databinding.ActivityBackupBinding;
 import com.haleydu.cimoc.manager.PreferenceManager;
-import com.haleydu.cimoc.presenter.BackupPresenter;
-import com.haleydu.cimoc.presenter.BasePresenter;
+import com.haleydu.cimoc.ui.FlowExtKt;
 import com.haleydu.cimoc.ui.fragment.dialog.ChoiceDialogFragment;
 import com.haleydu.cimoc.ui.fragment.dialog.MessageDialogFragment;
-import com.haleydu.cimoc.ui.view.BackupView;
 import com.haleydu.cimoc.ui.widget.preference.CheckBoxPreference;
 import com.haleydu.cimoc.utils.PermissionUtils;
 import com.haleydu.cimoc.utils.StringUtils;
+import dagger.hilt.android.AndroidEntryPoint;
 
-import butterknife.BindView;
-import butterknife.OnClick;
 
 /**
  * Created by Hiroshi on 2016/10/19.
  */
 
-public class BackupActivity extends BackActivity implements BackupView {
+@AndroidEntryPoint
+public class BackupActivity extends BackActivity implements DialogCaller {
 
     private static final int DIALOG_REQUEST_RESTORE_COMIC = 0;
     private static final int DIALOG_REQUEST_RESTORE_TAG = 1;
     private static final int DIALOG_REQUEST_RESTORE_SETTINGS = 2;
     private static final int DIALOG_REQUEST_RESTORE_CLEAR = 3;
 
-    @BindView(R.id.backup_layout)
     View mLayoutView;
-    @BindView(R.id.backup_save_comic_auto)
     CheckBoxPreference mSaveComicAuto;
 
-    private BackupPresenter mPresenter;
+    private BackupViewModel vm;
+    private ActivityBackupBinding binding;
 
     @Override
-    protected BasePresenter initPresenter() {
-        mPresenter = new BackupPresenter();
-        mPresenter.attachView(this);
-        return mPresenter;
+    protected void initViewModel() {
+        vm = new ViewModelProvider(this).get(BackupViewModel.class);
+    }
+
+    @Override
+    protected void initData() {
+        FlowExtKt.collectOnStart(vm.getEvents(), this, event -> {
+            if (event instanceof BackupViewModel.Event.ComicFiles) {
+                onComicFileLoadSuccess(((BackupViewModel.Event.ComicFiles) event).getFiles());
+            } else if (event instanceof BackupViewModel.Event.TagFiles) {
+                onTagFileLoadSuccess(((BackupViewModel.Event.TagFiles) event).getFiles());
+            } else if (event instanceof BackupViewModel.Event.SettingsFiles) {
+                onSettingsFileLoadSuccess(((BackupViewModel.Event.SettingsFiles) event).getFiles());
+            } else if (event instanceof BackupViewModel.Event.ClearFiles) {
+                onClearFileLoadSuccess(((BackupViewModel.Event.ClearFiles) event).getFiles());
+            } else if (event instanceof BackupViewModel.Event.FileLoadFail) {
+                onFileLoadFail();
+            } else if (event instanceof BackupViewModel.Event.SaveSuccess) {
+                onBackupSaveSuccess(((BackupViewModel.Event.SaveSuccess) event).getSize());
+            } else if (event instanceof BackupViewModel.Event.SaveFail) {
+                onBackupSaveFail();
+            } else if (event instanceof BackupViewModel.Event.RestoreSuccess) {
+                onBackupRestoreSuccess();
+            } else if (event instanceof BackupViewModel.Event.RestoreFail) {
+                onBackupRestoreFail();
+            } else if (event instanceof BackupViewModel.Event.ClearSuccess) {
+                onClearBackupSuccess();
+            } else if (event instanceof BackupViewModel.Event.ClearFail) {
+                onClearBackupFail();
+            }
+        });
     }
 
     @Override
@@ -48,67 +76,64 @@ public class BackupActivity extends BackActivity implements BackupView {
         mSaveComicAuto.bindPreference(PreferenceManager.PREF_BACKUP_SAVE_COMIC, true);
     }
 
-    @OnClick(R.id.backup_save_comic)
     void onSaveFavoriteClick() {
         showProgressDialog();
         if (PermissionUtils.hasStoragePermission(this)) {
-            mPresenter.saveComic();
+            vm.saveComic();
         } else {
             onFileLoadFail();
         }
     }
 
-    @OnClick(R.id.backup_save_tag)
     void onSaveTagClick() {
         showProgressDialog();
         if (PermissionUtils.hasStoragePermission(this)) {
-            mPresenter.saveTag();
+            vm.saveTag();
         } else {
             onFileLoadFail();
         }
     }
 
-    @OnClick(R.id.backup_save_settings) void onSaveSettingsClick() {
+    void onSaveSettingsClick() {
         showProgressDialog();
         if (PermissionUtils.hasStoragePermission(this)) {
-            mPresenter.saveSettings();
+            vm.saveSettings();
         } else {
             onFileLoadFail();
         }
     }
 
-    @OnClick(R.id.backup_restore_comic) void onRestoreFavoriteClick() {
+    void onRestoreFavoriteClick() {
         showProgressDialog();
         if (PermissionUtils.hasStoragePermission(this)) {
-            mPresenter.loadComicFile();
+            vm.loadComicFile();
         } else {
             onFileLoadFail();
         }
     }
 
-    @OnClick(R.id.backup_restore_tag)
     void onRestoreTagClick() {
         showProgressDialog();
         if (PermissionUtils.hasStoragePermission(this)) {
-            mPresenter.loadTagFile();
+            vm.loadTagFile();
         } else {
             onFileLoadFail();
         }
     }
 
-    @OnClick(R.id.backup_restore_settings) void onRestoreSettingsClick() {
+    void onRestoreSettingsClick() {
         showProgressDialog();
         if (PermissionUtils.hasStoragePermission(this)) {
-            mPresenter.loadSettingsFile();
+            vm.loadSettingsFile();
         } else {
             onFileLoadFail();
         }
     }
 
-    @OnClick(R.id.backup_clear_record) void onClearRecordClick() {
+    void onClearRecordClick() {
         showProgressDialog();
         if (PermissionUtils.hasStoragePermission(this)) {
-            mPresenter.loadClearBackupFile();
+            vm.loadClearBackupFile();
         } else {
             onFileLoadFail();
         }
@@ -119,34 +144,31 @@ public class BackupActivity extends BackActivity implements BackupView {
         switch (requestCode) {
             case DIALOG_REQUEST_RESTORE_COMIC:
                 showProgressDialog();
-                mPresenter.restoreComic(bundle.getString(EXTRA_DIALOG_RESULT_VALUE));
+                vm.restoreComic(bundle.getString(EXTRA_DIALOG_RESULT_VALUE));
                 break;
             case DIALOG_REQUEST_RESTORE_TAG:
                 showProgressDialog();
-                mPresenter.restoreTag(bundle.getString(EXTRA_DIALOG_RESULT_VALUE));
+                vm.restoreTag(bundle.getString(EXTRA_DIALOG_RESULT_VALUE));
                 break;
             case DIALOG_REQUEST_RESTORE_SETTINGS:
                 showProgressDialog();
-                mPresenter.restoreSetting(bundle.getString(EXTRA_DIALOG_RESULT_VALUE));
+                vm.restoreSetting(bundle.getString(EXTRA_DIALOG_RESULT_VALUE));
                 break;
             case DIALOG_REQUEST_RESTORE_CLEAR:
                 showProgressDialog();
-                mPresenter.clearBackup();
+                vm.clearBackup();
                 break;
         }
     }
 
-    @Override
     public void onComicFileLoadSuccess(String[] file) {
         showChoiceDialog(R.string.backup_restore_comic, file, DIALOG_REQUEST_RESTORE_COMIC);
     }
 
-    @Override
     public void onTagFileLoadSuccess(String[] file) {
         showChoiceDialog(R.string.backup_restore_tag, file, DIALOG_REQUEST_RESTORE_TAG);
     }
 
-    @Override
     public void onSettingsFileLoadSuccess(String[] file) {
         showChoiceDialog(R.string.backup_restore_settings, file, DIALOG_REQUEST_RESTORE_SETTINGS);
     }
@@ -157,7 +179,6 @@ public class BackupActivity extends BackActivity implements BackupView {
         fragment.show(getSupportFragmentManager(), null);
     }
 
-    @Override
     public void onClearFileLoadSuccess(String[] file) {
         hideProgressDialog();
         MessageDialogFragment fragment = MessageDialogFragment.newInstance(R.string.backup_clear_record,
@@ -165,43 +186,36 @@ public class BackupActivity extends BackActivity implements BackupView {
         fragment.show(getSupportFragmentManager(), null);
     }
 
-    @Override
     public void onFileLoadFail() {
         hideProgressDialog();
         showSnackbar(R.string.backup_restore_not_found);
     }
 
-    @Override
     public void onBackupRestoreSuccess() {
         hideProgressDialog();
         showSnackbar(R.string.common_execute_success);
     }
 
-    @Override
     public void onClearBackupSuccess() {
         hideProgressDialog();
         showSnackbar(R.string.common_execute_clear_success);
     }
 
-    @Override
     public void onClearBackupFail() {
         hideProgressDialog();
         showSnackbar(R.string.common_execute_clear_fail);
     }
 
-    @Override
     public void onBackupRestoreFail() {
         hideProgressDialog();
         showSnackbar(R.string.common_execute_fail);
     }
 
-    @Override
     public void onBackupSaveSuccess(int size) {
         hideProgressDialog();
         showSnackbar(StringUtils.format(getString(R.string.backup_save_success), size));
     }
 
-    @Override
     public void onBackupSaveFail() {
         hideProgressDialog();
         showSnackbar(R.string.common_execute_fail);
@@ -213,6 +227,12 @@ public class BackupActivity extends BackActivity implements BackupView {
     }
 
     @Override
+    protected View inflateContentView() {
+        binding = ActivityBackupBinding.inflate(getLayoutInflater());
+        return binding.getRoot();
+    }
+
+    @Override
     protected int getLayoutRes() {
         return R.layout.activity_backup;
     }
@@ -220,6 +240,21 @@ public class BackupActivity extends BackActivity implements BackupView {
     @Override
     protected View getLayoutView() {
         return mLayoutView;
+    }
+
+
+    @Override
+    protected void bindViews() {
+        super.bindViews();
+        mLayoutView = binding.backupLayout;
+        mSaveComicAuto = binding.backupSaveComicAuto;
+        binding.backupSaveComic.setOnClickListener(v -> onSaveFavoriteClick());
+        binding.backupSaveTag.setOnClickListener(v -> onSaveTagClick());
+        binding.backupSaveSettings.setOnClickListener(v -> onSaveSettingsClick());
+        binding.backupRestoreComic.setOnClickListener(v -> onRestoreFavoriteClick());
+        binding.backupRestoreTag.setOnClickListener(v -> onRestoreTagClick());
+        binding.backupRestoreSettings.setOnClickListener(v -> onRestoreSettingsClick());
+        binding.backupClearRecord.setOnClickListener(v -> onClearRecordClick());
     }
 
 }

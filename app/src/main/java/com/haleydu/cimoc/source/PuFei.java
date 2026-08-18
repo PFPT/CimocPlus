@@ -2,6 +2,7 @@ package com.haleydu.cimoc.source;
 
 import android.util.Pair;
 
+import com.haleydu.cimoc.manager.SourceConfigManager;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.ImageUrl;
@@ -34,9 +35,15 @@ public class PuFei extends MangaParser {
 
     public static final int TYPE = 50;
     public static final String DEFAULT_TITLE = "扑飞漫画";
+    private final SourceConfigManager sourceConfigManager;
 
-    public PuFei(Source source) {
+    public PuFei(Source source, SourceConfigManager sourceConfigManager) {
+        this.sourceConfigManager = sourceConfigManager;
         init(source, new PuFei.Category());
+    }
+
+    private String host() {
+        return sourceConfigManager.getUrl("PUFEI", "http://m.pufei.cc");
     }
 
     public static Source getDefaultSource() {
@@ -47,7 +54,7 @@ public class PuFei extends MangaParser {
     public Request getSearchRequest(String keyword, int page) throws UnsupportedEncodingException {
         String url = "";
         if (page == 1) {
-            url = StringUtils.format("http://m.pufei8.com/e/search/?searchget=1&tbname=mh&show=title,player,playadmin,bieming,pinyin,playadmin&tempid=4&keyboard=%s",
+            url = StringUtils.format(host() + "/e/search/?searchget=1&tbname=mh&show=title,player,playadmin,bieming,pinyin,playadmin&tempid=4&keyboard=%s",
                     URLEncoder.encode(keyword, "GB2312"));
         }
         return new Request.Builder().url(url).build();
@@ -72,17 +79,18 @@ public class PuFei extends MangaParser {
 
     @Override
     public String getUrl(String cid) {
-        return "http://m.pufei8.com/manhua/".concat(cid);
+        return host() + "/manhua/".concat(cid);
     }
 
     @Override
     protected void initUrlFilterList() {
+        filter.add(new UrlFilter("m.pufei.cc"));
         filter.add(new UrlFilter("m.pufei.net"));
     }
 
     @Override
     public Request getInfoRequest(String cid) {
-        String url = "http://m.pufei8.com/manhua/".concat(cid);
+        String url = host() + "/manhua/".concat(cid);
         return new Request.Builder().url(url).build();
     }
 
@@ -114,7 +122,7 @@ public class PuFei extends MangaParser {
 
     @Override
     public Request getImagesRequest(String cid, String path) {
-        String url = StringUtils.format("http://m.pufei8.com/manhua/%s/%s.html", cid, path);
+        String url = StringUtils.format(host() + "/manhua/%s/%s.html", cid, path);
         return new Request.Builder().url(url).build();
     }
 
@@ -165,7 +173,7 @@ public class PuFei extends MangaParser {
 
     @Override
     public Headers getHeader() {
-        return Headers.of("Referer", "http://m.pufei8.com");
+        return Headers.of("Referer", host());
     }
 
     private static class Category extends MangaCategory {

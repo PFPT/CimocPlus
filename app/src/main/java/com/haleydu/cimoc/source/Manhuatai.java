@@ -4,8 +4,8 @@ import android.util.Pair;
 
 
 import com.google.common.collect.Lists;
-import com.haleydu.cimoc.App;
 import com.haleydu.cimoc.core.Manga;
+import com.haleydu.cimoc.manager.SourceConfigManager;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.ImageUrl;
@@ -28,6 +28,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import okhttp3.Headers;
+import okhttp3.OkHttpClient;
 import okhttp3.Request;
 
 
@@ -39,19 +40,31 @@ public class Manhuatai extends MangaParser {
 
     public static final int TYPE = 49;
     public static final String DEFAULT_TITLE = "漫画台";
-    public static final String baseUrl = "https://m.manhuatai.com";
+
+    private final OkHttpClient httpClient;
+    private final SourceConfigManager sourceConfigManager;
 
     public static Source getDefaultSource() {
         return new Source(null, DEFAULT_TITLE, TYPE, true);
     }
 
-    public Manhuatai(Source source) {
+    public Manhuatai(Source source, OkHttpClient httpClient, SourceConfigManager sourceConfigManager) {
+        this.httpClient = httpClient;
+        this.sourceConfigManager = sourceConfigManager;
         init(source, new Category());
+    }
+
+    private String mobileHost() {
+        return sourceConfigManager.getField("ManHuaTai", "serverUrl", "https://m.kanman.com");
+    }
+
+    private String webHost() {
+        return sourceConfigManager.getField("ManHuaTai", "baseUrl", "https://www.kanman.com");
     }
 
     @Override
     public Request getSearchRequest(String keyword, int page) throws UnsupportedEncodingException {
-        String url = StringUtils.format(baseUrl + "/api/getsortlist/?product_id=2&productname=mht&platformname=wap&orderby=click&search_key=%s&page=%d&size=48",
+        String url = StringUtils.format(mobileHost() + "/api/getsortlist/?product_id=2&productname=mht&platformname=wap&orderby=click&search_key=%s&page=%d&size=48",
                 URLEncoder.encode(keyword, "UTF-8"), page);
 
         return new Request.Builder().url(url).build();
@@ -76,7 +89,7 @@ public class Manhuatai extends MangaParser {
 
     private Node getComicNode(String cid) throws Manga.NetworkErrorException {
         Request request = getInfoRequest(cid);
-        String html = Manga.getResponseBody(App.getHttpClient(), request);
+        String html = Manga.getResponseBody(httpClient, request);
         return new Node(html);
     }
 
@@ -107,7 +120,7 @@ public class Manhuatai extends MangaParser {
 
     @Override
     public Request getInfoRequest(String cid) {
-        String url = "https://www.manhuatai.com/".concat(cid) + "/";
+        String url = webHost() + "/".concat(cid) + "/";
         return new Request.Builder().url(url).build();
     }
 
@@ -143,7 +156,7 @@ public class Manhuatai extends MangaParser {
     @Override
     public Request getImagesRequest(String cid, String path) {
         _path = path;
-        String url = StringUtils.format("https://m.manhuatai.com/api/getcomicinfo_body?product_id=2&productname=mht&platformname=wap&comic_newid=%s", cid);
+        String url = StringUtils.format(mobileHost() + "/api/getcomicinfo_body?product_id=2&productname=mht&platformname=wap&comic_newid=%s", cid);
         return new Request.Builder().url(url).build();
     }
 
@@ -245,7 +258,7 @@ public class Manhuatai extends MangaParser {
 
         @Override
         public String getFormat(String... args) {
-            return StringUtils.format("https://www.manhuatai.com/%s_p%%d.html",
+            return StringUtils.format("https://www.kanman.com/%s_p%%d.html",
                     args[CATEGORY_SUBJECT]);
         }
 
@@ -301,7 +314,7 @@ public class Manhuatai extends MangaParser {
 
     @Override
     public Headers getHeader() {
-        return Headers.of("Referer", "https://m.manhuatai.com");
+        return Headers.of("Referer", mobileHost());
     }
 
 }

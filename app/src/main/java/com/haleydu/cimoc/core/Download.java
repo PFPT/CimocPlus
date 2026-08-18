@@ -21,10 +21,6 @@ import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 
-import rx.Observable;
-import rx.Subscriber;
-import rx.schedulers.Schedulers;
-
 /**
  * Created by Hiroshi on 2016/9/9.
  */
@@ -233,32 +229,25 @@ public class Download {
         return result;
     }
 
-    public static Observable<List<ImageUrl>> images(final DocumentFile root, final Comic comic, final Chapter chapter, final String title) {
-        return Observable.create(new Observable.OnSubscribe<List<ImageUrl>>() {
+    public static List<ImageUrl> images(final DocumentFile root, final Comic comic, final Chapter chapter, final String title) {
+        DocumentFile dir = getChapterDir(root, comic, chapter, title);
+        List<DocumentFile> files = dir.listFiles(new DocumentFile.DocumentFileFilter() {
             @Override
-            public void call(Subscriber<? super List<ImageUrl>> subscriber) {
-                DocumentFile dir = getChapterDir(root, comic, chapter, title);
-                List<DocumentFile> files = dir.listFiles(new DocumentFile.DocumentFileFilter() {
-                    @Override
-                    public boolean call(DocumentFile file) {
-                        return !file.getName().endsWith("cdif");
-                    }
-                }, new Comparator<DocumentFile>() {
-                    @Override
-                    public int compare(DocumentFile lhs, DocumentFile rhs) {
-                        return lhs.getName().compareTo(rhs.getName());
-                    }
-                });
-
-                List<ImageUrl> list = Storage.buildImageUrlFromDocumentFile(files, chapter.getPath(), chapter.getCount(),chapter);
-                if (list.size() != 0) {
-                    subscriber.onNext(list);
-                    subscriber.onCompleted();
-                } else {
-                    subscriber.onError(new Exception());
-                }
+            public boolean call(DocumentFile file) {
+                return !file.getName().endsWith("cdif");
             }
-        }).subscribeOn(Schedulers.io());
+        }, new Comparator<DocumentFile>() {
+            @Override
+            public int compare(DocumentFile lhs, DocumentFile rhs) {
+                return lhs.getName().compareTo(rhs.getName());
+            }
+        });
+
+        List<ImageUrl> list = Storage.buildImageUrlFromDocumentFile(files, chapter.getPath(), chapter.getCount(),chapter);
+        if (list.size() != 0) {
+            return list;
+        }
+        throw new RuntimeException();
     }
 
     public static void delete(DocumentFile root, Comic comic, List<Chapter> list, String title) {
@@ -334,36 +323,32 @@ public class Download {
         return null;
     }
 
-    public static Observable<Pair<Comic, List<Task>>> scan(final ContentResolver resolver, final DocumentFile root) {
-        return Observable.create(new Observable.OnSubscribe<Pair<Comic, List<Task>>>() {
-            @Override
-            public void call(Subscriber<? super Pair<Comic, List<Task>>> subscriber) {
-                root.refresh();
-                DocumentFile downloadDir = DocumentUtils.getOrCreateSubDirectory(root, DOWNLOAD);
-                if (downloadDir != null) {
-                    for (DocumentFile sourceDir : downloadDir.listFiles()) {
-                        if (sourceDir.isDirectory()) {
-                            for (DocumentFile comicDir : sourceDir.listFiles()) {
-                                Comic comic = buildComicFromDir(resolver, comicDir);
-                                if (comic != null) {
-                                    List<Task> list = new LinkedList<>();
-                                    for (DocumentFile chapterDir : comicDir.listFiles()) {
-                                        Task task = buildTaskFromDir(resolver, chapterDir);
-                                        if (task != null) {
-                                            list.add(task);
-                                        }
-                                    }
-                                    if (!list.isEmpty()) {
-                                        subscriber.onNext(Pair.create(comic, list));
-                                    }
+    public static List<Pair<Comic, List<Task>>> scan(final ContentResolver resolver, final DocumentFile root) {
+        List<Pair<Comic, List<Task>>> result = new LinkedList<>();
+        root.refresh();
+        DocumentFile downloadDir = DocumentUtils.getOrCreateSubDirectory(root, DOWNLOAD);
+        if (downloadDir != null) {
+            for (DocumentFile sourceDir : downloadDir.listFiles()) {
+                if (sourceDir.isDirectory()) {
+                    for (DocumentFile comicDir : sourceDir.listFiles()) {
+                        Comic comic = buildComicFromDir(resolver, comicDir);
+                        if (comic != null) {
+                            List<Task> list = new LinkedList<>();
+                            for (DocumentFile chapterDir : comicDir.listFiles()) {
+                                Task task = buildTaskFromDir(resolver, chapterDir);
+                                if (task != null) {
+                                    list.add(task);
                                 }
+                            }
+                            if (!list.isEmpty()) {
+                                result.add(Pair.create(comic, list));
                             }
                         }
                     }
                 }
-                subscriber.onCompleted();
             }
-        }).subscribeOn(Schedulers.io());
+        }
+        return result;
     }
 
     private static boolean hasMagicNumber(ContentResolver resolver, DocumentFile file) {

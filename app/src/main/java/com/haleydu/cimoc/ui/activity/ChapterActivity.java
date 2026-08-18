@@ -13,6 +13,7 @@ import android.view.MotionEvent;
 import android.view.View;
 
 import com.haleydu.cimoc.R;
+import com.haleydu.cimoc.databinding.ActivityChapterBinding;
 import com.haleydu.cimoc.global.Extra;
 import com.haleydu.cimoc.manager.PreferenceManager;
 import com.haleydu.cimoc.misc.Switcher;
@@ -26,8 +27,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import butterknife.BindView;
-import butterknife.OnClick;
 
 /**
  * Created by Hiroshi on 2016/11/14.
@@ -35,8 +34,8 @@ import butterknife.OnClick;
 
 public class ChapterActivity extends BackActivity implements BaseAdapter.OnItemClickListener {
 
-    @BindView(R.id.chapter_recycler_view)
     RecyclerView mRecyclerView;
+    private ActivityChapterBinding binding;
 
     private ChapterAdapter mChapterAdapter;
     private boolean isAscendMode;
@@ -132,7 +131,6 @@ public class ChapterActivity extends BackActivity implements BaseAdapter.OnItemC
         }
     }
 
-    @OnClick(R.id.chapter_action_button)
     void onActionButtonClick() {
         ArrayList<Chapter> list = new ArrayList<>();
         for (Switcher<Chapter> switcher : mChapterAdapter.getDateSet()) {
@@ -151,6 +149,12 @@ public class ChapterActivity extends BackActivity implements BaseAdapter.OnItemC
         } else {
             showSnackbar(R.string.chapter_download_perm_fail);
         }
+    }
+
+    @Override
+    protected View inflateContentView() {
+        binding = ActivityChapterBinding.inflate(getLayoutInflater());
+        return binding.getRoot();
     }
 
     @Override
@@ -226,6 +230,14 @@ public class ChapterActivity extends BackActivity implements BaseAdapter.OnItemC
             mChapterAdapter.getItem(pos).switchEnable();
             mChapterAdapter.notifyItemChanged(pos);
         }
+    }
+
+
+    @Override
+    protected void bindViews() {
+        super.bindViews();
+        mRecyclerView = binding.chapterRecyclerView;
+        binding.chapterActionButton.setOnClickListener(v -> onActionButtonClick());
     }
 
 }

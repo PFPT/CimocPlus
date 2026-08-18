@@ -14,14 +14,15 @@ import android.widget.Button;
 
 import com.haleydu.cimoc.R;
 import com.haleydu.cimoc.component.DialogCaller;
+import com.haleydu.cimoc.databinding.ActivityEventBinding;
 import com.haleydu.cimoc.global.ClickEvents;
 import com.haleydu.cimoc.global.Extra;
 import com.haleydu.cimoc.ui.activity.BaseActivity;
 import com.haleydu.cimoc.ui.fragment.dialog.ChoiceDialogFragment;
 
+import java.util.Arrays;
 import java.util.List;
 
-import butterknife.BindViews;
 
 import static com.haleydu.cimoc.manager.PreferenceManager.READER_ORIENTATION_AUTO;
 
@@ -31,8 +32,8 @@ import static com.haleydu.cimoc.manager.PreferenceManager.READER_ORIENTATION_AUT
 
 public class EventSettingsActivity extends BaseActivity implements DialogCaller {
 
-    @BindViews({R.id.event_left, R.id.event_top, R.id.event_middle, R.id.event_bottom, R.id.event_right})
     List<Button> mButtonList;
+    private ActivityEventBinding binding;
 
     private int[] mChoiceArray;
     private String[] mKeyArray;
@@ -49,10 +50,8 @@ public class EventSettingsActivity extends BaseActivity implements DialogCaller 
     @Override
     protected void initTheme() {
         super.initTheme();
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
-        }
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
         final int oArray[] = {ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE, ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED};
         int value = oArray[getIntent().getIntExtra(Extra.EXTRA_IS_PORTRAIT, READER_ORIENTATION_AUTO)];
         setRequestedOrientation(value);
@@ -194,8 +193,21 @@ public class EventSettingsActivity extends BaseActivity implements DialogCaller 
     }
 
     @Override
+    protected View inflateContentView() {
+        binding = ActivityEventBinding.inflate(getLayoutInflater());
+        return binding.getRoot();
+    }
+
+    @Override
     protected int getLayoutRes() {
         return R.layout.activity_event;
+    }
+
+
+    @Override
+    protected void bindViews() {
+        super.bindViews();
+        mButtonList = Arrays.asList(binding.eventLeft, binding.eventTop, binding.eventMiddle, binding.eventBottom, binding.eventRight);
     }
 
 }

@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import butterknife.OnClick;
 
 /**
  * Created by Hiroshi on 2016/12/6.
@@ -45,7 +44,6 @@ public class DirPickerActivity extends CoordinatorActivity {
         hideProgressBar();
     }
 
-    @OnClick(R.id.coordinator_action_button)
     void onActionButtonClick() {
         Intent intent = new Intent();
         intent.putExtra(Extra.EXTRA_PICKER_PATH, mFile.getAbsolutePath());
@@ -93,6 +91,13 @@ public class DirPickerActivity extends CoordinatorActivity {
     @Override
     protected String getDefaultTitle() {
         return getString(R.string.dir_picker);
+    }
+
+
+    @Override
+    protected void bindViews() {
+        super.bindViews();
+        mActionButton.setOnClickListener(v -> onActionButtonClick());
     }
 
 }

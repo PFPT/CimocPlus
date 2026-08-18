@@ -4,10 +4,10 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.view.View;
 
 import com.haleydu.cimoc.R;
+import com.haleydu.cimoc.databinding.FragmentRecyclerViewBinding;
 import com.haleydu.cimoc.ui.adapter.BaseAdapter;
 import com.haleydu.cimoc.ui.fragment.BaseFragment;
 
-import butterknife.BindView;
 
 /**
  * Created by Hiroshi on 2016/10/11.
@@ -16,7 +16,6 @@ import butterknife.BindView;
 public abstract class RecyclerViewFragment extends BaseFragment implements BaseAdapter.OnItemClickListener,
         BaseAdapter.OnItemLongClickListener {
 
-    @BindView(R.id.recycler_view_content)
     protected RecyclerView mRecyclerView;
 
     @Override
@@ -49,6 +48,18 @@ public abstract class RecyclerViewFragment extends BaseFragment implements BaseA
     @Override
     protected int getLayoutRes() {
         return R.layout.fragment_recycler_view;
+    }
+
+
+    @Override
+    protected void bindViews(View view) {
+        super.bindViews(view);
+        if (getLayoutRes() == R.layout.fragment_recycler_view) {
+            FragmentRecyclerViewBinding binding = FragmentRecyclerViewBinding.bind(view);
+            mRecyclerView = binding.recyclerViewContent;
+        } else {
+            mRecyclerView = view.findViewById(R.id.recycler_view_content);
+        }
     }
 
 }

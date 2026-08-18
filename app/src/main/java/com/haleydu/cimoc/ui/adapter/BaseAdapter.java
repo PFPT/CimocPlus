@@ -11,16 +11,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import butterknife.ButterKnife;
-
 /**
  * Created by Hiroshi on 2016/7/1.
  */
 public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
-    Context mContext;
-    List<T> mDataSet;
-    LayoutInflater mInflater;
+    protected Context mContext;
+    protected List<T> mDataSet;
+    protected LayoutInflater mInflater;
 
     private OnItemClickListener mClickListener;
     private OnItemLongClickListener mLongClickListener;
@@ -151,10 +149,9 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
         boolean onItemLongClick(View view, int position);
     }
 
-    static class BaseViewHolder extends RecyclerView.ViewHolder {
-        BaseViewHolder(View view) {
+    protected static class BaseViewHolder extends RecyclerView.ViewHolder {
+        protected BaseViewHolder(View view) {
             super(view);
-            ButterKnife.bind(this, view);
         }
     }
 

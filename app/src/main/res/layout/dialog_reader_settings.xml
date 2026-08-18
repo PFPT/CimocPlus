@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingLeft="20dp"
+    android:paddingTop="16dp"
+    android:paddingRight="20dp"
+    android:paddingBottom="24dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="12dp"
+        android:text="@string/reader_menu_settings"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/reader_style"
+        android:textColor="?android:attr/textColorSecondary"
+        android:textSize="12sp" />
+
+    <RadioGroup
+        android:id="@+id/reader_style_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="4dp"
+        android:paddingBottom="8dp">
+
+        <RadioButton
+            android:id="@+id/reader_style_page"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/reader_style_page" />
+
+        <RadioButton
+            android:id="@+id/reader_style_stream"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/reader_style_stream" />
+
+        <RadioButton
+            android:id="@+id/reader_style_manga"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/reader_style_manga" />
+    </RadioGroup>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/reader_white_edge"
+            android:textColor="?android:attr/textColorPrimary" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/reader_white_edge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/reader_stitch"
+            android:textColor="?android:attr/textColorPrimary" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/reader_stitch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/reader_preload"
+            android:textColor="?android:attr/textColorPrimary" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/reader_preload"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/reader_preload_count"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="?android:attr/textColorSecondary"
+        android:textSize="12sp" />
+
+    <org.adw.library.widgets.discreteseekbar.DiscreteSeekBar
+        android:id="@+id/reader_preload_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        app:dsb_indicatorPopupEnabled="false"
+        app:dsb_max="5"
+        app:dsb_min="1"
+        app:dsb_progressColor="?attr/colorPrimary"
+        app:dsb_rippleColor="?attr/colorPrimary"
+        app:dsb_thumbSize="10dp"
+        app:dsb_trackHeight="3dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/reader_brightness"
+        android:textColor="?android:attr/textColorSecondary"
+        android:textSize="12sp" />
+
+    <org.adw.library.widgets.discreteseekbar.DiscreteSeekBar
+        android:id="@+id/reader_settings_brightness"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:dsb_indicatorPopupEnabled="false"
+        app:dsb_max="100"
+        app:dsb_min="1"
+        app:dsb_progressColor="?attr/colorPrimary"
+        app:dsb_rippleColor="?attr/colorPrimary"
+        app:dsb_thumbSize="10dp"
+        app:dsb_trackHeight="3dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/reader_info_position"
+        android:textColor="?android:attr/textColorSecondary"
+        android:textSize="12sp" />
+
+    <RadioGroup
+        android:id="@+id/reader_info_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="4dp">
+
+        <RadioButton
+            android:id="@+id/reader_info_top"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/reader_info_top" />
+
+        <RadioButton
+            android:id="@+id/reader_info_bottom"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/reader_info_bottom" />
+    </RadioGroup>
+</LinearLayout>

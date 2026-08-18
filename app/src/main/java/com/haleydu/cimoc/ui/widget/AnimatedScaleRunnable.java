@@ -9,7 +9,7 @@ import android.view.animation.Interpolator;
  * Created by Hiroshi on 2017/5/27.
  */
 
-class AnimatedScaleRunnable implements Runnable {
+public class AnimatedScaleRunnable implements Runnable {
 
     private final View mView;
     private final Matrix mMatrix;
@@ -19,7 +19,7 @@ class AnimatedScaleRunnable implements Runnable {
     private final OnScaleDragGestureListener mListener;
     private final Interpolator mZoomInterpolator = new AccelerateDecelerateInterpolator();
 
-    AnimatedScaleRunnable(float scale, float x, float y, View view, Matrix matrix,
+    public AnimatedScaleRunnable(float scale, float x, float y, View view, Matrix matrix,
                           OnScaleDragGestureListener listener) {
         mFocusX = x;
         mFocusY = y;

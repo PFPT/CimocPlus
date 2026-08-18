@@ -6,14 +6,11 @@ import android.graphics.Rect;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ProgressBar;
-import android.widget.TextView;
 
-import com.haleydu.cimoc.App;
 import com.haleydu.cimoc.R;
+import com.haleydu.cimoc.databinding.ItemTaskBinding;
 import com.haleydu.cimoc.model.Task;
 import com.haleydu.cimoc.utils.StringUtils;
 
@@ -22,7 +19,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import butterknife.BindView;
 
 /**
  * Created by Hiroshi on 2016/9/7.
@@ -38,8 +34,7 @@ public class TaskAdapter extends BaseAdapter<Task> {
 
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View view = mInflater.inflate(R.layout.item_task, parent, false);
-        return new TaskHolder(view, ContextCompat.getColor(mContext, colorId));
+        return new TaskHolder(ItemTaskBinding.inflate(mInflater, parent, false), ContextCompat.getColor(mContext, colorId));
     }
 
     @Override
@@ -47,17 +42,17 @@ public class TaskAdapter extends BaseAdapter<Task> {
         super.onBindViewHolder(holder, position);
         Task task = mDataSet.get(position);
         TaskHolder viewHolder = (TaskHolder) holder;
-        viewHolder.taskTitle.setText(task.getTitle());
-        viewHolder.taskState.setText(getState(task));
+        viewHolder.binding.taskTitle.setText(task.getTitle());
+        viewHolder.binding.taskState.setText(getState(task));
         int progress = task.getProgress();
         int max = task.getMax();
-        viewHolder.taskPage.setText(StringUtils.getProgress(progress, max));
-        viewHolder.taskProgress.setMax(max);
-        viewHolder.taskProgress.setProgress(progress);
+        viewHolder.binding.taskPage.setText(StringUtils.getProgress(progress, max));
+        viewHolder.binding.taskProgress.setMax(max);
+        viewHolder.binding.taskProgress.setProgress(progress);
         if (task.getPath().equals(last)) {
-            viewHolder.taskLast.setVisibility(View.VISIBLE);
+            viewHolder.binding.taskLast.setVisibility(View.VISIBLE);
         } else {
-            viewHolder.taskLast.setVisibility(View.INVISIBLE);
+            viewHolder.binding.taskLast.setVisibility(View.INVISIBLE);
         }
     }
 
@@ -133,20 +128,12 @@ public class TaskAdapter extends BaseAdapter<Task> {
     }
 
     static class TaskHolder extends BaseViewHolder {
-        @BindView(R.id.task_page)
-        TextView taskPage;
-        @BindView(R.id.task_title)
-        TextView taskTitle;
-        @BindView(R.id.task_state)
-        TextView taskState;
-        @BindView(R.id.task_progress)
-        ProgressBar taskProgress;
-        @BindView(R.id.task_last)
-        View taskLast;
+        final ItemTaskBinding binding;
 
-        TaskHolder(View view, int color) {
-            super(view);
-            taskProgress.getProgressDrawable().setColorFilter(color, PorterDuff.Mode.SRC_ATOP);
+        TaskHolder(ItemTaskBinding binding, int color) {
+            super(binding.getRoot());
+            this.binding = binding;
+            binding.taskProgress.getProgressDrawable().setColorFilter(color, PorterDuff.Mode.SRC_ATOP);
         }
     }
 

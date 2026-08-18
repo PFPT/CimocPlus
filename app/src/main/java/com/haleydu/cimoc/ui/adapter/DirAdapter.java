@@ -6,11 +6,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.haleydu.cimoc.R;
+import com.haleydu.cimoc.databinding.ItemDirBinding;
 
 import java.util.List;
 
-import butterknife.BindView;
 
 /**
  * Created by Hiroshi on 2016/12/6.
@@ -24,15 +23,14 @@ public class DirAdapter extends BaseAdapter<String> {
 
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View view = mInflater.inflate(R.layout.item_dir, parent, false);
-        return new DirHolder(view);
+        return new DirHolder(ItemDirBinding.inflate(mInflater, parent, false));
     }
 
     @Override
     public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
         super.onBindViewHolder(holder, position);
         DirHolder viewHolder = (DirHolder) holder;
-        viewHolder.mDirTitle.setText(mDataSet.get(position));
+        viewHolder.binding.getRoot().setText(mDataSet.get(position));
     }
 
     @Override
@@ -41,11 +39,11 @@ public class DirAdapter extends BaseAdapter<String> {
     }
 
     static class DirHolder extends BaseAdapter.BaseViewHolder {
-        @BindView(R.id.item_dir_title)
-        TextView mDirTitle;
+        final ItemDirBinding binding;
 
-        DirHolder(View view) {
-            super(view);
+        DirHolder(ItemDirBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
         }
     }
 

@@ -3,6 +3,7 @@ package com.haleydu.cimoc.source;
 import android.net.Uri;
 import android.util.Base64;
 
+import com.haleydu.cimoc.manager.SourceConfigManager;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.ImageUrl;
@@ -32,11 +33,20 @@ public class Ohmanhua extends MangaParser {
 
     public static final int TYPE = 71;
     public static final String DEFAULT_TITLE = "oh漫画";
-    private static final String baseUrl = "https://www.cocomanhua.com";
-    private static final String serverUrl = "https://img.cocomanhua.com/comic/";
+    private static final String DEFAULT_HOST = "https://www.yoyomanga.com";
+    private final SourceConfigManager sourceConfigManager;
 
-    public Ohmanhua(Source source) {
+    public Ohmanhua(Source source, SourceConfigManager sourceConfigManager) {
+        this.sourceConfigManager = sourceConfigManager;
         init(source, null);
+    }
+
+    private String baseUrl() {
+        String url = sourceConfigManager.getUrl("OHMANHUA", "");
+        if (url == null || url.isEmpty()) {
+            url = sourceConfigManager.getField("CoCoManHua", "baseUrl", DEFAULT_HOST);
+        }
+        return url == null || url.isEmpty() ? DEFAULT_HOST : url;
     }
 
     public static Source getDefaultSource() {
@@ -45,10 +55,10 @@ public class Ohmanhua extends MangaParser {
 
     @Override
     public Request getSearchRequest(String keyword, int page) {
-        String url = "";
-        if (page == 1) {
-            url = StringUtils.format(baseUrl+"/search?searchString=%s", keyword);
+        if (page != 1) {
+            return null;
         }
+        String url = StringUtils.format(baseUrl()+"/search?searchString=%s", keyword);
         return new Request.Builder().url(url).build();
     }
 
@@ -79,17 +89,19 @@ public class Ohmanhua extends MangaParser {
 
     @Override
     public String getUrl(String cid) {
-        return baseUrl+cid;
+        return baseUrl()+cid;
     }
 
     @Override
     protected void initUrlFilterList() {
+        filter.add(new UrlFilter("www.yoyomanga.com"));
+        filter.add(new UrlFilter("www.colamanga.com"));
         filter.add(new UrlFilter("www.cocomanhua.com"));
     }
 
     @Override
     public Request getInfoRequest(String cid) {
-        String url = baseUrl + cid;
+        String url = baseUrl() + cid;
         return new Request.Builder().url(url).build();
     }
 
@@ -133,7 +145,7 @@ public class Ohmanhua extends MangaParser {
 
     @Override
     public Request getImagesRequest(String cid, String path) {
-        String url = baseUrl + path;
+        String url = baseUrl() + path;
         return new Request.Builder().url(url).build();
     }
 
@@ -157,7 +169,7 @@ public class Ohmanhua extends MangaParser {
                 e.printStackTrace();
             }
         }
-        return null;
+        return new LinkedList<>();
     }
 
     private String decodeAndDecrypt(String decodeName, String value, String[] keyArr)  {
@@ -227,7 +239,7 @@ public class Ohmanhua extends MangaParser {
 
     @Override
     public Headers getHeader() {
-        return Headers.of("Referer", baseUrl);
+        return Headers.of("Referer", baseUrl());
     }
 
 }

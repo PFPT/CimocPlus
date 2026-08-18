@@ -3,6 +3,7 @@ package com.haleydu.cimoc.source;
 import android.util.Log;
 
 import com.haleydu.cimoc.core.Manga;
+import com.haleydu.cimoc.manager.SourceConfigManager;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.ImageUrl;
@@ -29,11 +30,23 @@ import okhttp3.Request;
 public class YKMH extends MangaParser {
     public static final int TYPE = 91;
     public static final String DEFAULT_TITLE = "优酷漫画";
-    public final String Host = "https://www.ykmh.com/";
-    public final String mHost = "https://wap.ykmh.com/";
+    private final SourceConfigManager sourceConfigManager;
 
-    public YKMH(Source source) {
+    public YKMH(Source source, SourceConfigManager sourceConfigManager) {
+        this.sourceConfigManager = sourceConfigManager;
         init(source, null);
+    }
+
+    private String mHost() {
+        String url = sourceConfigManager.getUrl("YKMH", "https://m.ykmh.net");
+        if (!url.endsWith("/")) {
+            url = url + "/";
+        }
+        return url;
+    }
+
+    private String imageHost() {
+        return sourceConfigManager.getUrl("YKMH_SERVER", "http://js.haotuyk.top");
     }
 
     public static Source getDefaultSource() {
@@ -44,7 +57,7 @@ public class YKMH extends MangaParser {
     public Request getSearchRequest(String keyword, int page) throws UnsupportedEncodingException {
         Log.d("SourceSearch:", String.valueOf(keyword));
 
-        return new Request.Builder().url(mHost + "search/?keywords=" + keyword + "&page=" + page).addHeader("referer", "https://m.ykmh.com/search").addHeader("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36")
+        return new Request.Builder().url(mHost() + "search/?keywords=" + keyword + "&page=" + page).addHeader("referer", mHost() + "search").addHeader("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36")
                 .build();
     }
 
@@ -67,25 +80,26 @@ public class YKMH extends MangaParser {
 
     @Override
     public String getUrl(String cid) {
-        return StringUtils.format("%smanhua/%s", mHost, cid);
+        return StringUtils.format("%smanhua/%s", mHost(), cid);
     }
 
     @Override
     protected void initUrlFilterList() {
+        filter.add(new UrlFilter("m.ykmh.net", "/manhua/(\\w.+)/"));
         filter.add(new UrlFilter("m.ykmh.com", "/manhua/(\\w.+)/"));
 
     }
 
     @Override
     public Headers getHeader() {
-        return Headers.of("Referer", "https://m.ykmh.com/search/", "user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36");
+        return Headers.of("Referer", mHost() + "search/", "user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36");
     }
 
     @Override
     public Request getInfoRequest(String cid) {
         Log.d("SourceInfo:", String.valueOf(cid));
 
-        return new Request.Builder().url(mHost.concat("manhua/").concat(cid).concat("/")).addHeader("referer", "https://m.ykmh.com/search").addHeader("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36")
+        return new Request.Builder().url(mHost().concat("manhua/").concat(cid).concat("/")).addHeader("referer", mHost() + "search").addHeader("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36")
                 .build();
 
     }
@@ -139,7 +153,7 @@ public class YKMH extends MangaParser {
     public Request getImagesRequest(String cid, String path) {
         Log.d("SourceImage:", String.valueOf(path));
 
-        return new Request.Builder().url(mHost.concat(path)).addHeader("referer", "https://m.ykmh.com/search").addHeader("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36")
+        return new Request.Builder().url(mHost().concat(path)).addHeader("referer", mHost() + "search").addHeader("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36")
                 .build();
     }
 
@@ -156,7 +170,7 @@ public class YKMH extends MangaParser {
         try {
             array = new JSONArray(CDATA);
             for (int i = 0; i < array.length(); i++) {
-                String url = StringUtils.format("https://pic.w1fl.com%s", array.getString(i));
+                String url = StringUtils.format("%s%s", imageHost(), array.getString(i));
                 Long comicChapter = chapter.getId();
                 Long id = Long.parseLong(comicChapter + "000" + i + 1);
                 list.add(new ImageUrl(id, comicChapter, i + 1, url, false));

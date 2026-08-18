@@ -57,13 +57,16 @@ public class OkHttpNetworkFetcher extends
     public OkHttpNetworkFetcher(OkHttpClient okHttpClient, Headers headers) {
         mOkHttpClient = okHttpClient;
 
-        //修复打开仅WiFi联网功能后运行闪退的问题
         try {
             mCancellationExecutor = okHttpClient.dispatcher().executorService();
         } catch (NullPointerException e) {
             CustomToast.showToast(App.getActivity(), "网络连接失败，请检查网络！！", 2000);
         }
 
+        mHeaders = headers;
+    }
+
+    public void setHeaders(Headers headers) {
         mHeaders = headers;
     }
 
@@ -78,12 +81,14 @@ public class OkHttpNetworkFetcher extends
     public void fetch(final OkHttpNetworkFetchState fetchState, final Callback callback) {
         fetchState.submitTime = SystemClock.elapsedRealtime();
         final Uri uri = fetchState.getUri();
-        Request request = new Request.Builder()
+        Request.Builder builder = new Request.Builder()
                 .cacheControl(new CacheControl.Builder().noStore().build())
-                .headers(mHeaders)
                 .url(uri.toString())
-                .get()
-                .build();
+                .get();
+        if (mHeaders != null) {
+            builder.headers(mHeaders);
+        }
+        Request request = builder.build();
         final Call call = mOkHttpClient.newCall(request);
 
         fetchState.getContext().addCallbacks(

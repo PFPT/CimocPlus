@@ -1,11 +1,14 @@
 package com.haleydu.cimoc.ui.activity;
 
+import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputLayout;
 import androidx.appcompat.widget.AppCompatAutoCompleteTextView;
 import androidx.appcompat.widget.AppCompatCheckBox;
+import androidx.lifecycle.ViewModelProvider;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.KeyEvent;
@@ -17,53 +20,51 @@ import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
 import com.haleydu.cimoc.R;
+import com.haleydu.cimoc.component.DialogCaller;
+import com.haleydu.cimoc.databinding.ActivitySearchBinding;
+import com.haleydu.cimoc.global.Extra;
 import com.haleydu.cimoc.manager.PreferenceManager;
 import com.haleydu.cimoc.misc.Switcher;
 import com.haleydu.cimoc.model.Source;
-import com.haleydu.cimoc.presenter.BasePresenter;
-import com.haleydu.cimoc.presenter.SearchPresenter;
+import com.haleydu.cimoc.ui.FlowExtKt;
 import com.haleydu.cimoc.ui.adapter.AutoCompleteAdapter;
 import com.haleydu.cimoc.ui.fragment.dialog.MultiAdpaterDialogFragment;
-import com.haleydu.cimoc.ui.fragment.dialog.MultiDialogFragment;
-import com.haleydu.cimoc.ui.view.SearchView;
 import com.haleydu.cimoc.utils.CollectionUtils;
 import com.haleydu.cimoc.utils.HintUtils;
 import com.haleydu.cimoc.utils.StringUtils;
+import dagger.hilt.android.AndroidEntryPoint;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import butterknife.BindView;
-import butterknife.OnClick;
 
 /**
  * Created by Hiroshi on 2016/10/11.
  */
 
-public class SearchActivity extends BackActivity implements SearchView, TextView.OnEditorActionListener {
+@AndroidEntryPoint
+public class SearchActivity extends BackActivity implements DialogCaller, TextView.OnEditorActionListener {
 
     private final static int DIALOG_REQUEST_SOURCE = 0;
 
-    @BindView(R.id.search_text_layout)
     TextInputLayout mInputLayout;
-    @BindView(R.id.search_keyword_input)
     AppCompatAutoCompleteTextView mEditText;
-    @BindView(R.id.search_action_button)
     FloatingActionButton mActionButton;
-    @BindView(R.id.search_strict_checkbox)
     AppCompatCheckBox mCheckBox;
 
     private ArrayAdapter<String> mArrayAdapter;
 
-    private SearchPresenter mPresenter;
+    private SearchViewModel vm;
+    private ActivitySearchBinding binding;
     private List<Switcher<Source>> mSourceList;
     private boolean mAutoComplete;
+    private int mFilterSource = -1;
 
-    @Override
-    protected BasePresenter initPresenter() {
-        mPresenter = new SearchPresenter();
-        mPresenter.attachView(this);
-        return mPresenter;
+    public static Intent createIntent(Context context, int sourceType, String title) {
+        Intent intent = new Intent(context, SearchActivity.class);
+        intent.putExtra(Extra.EXTRA_SOURCE, sourceType);
+        intent.putExtra(Extra.EXTRA_KEYWORD, title);
+        return intent;
     }
 
     @Override
@@ -92,7 +93,7 @@ public class SearchActivity extends BackActivity implements SearchView, TextView
                 if (mAutoComplete) {
                     String keyword = mEditText.getText().toString();
                     if (!StringUtils.isEmpty(keyword)) {
-                        mPresenter.loadAutoComplete(keyword);
+                        vm.loadAutoComplete(keyword);
                     }
                 }
             }
@@ -106,8 +107,13 @@ public class SearchActivity extends BackActivity implements SearchView, TextView
 
     @Override
     protected void initData() {
+        vm = new ViewModelProvider(this).get(SearchViewModel.class);
         mSourceList = new ArrayList<>();
-        mPresenter.loadSource();
+        mFilterSource = getIntent().getIntExtra(Extra.EXTRA_SOURCE, -1);
+        FlowExtKt.collectOnStart(vm.getSources(), this, this::onSourceLoadSuccess);
+        FlowExtKt.collectOnStart(vm.getSourceFail(), this, unit -> onSourceLoadFail());
+        FlowExtKt.collectOnStart(vm.getAutoComplete(), this, this::onAutoCompleteLoadSuccess);
+        vm.loadSource();
     }
 
     @Override
@@ -161,7 +167,6 @@ public class SearchActivity extends BackActivity implements SearchView, TextView
         return false;
     }
 
-    @OnClick(R.id.search_action_button)
     void onSearchButtonClick() {
         String keyword = mEditText.getText().toString();
         Boolean strictSearch = mCheckBox.isChecked();
@@ -183,21 +188,35 @@ public class SearchActivity extends BackActivity implements SearchView, TextView
         }
     }
 
-    @Override
     public void onAutoCompleteLoadSuccess(List<String> list) {
         mArrayAdapter.clear();
         mArrayAdapter.addAll(list);
     }
 
-    @Override
     public void onSourceLoadSuccess(List<Source> list) {
         hideProgressBar();
+        boolean found = false;
         for (Source source : list) {
-            mSourceList.add(new Switcher<>(source, true));
+            boolean enable = mFilterSource < 0 || source.getType() == mFilterSource;
+            if (enable && source.getType() == mFilterSource) {
+                found = true;
+            }
+            mSourceList.add(new Switcher<>(source, enable));
+        }
+        if (mFilterSource >= 0 && !found) {
+            Source source = vm.loadSource(mFilterSource);
+            if (source != null) {
+                mSourceList.add(new Switcher<>(source, true));
+            }
+        }
+        if (mFilterSource >= 0 && mToolbar != null) {
+            String title = getIntent().getStringExtra(Extra.EXTRA_KEYWORD);
+            if (!StringUtils.isEmpty(title)) {
+                mToolbar.setTitle(title);
+            }
         }
     }
 
-    @Override
     public void onSourceLoadFail() {
         hideProgressBar();
         HintUtils.showToast(this, R.string.search_source_load_fail);
@@ -209,6 +228,12 @@ public class SearchActivity extends BackActivity implements SearchView, TextView
     }
 
     @Override
+    protected View inflateContentView() {
+        binding = ActivitySearchBinding.inflate(getLayoutInflater());
+        return binding.getRoot();
+    }
+
+    @Override
     protected int getLayoutRes() {
         return R.layout.activity_search;
     }
@@ -216,6 +241,17 @@ public class SearchActivity extends BackActivity implements SearchView, TextView
     @Override
     protected boolean isNavTranslation() {
         return true;
+    }
+
+
+    @Override
+    protected void bindViews() {
+        super.bindViews();
+        mInputLayout = binding.searchTextLayout;
+        mEditText = binding.searchKeywordInput;
+        mActionButton = binding.searchActionButton;
+        mCheckBox = binding.searchStrictCheckbox;
+        binding.searchActionButton.setOnClickListener(v -> onSearchButtonClick());
     }
 
 }

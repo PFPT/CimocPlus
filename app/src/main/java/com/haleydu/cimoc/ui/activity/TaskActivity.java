@@ -11,33 +11,38 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
+import androidx.lifecycle.ViewModelProvider;
+
 import com.haleydu.cimoc.R;
+import com.haleydu.cimoc.ui.reader.ReaderActivity;
+import com.haleydu.cimoc.component.DialogCaller;
 import com.haleydu.cimoc.global.Extra;
 import com.haleydu.cimoc.manager.PreferenceManager;
 import com.haleydu.cimoc.model.Chapter;
+import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.Task;
-import com.haleydu.cimoc.presenter.BasePresenter;
-import com.haleydu.cimoc.presenter.TaskPresenter;
+import com.haleydu.cimoc.event.AppEventBus;
+import com.haleydu.cimoc.event.AppEvent;
 import com.haleydu.cimoc.service.DownloadService;
 import com.haleydu.cimoc.service.DownloadService.DownloadServiceBinder;
+import com.haleydu.cimoc.ui.FlowExtKt;
 import com.haleydu.cimoc.ui.adapter.BaseAdapter;
 import com.haleydu.cimoc.ui.adapter.TaskAdapter;
 import com.haleydu.cimoc.ui.fragment.dialog.ItemDialogFragment;
-import com.haleydu.cimoc.ui.view.TaskView;
 import com.haleydu.cimoc.utils.StringUtils;
 import com.haleydu.cimoc.utils.ThemeUtils;
+import dagger.hilt.android.AndroidEntryPoint;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-import butterknife.OnClick;
 
 /**
  * Created by Hiroshi on 2016/9/7.
  */
-public class TaskActivity extends CoordinatorActivity implements TaskView {
+@AndroidEntryPoint
+public class TaskActivity extends CoordinatorActivity implements DialogCaller {
 
     private static final int REQUEST_CODE_DELETE = 0;
     private static final int DIALOG_REQUEST_OPERATION = 1;
@@ -46,7 +51,7 @@ public class TaskActivity extends CoordinatorActivity implements TaskView {
     private static final int OPERATION_DELETE = 1;
 
     private TaskAdapter mTaskAdapter;
-    private TaskPresenter mPresenter;
+    private TaskViewModel vm;
     private ServiceConnection mConnection;
     private DownloadServiceBinder mBinder;
     private boolean mTaskOrder;
@@ -60,10 +65,8 @@ public class TaskActivity extends CoordinatorActivity implements TaskView {
     }
 
     @Override
-    protected BasePresenter initPresenter() {
-        mPresenter = new TaskPresenter();
-        mPresenter.attachView(this);
-        return mPresenter;
+    protected void initViewModel() {
+        vm = new ViewModelProvider(this).get(TaskViewModel.class);
     }
 
     @Override
@@ -80,7 +83,6 @@ public class TaskActivity extends CoordinatorActivity implements TaskView {
         mActionButton2.show();
     }
 
-    @OnClick(R.id.coordinator_action_button2)
     void onActionButton2Click() {
         for (int i = 0; i < mTaskAdapter.getDateSet().size(); i++) {
             Task task = mTaskAdapter.getItem(i);
@@ -88,7 +90,7 @@ public class TaskActivity extends CoordinatorActivity implements TaskView {
                 task.setState(Task.STATE_WAIT);
                 mTaskAdapter.notifyItemChanged(i);
                 Intent taskIntent = DownloadService.createIntent(this, task);
-                startService(taskIntent);
+                DownloadService.start(this, taskIntent);
             }
         }
     }
@@ -97,7 +99,44 @@ public class TaskActivity extends CoordinatorActivity implements TaskView {
     protected void initData() {
         long key = getIntent().getLongExtra(Extra.EXTRA_ID, -1);
         mTaskOrder = mPreference.getBoolean(PreferenceManager.PREF_CHAPTER_ASCEND_MODE, false);
-        mPresenter.load(key, mTaskOrder);
+        FlowExtKt.collectOnStart(vm.getLoadSuccess(), this, result ->
+                onTaskLoadSuccess(result.getList(), result.isLocal()));
+        FlowExtKt.collectOnStart(vm.getLoadFail(), this, unit -> onTaskLoadFail());
+        FlowExtKt.collectOnStart(vm.getDeleteSuccess(), this, this::onTaskDeleteSuccess);
+        FlowExtKt.collectOnStart(vm.getDeleteFail(), this, unit -> onTaskDeleteFail());
+        FlowExtKt.collectOnStart(AppEventBus.observe(AppEvent.EVENT_TASK_STATE_CHANGE), this, event -> {
+            long id = (long) event.getData(1);
+            switch ((int) event.getData()) {
+                case Task.STATE_PARSE:
+                    onTaskParse(id);
+                    break;
+                case Task.STATE_ERROR:
+                    onTaskError(id);
+                    break;
+                case Task.STATE_PAUSE:
+                    onTaskPause(id);
+                    break;
+            }
+        });
+        FlowExtKt.collectOnStart(AppEventBus.observe(AppEvent.EVENT_TASK_PROCESS), this, event ->
+                onTaskProcess((long) event.getData(), (int) event.getData(1), (int) event.getData(2)));
+        FlowExtKt.collectOnStart(AppEventBus.observe(AppEvent.EVENT_TASK_INSERT), this, event -> {
+            @SuppressWarnings("unchecked")
+            List<Task> list = (List<Task>) event.getData(1);
+            Task task = list.get(0);
+            Comic comic = vm.getComic();
+            if (comic != null && task.getKey() == comic.getId()) {
+                onTaskAdd(list);
+            }
+        });
+        FlowExtKt.collectOnStart(AppEventBus.observe(AppEvent.EVENT_COMIC_UPDATE), this, event -> {
+            Comic comic = vm.getComic();
+            if (comic != null && comic.getId() != null && comic.getId() == (long) event.getData()) {
+                vm.refreshLast();
+                onLastChange(vm.getComic().getLast());
+            }
+        });
+        vm.load(key, mTaskOrder);
     }
 
     @Override
@@ -114,14 +153,12 @@ public class TaskActivity extends CoordinatorActivity implements TaskView {
         return super.onCreateOptionsMenu(menu);
     }
 
-    @OnClick(R.id.coordinator_action_button)
     void onActionButtonClick() {
-        Intent intent = DetailActivity.createIntent(this, mPresenter.getComic().getId(),
-                mPresenter.getComic().getSource(), mPresenter.getComic().getCid());
+        Intent intent = DetailActivity.createIntent(this, vm.getComic().getId(),
+                vm.getComic().getSource(), vm.getComic().getCid());
         startActivity(intent);
     }
 
-    @Override
     public void onLastChange(String path) {
         mTaskAdapter.setLast(path);
     }
@@ -138,7 +175,7 @@ public class TaskActivity extends CoordinatorActivity implements TaskView {
                 task.setState(Task.STATE_WAIT);
                 mTaskAdapter.notifyItemChanged(position);
                 Intent taskIntent = DownloadService.createIntent(this, task);
-                startService(taskIntent);
+                DownloadService.start(this, taskIntent);
                 break;
             case Task.STATE_WAIT:
                 task.setState(Task.STATE_PAUSE);
@@ -177,10 +214,10 @@ public class TaskActivity extends CoordinatorActivity implements TaskView {
                         Long sourceComic =  Long.parseLong(mSavedTask.getSource()+"000"+mSavedTask.getId());
                         Long id = Long.parseLong(sourceComic+"000"+0);
                         list.add(new Chapter(id,sourceComic,mSavedTask.getTitle(), mSavedTask.getPath(), mSavedTask.getId()));
-                        if (!mPresenter.getComic().getLocal()) {
+                        if (!vm.getComic().getLocal()) {
                             mBinder.getService().removeDownload(mSavedTask.getId());
                         }
-                        mPresenter.deleteTask(list, mTaskAdapter.getItemCount() == 1);
+                        vm.deleteTask(list, mTaskAdapter.getItemCount() == 1);
                         break;
                 }
                 break;
@@ -192,7 +229,7 @@ public class TaskActivity extends CoordinatorActivity implements TaskView {
         if (!mTaskAdapter.getDateSet().isEmpty()) {
             switch (item.getItemId()) {
                 case R.id.task_history:
-                    String path = mPresenter.getComic().getLast();
+                    String path = vm.getComic().getLast();
                     if (path == null) {
                         path = mTaskAdapter.getItem(mTaskOrder ?
                                 0 : mTaskAdapter.getDateSet().size() - 1).getPath();
@@ -211,8 +248,8 @@ public class TaskActivity extends CoordinatorActivity implements TaskView {
                     startActivityForResult(intent, REQUEST_CODE_DELETE);
                     break;
                 case R.id.detail_search_title:
-                    if (!StringUtils.isEmpty(mPresenter.getComic().getTitle())) {
-                        intent = ResultActivity.createIntent(this, mPresenter.getComic().getTitle(),
+                    if (!StringUtils.isEmpty(vm.getComic().getTitle())) {
+                        intent = ResultActivity.createIntent(this, vm.getComic().getTitle(),
                                 null, ResultActivity.LAUNCH_MODE_SEARCH);
                         startActivity(intent);
                     } else {
@@ -220,8 +257,8 @@ public class TaskActivity extends CoordinatorActivity implements TaskView {
                     }
                     break;
                 case R.id.detail_search_author:
-                    if (!StringUtils.isEmpty(mPresenter.getComic().getAuthor())) {
-                        intent = ResultActivity.createIntent(this, mPresenter.getComic().getAuthor(),
+                    if (!StringUtils.isEmpty(vm.getComic().getAuthor())) {
+                        intent = ResultActivity.createIntent(this, vm.getComic().getAuthor(),
                                 null, ResultActivity.LAUNCH_MODE_SEARCH);
                         startActivity(intent);
                     } else {
@@ -251,11 +288,8 @@ public class TaskActivity extends CoordinatorActivity implements TaskView {
             }
             i++;
         }
-        if (mTaskOrder) {
-            Collections.reverse(list);
-        }
         mTaskAdapter.setLast(path);
-        long id = mPresenter.updateLast(path);
+        long id = vm.updateLast(path);
         int mode = mPreference.getInt(PreferenceManager.PREF_READER_MODE, PreferenceManager.READER_MODE_PAGE);
         Intent readerIntent = ReaderActivity.createIntent(this, id, list, mode);
         startActivity(readerIntent);
@@ -273,7 +307,7 @@ public class TaskActivity extends CoordinatorActivity implements TaskView {
                         for (Chapter chapter : list) {
                             mBinder.getService().removeDownload(chapter.getTid());
                         }
-                        mPresenter.deleteTask(list, mTaskAdapter.getItemCount() == list.size());
+                        vm.deleteTask(list, mTaskAdapter.getItemCount() == list.size());
                     } else {
                         showSnackbar(R.string.task_empty);
                     }
@@ -282,23 +316,20 @@ public class TaskActivity extends CoordinatorActivity implements TaskView {
         }
     }
 
-    @Override
     public void onTaskDeleteSuccess(List<Long> list) {
         hideProgressDialog();
         mTaskAdapter.removeById(list);
         showSnackbar(R.string.common_execute_success);
     }
 
-    @Override
     public void onTaskDeleteFail() {
         hideProgressDialog();
         showSnackbar(R.string.common_execute_fail);
     }
 
-    @Override
     public void onTaskLoadSuccess(final List<Task> list, boolean local) {
         mTaskAdapter.setColorId(ThemeUtils.getResourceId(this, R.attr.colorAccent));
-        mTaskAdapter.setLast(mPresenter.getComic().getLast());
+        mTaskAdapter.setLast(vm.getComic().getLast());
         mTaskAdapter.addAll(list);
         if (!local) {
             mConnection = new ServiceConnection() {
@@ -320,14 +351,12 @@ public class TaskActivity extends CoordinatorActivity implements TaskView {
         }
     }
 
-    @Override
     public void onTaskLoadFail() {
         hideProgressBar();
         mLayoutView.removeView(mActionButton);
         showSnackbar(R.string.task_load_task_fail);
     }
 
-    @Override
     public void onTaskAdd(List<Task> list) {
         mTaskAdapter.addAll(0, list);
     }
@@ -336,7 +365,6 @@ public class TaskActivity extends CoordinatorActivity implements TaskView {
      * task state
      */
 
-    @Override
     public void onTaskError(long id) {
         int position = mTaskAdapter.getPositionById(id);
         if (position != -1) {
@@ -348,7 +376,6 @@ public class TaskActivity extends CoordinatorActivity implements TaskView {
         }
     }
 
-    @Override
     public void onTaskPause(long id) {
         int position = mTaskAdapter.getPositionById(id);
         if (position != -1) {
@@ -357,7 +384,6 @@ public class TaskActivity extends CoordinatorActivity implements TaskView {
         }
     }
 
-    @Override
     public void onTaskParse(long id) {
         int position = mTaskAdapter.getPositionById(id);
         if (position != -1) {
@@ -369,7 +395,6 @@ public class TaskActivity extends CoordinatorActivity implements TaskView {
         }
     }
 
-    @Override
     public void onTaskProcess(long id, int progress, int max) {
         int position = mTaskAdapter.getPositionById(id);
         if (position != -1) {
@@ -393,6 +418,14 @@ public class TaskActivity extends CoordinatorActivity implements TaskView {
     @Override
     protected String getDefaultTitle() {
         return getString(R.string.task_list);
+    }
+
+
+    @Override
+    protected void bindViews() {
+        super.bindViews();
+        mActionButton2.setOnClickListener(v -> onActionButton2Click());
+        mActionButton.setOnClickListener(v -> onActionButtonClick());
     }
 
 }

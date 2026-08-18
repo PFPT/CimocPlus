@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.haleydu.cimoc">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" tools:ignore="ScopedStorage" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <application
         android:name=".App"
@@ -27,6 +29,7 @@
 
         <activity
             android:name=".ui.activity.MainActivity"
+            android:exported="true"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:windowSoftInputMode="adjustPan">
             <intent-filter>
@@ -81,17 +84,18 @@
             android:name=".ui.activity.settings.EventSettingsActivity"
             android:configChanges="orientation|keyboardHidden|screenSize" />
         <activity
-            android:name=".ui.activity.PageReaderActivity"
+            android:name=".ui.reader.PageReaderActivity"
             android:forceDarkAllowed="false"
             android:theme="@style/AppThemeNoDark"
             android:configChanges="orientation|keyboardHidden|screenSize" />
         <activity
-            android:name=".ui.activity.StreamReaderActivity"
+            android:name=".ui.reader.StreamReaderActivity"
             android:forceDarkAllowed="false"
             android:theme="@style/AppThemeNoDark"
             android:configChanges="orientation|keyboardHidden|screenSize" />
         <activity
             android:name=".ui.activity.BrowserFilter"
+            android:exported="true"
             android:theme="@android:style/Theme.NoDisplay">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
@@ -279,7 +283,10 @@
             </intent-filter>
         </activity>
 
-        <service android:name=".service.DownloadService" />
+        <service
+            android:name=".service.DownloadService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -14,14 +14,13 @@ import com.facebook.imagepipeline.common.ResizeOptions;
 import com.facebook.imagepipeline.request.ImageRequest;
 import com.facebook.imagepipeline.request.ImageRequestBuilder;
 import com.haleydu.cimoc.App;
-import com.haleydu.cimoc.R;
+import com.haleydu.cimoc.databinding.ItemResultBinding;
 import com.haleydu.cimoc.fresco.ControllerBuilderProvider;
 import com.haleydu.cimoc.manager.SourceManager;
 import com.haleydu.cimoc.model.Comic;
 
 import java.util.List;
 
-import butterknife.BindView;
 
 /**
  * Created by Hiroshi on 2016/7/3.
@@ -37,8 +36,7 @@ public class ResultAdapter extends BaseAdapter<Comic> {
 
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View view = mInflater.inflate(R.layout.item_result, parent, false);
-        return new ResultViewHolder(view);
+        return new ResultViewHolder(ItemResultBinding.inflate(mInflater, parent, false));
     }
 
     @Override
@@ -46,15 +44,15 @@ public class ResultAdapter extends BaseAdapter<Comic> {
         super.onBindViewHolder(holder, position);
         Comic comic = mDataSet.get(position);
         ResultViewHolder viewHolder = (ResultViewHolder) holder;
-        viewHolder.comicTitle.setText(comic.getTitle());
-        viewHolder.comicAuthor.setText(comic.getAuthor());
-        viewHolder.comicSource.setText(mTitleGetter.getTitle(comic.getSource()));
-        viewHolder.comicUpdate.setText(comic.getUpdate());
+        viewHolder.binding.resultComicTitle.setText(comic.getTitle());
+        viewHolder.binding.resultComicAuthor.setText(comic.getAuthor());
+        viewHolder.binding.resultComicSource.setText(mTitleGetter.getTitle(comic.getSource()));
+        viewHolder.binding.resultComicUpdate.setText(comic.getUpdate());
         ImageRequest request = ImageRequestBuilder
                 .newBuilderWithSource(Uri.parse(comic.getCover()))
                 .setResizeOptions(new ResizeOptions(App.mCoverWidthPixels / 3, App.mCoverHeightPixels / 3))
                 .build();
-        viewHolder.comicImage.setController(mProvider.get(comic.getSource()).setImageRequest(request).build());
+        viewHolder.binding.resultComicImage.setController(mProvider.get(comic.getSource()).setImageRequest(request).build());
     }
 
     public void setProvider(ControllerBuilderProvider provider) {
@@ -76,20 +74,12 @@ public class ResultAdapter extends BaseAdapter<Comic> {
         };
     }
 
-    class ResultViewHolder extends BaseViewHolder {
-        @BindView(R.id.result_comic_image)
-        SimpleDraweeView comicImage;
-        @BindView(R.id.result_comic_title)
-        TextView comicTitle;
-        @BindView(R.id.result_comic_author)
-        TextView comicAuthor;
-        @BindView(R.id.result_comic_update)
-        TextView comicUpdate;
-        @BindView(R.id.result_comic_source)
-        TextView comicSource;
+    static class ResultViewHolder extends BaseViewHolder {
+        final ItemResultBinding binding;
 
-        ResultViewHolder(View view) {
-            super(view);
+        ResultViewHolder(ItemResultBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
         }
     }
 

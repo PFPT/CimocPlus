@@ -5,48 +5,42 @@ import android.os.Bundle;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import android.view.View;
-import android.view.WindowManager;
 
 import com.haleydu.cimoc.App;
 import com.haleydu.cimoc.R;
+import com.haleydu.cimoc.component.AppGetter;
 import com.haleydu.cimoc.manager.PreferenceManager;
-import com.haleydu.cimoc.presenter.BasePresenter;
 import com.haleydu.cimoc.ui.fragment.dialog.ProgressDialogFragment;
-import com.haleydu.cimoc.ui.view.BaseView;
-import com.haleydu.cimoc.ui.widget.ViewUtils;
 import com.haleydu.cimoc.utils.HintUtils;
 import com.haleydu.cimoc.utils.ThemeUtils;
 
-import butterknife.BindView;
-import butterknife.ButterKnife;
-
-/**
- * Created by Hiroshi on 2016/7/1.
- */
-public abstract class BaseActivity extends AppCompatActivity implements BaseView {
+public abstract class BaseActivity extends AppCompatActivity implements AppGetter {
 
     protected PreferenceManager mPreference;
     @Nullable
-    @BindView(R.id.custom_night_mask)
-    View mNightMask;
+    protected View mNightMask;
     @Nullable
-    @BindView(R.id.custom_toolbar)
     Toolbar mToolbar;
     private ProgressDialogFragment mProgressDialog;
-    private BasePresenter mBasePresenter;
+    protected View mContentRoot;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        initAdMob();
         mPreference = App.getPreferenceManager();
         initTheme();
-        setContentView(getLayoutRes());
-        ButterKnife.bind(this);
+        mContentRoot = inflateContentView();
+        setContentView(mContentRoot);
+        bindViews();
+        applyWindowInsets();
         initNight();
         initToolbar();
-        mBasePresenter = initPresenter();
+        initViewModel();
         mProgressDialog = ProgressDialogFragment.newInstance();
         initView();
         initData();
@@ -54,19 +48,10 @@ public abstract class BaseActivity extends AppCompatActivity implements BaseView
     }
 
     @Override
-    protected void onDestroy() {
-        if (mBasePresenter != null) {
-            mBasePresenter.detachView();
-        }
-        super.onDestroy();
-    }
-
-    @Override
     public App getAppInstance() {
         return (App) getApplication();
     }
 
-    @Override
     public void onNightSwitch() {
         initNight();
     }
@@ -74,8 +59,12 @@ public abstract class BaseActivity extends AppCompatActivity implements BaseView
     protected void initTheme() {
         int theme = mPreference.getInt(PreferenceManager.PREF_OTHER_THEME, ThemeUtils.THEME_BLUE);
         setTheme(ThemeUtils.getThemeById(theme));
-        if (isNavTranslation() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+            if (isNavTranslation()) {
+                getWindow().setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+            }
         }
     }
 
@@ -95,10 +84,29 @@ public abstract class BaseActivity extends AppCompatActivity implements BaseView
             if (getSupportActionBar() != null) {
                 getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                mToolbar.setPadding(0, ViewUtils.getStatusBarHeight(this), 0, mToolbar.getPaddingBottom());
-            }
         }
+    }
+
+    protected void applyWindowInsets() {
+        View insetTarget = mToolbar != null ? mToolbar : mContentRoot;
+        if (insetTarget == null) {
+            return;
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(insetTarget, (v, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(v.getPaddingLeft(), bars.top, v.getPaddingRight(),
+                    isNavTranslation() ? v.getPaddingBottom() : bars.bottom);
+            return insets;
+        });
+    }
+
+    protected View inflateContentView() {
+        return getLayoutInflater().inflate(getLayoutRes(), null, false);
+    }
+
+    protected void bindViews() {
+        mNightMask = mContentRoot.findViewById(R.id.custom_night_mask);
+        mToolbar = mContentRoot.findViewById(R.id.custom_toolbar);
     }
 
     protected View getLayoutView() {
@@ -109,8 +117,7 @@ public abstract class BaseActivity extends AppCompatActivity implements BaseView
         return null;
     }
 
-    protected BasePresenter initPresenter() {
-        return null;
+    protected void initViewModel() {
     }
 
     protected void initView() {
@@ -120,9 +127,6 @@ public abstract class BaseActivity extends AppCompatActivity implements BaseView
     }
 
     protected void initUser() {
-    }
-
-    protected void initAdMob() {
     }
 
     protected abstract int getLayoutRes();
@@ -144,7 +148,6 @@ public abstract class BaseActivity extends AppCompatActivity implements BaseView
     }
 
     public void hideProgressDialog() {
-        // 可能 onSaveInstanceState 后任务结束，需要取消对话框，直接 dismiss 会抛异常
         mProgressDialog.dismissAllowingStateLoss();
     }
 

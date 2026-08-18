@@ -55,25 +55,19 @@
 -dontwarn com.android.volley.toolbox.**
 -dontwarn com.facebook.infer.**
 
-# greenDAO
--keepclassmembers class * extends org.greenrobot.greendao.AbstractDao {
-public static java.lang.String TABLENAME;
-}
-#ref: https://juejin.im/post/5d5fb53b51882554a13f8b6a
-#-keep class **$Properties
--keep class **$Properties{*;}
--dontwarn org.greenrobot.greendao.database.**
--dontwarn org.greenrobot.greendao.rx.**
+# Room
+-keep class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Entity class *
+-dontwarn androidx.room.paging.**
 
-# ButterKnife
-# Retain generated class which implement Unbinder.
--keep public class * implements butterknife.Unbinder { public <init>(**, android.view.View); }
+# Kotlin / Coroutines
+-dontwarn kotlinx.coroutines.**
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
 
-# Prevent obfuscation of types which use ButterKnife annotations since the simple name
-# is used to reflectively look up the generated ViewBinding.
--keep class butterknife.*
--keepclasseswithmembernames class * { @butterknife.* <methods>; }
--keepclasseswithmembernames class * { @butterknife.* <fields>; }
+# Compose
+-dontwarn androidx.compose.**
+-keep class androidx.compose.runtime.** { *; }
 
 # OkHttp3
 -keep class okhttp3.** { *; }

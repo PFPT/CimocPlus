@@ -16,12 +16,11 @@ import androidx.annotation.StyleRes;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.navigation.NavigationView;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.ActionBarDrawerToggle;
-import android.os.Environment;
-import android.provider.Settings;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.MenuItem;
@@ -37,26 +36,33 @@ import com.facebook.imagepipeline.request.ImageRequest;
 import com.facebook.imagepipeline.request.ImageRequestBuilder;
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig;
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings;
+import androidx.lifecycle.ViewModelProvider;
+
 import com.haleydu.cimoc.App;
 import com.haleydu.cimoc.R;
+import com.haleydu.cimoc.databinding.ActivityMainBinding;
+import com.haleydu.cimoc.databinding.CustomDrawerHeaderBinding;
+import com.haleydu.cimoc.component.DialogCaller;
 import com.haleydu.cimoc.component.ThemeResponsive;
 import com.haleydu.cimoc.core.Update;
 import com.haleydu.cimoc.fresco.ControllerBuilderProvider;
 import com.haleydu.cimoc.global.Extra;
 import com.haleydu.cimoc.manager.PreferenceManager;
-import com.haleydu.cimoc.manager.SourceManager;
-import com.haleydu.cimoc.presenter.BasePresenter;
-import com.haleydu.cimoc.presenter.MainPresenter;
+import com.haleydu.cimoc.model.MiniComic;
+import com.haleydu.cimoc.event.AppEventBus;
+import com.haleydu.cimoc.event.AppEvent;
+import com.haleydu.cimoc.ui.FlowExtKt;
 import com.haleydu.cimoc.ui.fragment.BaseFragment;
 import com.haleydu.cimoc.ui.fragment.ComicFragment;
 import com.haleydu.cimoc.ui.fragment.dialog.MessageDialogFragment;
 import com.haleydu.cimoc.ui.fragment.recyclerview.SourceFragment;
-import com.haleydu.cimoc.ui.view.MainView;
 import com.haleydu.cimoc.utils.HintUtils;
+import dagger.hilt.android.AndroidEntryPoint;
 import com.haleydu.cimoc.utils.PermissionUtils;
 
-import com.king.app.updater.constant.Constants;
-import butterknife.BindView;
+import javax.inject.Inject;
+
+import okhttp3.OkHttpClient;
 
 
 
@@ -64,7 +70,8 @@ import butterknife.BindView;
  * Created by Hiroshi on 2016/7/1.
  * fixed by Haleydu on 2020/8/8.
  */
-public class MainActivity extends BaseActivity implements MainView, NavigationView.OnNavigationItemSelectedListener {
+@AndroidEntryPoint
+public class MainActivity extends BaseActivity implements DialogCaller, NavigationView.OnNavigationItemSelectedListener {
 
     private static final int DIALOG_REQUEST_NOTICE = 0;
     private static final int DIALOG_REQUEST_PERMISSION = 1;
@@ -74,18 +81,19 @@ public class MainActivity extends BaseActivity implements MainView, NavigationVi
 
     private static final int FRAGMENT_NUM = 3;
 
-    @BindView(R.id.main_layout)
     DrawerLayout mDrawerLayout;
-    @BindView(R.id.main_navigation_view)
     NavigationView mNavigationView;
-    @BindView(R.id.main_fragment_container)
     FrameLayout mFrameLayout;
+    private ActivityMainBinding binding;
 
     private TextView mLastText;
     private SimpleDraweeView mDraweeView;
     private ControllerBuilderProvider mControllerBuilderProvider;
 
-    private MainPresenter mPresenter;
+    @Inject
+    OkHttpClient httpClient;
+
+    private MainViewModel vm;
     private ActionBarDrawerToggle mDrawerToggle;
     private long mExitTime = 0;
     private long mLastId = -1;
@@ -104,10 +112,8 @@ public class MainActivity extends BaseActivity implements MainView, NavigationVi
 //    private Auth0 auth0;
 
     @Override
-    protected BasePresenter initPresenter() {
-        mPresenter = new MainPresenter();
-        mPresenter.attachView(this);
-        return mPresenter;
+    protected void initViewModel() {
+        vm = new ViewModelProvider(this).get(MainViewModel.class);
     }
 
     @Override
@@ -184,17 +190,34 @@ public class MainActivity extends BaseActivity implements MainView, NavigationVi
 
     @Override
     protected void initData() {
-        mPresenter.loadLast();
+        FlowExtKt.collectOnStart(vm.getLast(), this, last ->
+                onLastLoadSuccess(last.getId(), last.getSource(), last.getCid(), last.getTitle(), last.getCover()));
+        FlowExtKt.collectOnStart(vm.getLastFail(), this, unit -> onLastLoadFail());
+        FlowExtKt.collectOnStart(vm.getUpdate(), this, event -> {
+            if (event instanceof MainViewModel.UpdateEvent.Ready) {
+                onUpdateReady();
+            } else if (event instanceof MainViewModel.UpdateEvent.GiteeReady) {
+                MainViewModel.UpdateEvent.GiteeReady gitee = (MainViewModel.UpdateEvent.GiteeReady) event;
+                onUpdateReady(gitee.getVersionName(), gitee.getContent(), gitee.getUrl(),
+                        gitee.getVersionCode(), gitee.getMd5());
+            }
+        });
+        FlowExtKt.collectOnStart(AppEventBus.observe(AppEvent.EVENT_COMIC_READ), this, event -> {
+            MiniComic comic = (MiniComic) event.getData();
+            onLastChange(comic.getId(), comic.getSource(), comic.getCid(), comic.getTitle(), comic.getCover());
+        });
+        FlowExtKt.collectOnStart(AppEventBus.observe(AppEvent.EVENT_SWITCH_NIGHT), this, event -> onNightSwitch());
+        vm.loadLast();
 
         //检查App更新
         String updateUrl;
         if (mPreference.getBoolean(PreferenceManager.PREF_UPDATE_APP_AUTO, true)) {
-            if ((updateUrl = App.getPreferenceManager().getString(PreferenceManager.PREF_UPDATE_CURRENT_URL)) != null) {
+            if ((updateUrl = mPreference.getString(PreferenceManager.PREF_UPDATE_CURRENT_URL)) != null) {
                 App.setUpdateCurrentUrl(updateUrl);
             }
             checkUpdate();
         }
-        mPresenter.getSourceBaseUrl();
+        vm.getSourceBaseUrl();
 
         showAuthorNotice();
         showPermission();
@@ -255,12 +278,12 @@ public class MainActivity extends BaseActivity implements MainView, NavigationVi
         night = mPreference.getBoolean(PreferenceManager.PREF_NIGHT, false);
         mNavigationView.getMenu().findItem(R.id.drawer_night).setTitle(night ? R.string.drawer_light : R.string.drawer_night);
         mNavigationView.setNavigationItemSelectedListener(this);
-        View header = mNavigationView.getHeaderView(0);
-        mLastText = header.findViewById(R.id.drawer_last_title);
-        mDraweeView = header.findViewById(R.id.drawer_last_cover);
+        CustomDrawerHeaderBinding header = CustomDrawerHeaderBinding.bind(mNavigationView.getHeaderView(0));
+        mLastText = header.drawerLastTitle;
+        mDraweeView = header.drawerLastCover;
 
         mLastText.setOnClickListener(v -> {
-            if (mPresenter.checkLocal(mLastId)) {
+            if (vm.checkLocal(mLastId)) {
                 Intent intent = TaskActivity.createIntent(MainActivity.this, mLastId);
                 startActivity(intent);
             } else if (mLastSource != -1 && mLastCid != null) {
@@ -271,7 +294,7 @@ public class MainActivity extends BaseActivity implements MainView, NavigationVi
             }
         });
         mControllerBuilderProvider = new ControllerBuilderProvider(this,
-                SourceManager.getInstance(this).new HeaderGetter(), false);
+                vm.headerGetter(), false, httpClient);
     }
 
     private void initFragment() {
@@ -421,11 +444,13 @@ public class MainActivity extends BaseActivity implements MainView, NavigationVi
                 //showPermission();
                 break;
             case DIALOG_REQUEST_PERMISSION:
-                //ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 0);
-                com.king.app.updater.util.PermissionUtils.verifyReadAndWritePermissions(this, Constants.RE_CODE_STORAGE_PERMISSION);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
-                    Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
-                    startActivity(intent);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    ActivityCompat.requestPermissions(this,
+                            new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 0);
+                } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                    ActivityCompat.requestPermissions(this,
+                            new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                                    android.Manifest.permission.READ_EXTERNAL_STORAGE}, 0);
                 }
                 break;
 //            case DIALOG_REQUEST_LOGOUT:
@@ -460,7 +485,6 @@ public class MainActivity extends BaseActivity implements MainView, NavigationVi
         }
     }
 
-    @Override
     public void onUpdateReady() {
         HintUtils.showToast(this, R.string.main_ready_update);
         if (mPreference.getBoolean(PreferenceManager.PREF_OTHER_CHECK_SOFTWARE_UPDATE, true)){
@@ -469,7 +493,6 @@ public class MainActivity extends BaseActivity implements MainView, NavigationVi
 //        Update.update(this);
     }
 
-    @Override
     public void onUpdateReady(String versionName, String content, String mUrl, int versionCode, String md5) {
         this.versionName = versionName;
         this.content = content;
@@ -484,17 +507,14 @@ public class MainActivity extends BaseActivity implements MainView, NavigationVi
         }
     }
 
-    @Override
     public void onLastLoadSuccess(long id, int source, String cid, String title, String cover) {
         onLastChange(id, source, cid, title, cover);
     }
 
-    @Override
     public void onLastLoadFail() {
         HintUtils.showToast(this, R.string.main_last_read_fail);
     }
 
-    @Override
     public void onLastChange(long id, int source, String cid, String title, String cover) {
         mLastId = id;
         mLastSource = source;
@@ -605,8 +625,8 @@ public class MainActivity extends BaseActivity implements MainView, NavigationVi
     private void checkUpdate() {
         try {
             PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), 0);
-            mPresenter.checkGiteeUpdate(info.versionCode);
-            //mPresenter.checkUpdate(info.versionName);
+            vm.checkGiteeUpdate(info.versionCode);
+            //vm.checkUpdate(info.versionName);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -630,6 +650,12 @@ public class MainActivity extends BaseActivity implements MainView, NavigationVi
     }
 
     @Override
+    protected View inflateContentView() {
+        binding = ActivityMainBinding.inflate(getLayoutInflater());
+        return binding.getRoot();
+    }
+
+    @Override
     protected int getLayoutRes() {
         return R.layout.activity_main;
     }
@@ -638,4 +664,13 @@ public class MainActivity extends BaseActivity implements MainView, NavigationVi
     protected View getLayoutView() {
         return mDrawerLayout;
     }
+
+    @Override
+    protected void bindViews() {
+        super.bindViews();
+        mDrawerLayout = binding.mainLayout;
+        mNavigationView = binding.mainNavigationView;
+        mFrameLayout = binding.mainFragmentContainer;
+    }
+
 }

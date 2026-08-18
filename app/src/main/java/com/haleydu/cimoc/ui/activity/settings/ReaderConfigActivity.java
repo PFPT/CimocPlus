@@ -6,6 +6,7 @@ import androidx.viewpager.widget.ViewPager;
 
 import com.haleydu.cimoc.R;
 import com.haleydu.cimoc.component.DialogCaller;
+import com.haleydu.cimoc.databinding.ActivityReaderConfigBinding;
 import com.haleydu.cimoc.global.ClickEvents;
 import com.haleydu.cimoc.ui.activity.BackActivity;
 import com.haleydu.cimoc.ui.adapter.TabPagerAdapter;
@@ -13,7 +14,6 @@ import com.haleydu.cimoc.ui.fragment.BaseFragment;
 import com.haleydu.cimoc.ui.fragment.config.PageConfigFragment;
 import com.haleydu.cimoc.ui.fragment.config.StreamConfigFragment;
 
-import butterknife.BindView;
 
 /**
  * Created by Hiroshi on 2016/10/14.
@@ -21,10 +21,9 @@ import butterknife.BindView;
 
 public class ReaderConfigActivity extends BackActivity implements DialogCaller {
 
-    @BindView(R.id.reader_config_tab_layout)
     TabLayout mTabLayout;
-    @BindView(R.id.reader_config_view_pager)
     ViewPager mViewPager;
+    private ActivityReaderConfigBinding binding;
 
     private String[] mKeyArray;
     private int[] mChoiceArray;
@@ -74,6 +73,12 @@ public class ReaderConfigActivity extends BackActivity implements DialogCaller {
     }
 
     @Override
+    protected android.view.View inflateContentView() {
+        binding = ActivityReaderConfigBinding.inflate(getLayoutInflater());
+        return binding.getRoot();
+    }
+
+    @Override
     protected int getLayoutRes() {
         return R.layout.activity_reader_config;
     }
@@ -84,4 +89,12 @@ public class ReaderConfigActivity extends BackActivity implements DialogCaller {
         mChoiceArray[requestCode] = index;
         mPreference.putInt(mKeyArray[requestCode], index);
     }
+
+    @Override
+    protected void bindViews() {
+        super.bindViews();
+        mTabLayout = binding.readerConfigTabLayout;
+        mViewPager = binding.readerConfigViewPager;
+    }
+
 }

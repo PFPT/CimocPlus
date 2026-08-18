@@ -1,6 +1,7 @@
 package com.haleydu.cimoc.source;
 
 import com.google.common.collect.Lists;
+import com.haleydu.cimoc.manager.SourceConfigManager;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.ImageUrl;
@@ -27,20 +28,26 @@ public class GuFeng extends MangaParser {
 
     public static final int TYPE = 25;
     public static final String DEFAULT_TITLE = "古风漫画";
+    private final SourceConfigManager sourceConfigManager;
 
     public static Source getDefaultSource() {
         return new Source(null, DEFAULT_TITLE, TYPE, true);
     }
 
-    public GuFeng(Source source) {
+    public GuFeng(Source source, SourceConfigManager sourceConfigManager) {
+        this.sourceConfigManager = sourceConfigManager;
         init(source, null);
+    }
+
+    private String host() {
+        return sourceConfigManager.getUrl("GUFENG", "https://m.gufengmh9.com");
     }
 
     @Override
     public Request getSearchRequest(String keyword, int page) throws UnsupportedEncodingException {
         String url = "";
         if (page == 1) {
-            url = StringUtils.format("https://m.gufengmh8.com/search/?keywords=%s",
+            url = StringUtils.format(host() + "/search/?keywords=%s",
                     URLEncoder.encode(keyword, "UTF-8"));
         }
         return new Request.Builder()
@@ -60,7 +67,10 @@ public class GuFeng extends MangaParser {
                 String cover = node.attr("div.itemImg > a > mip-img", "src");
 
                 String title = node.text("div.itemTxt > a");
-                String cid = node.attr("div.itemTxt > a", "href").replace("https://m.gufengmh8.com/manhua/", "");
+                String href = node.attr("div.itemTxt > a", "href");
+                String cid = href.replace(host() + "/manhua/", "")
+                        .replace("https://m.gufengmh8.com/manhua/", "")
+                        .replace("https://m.gufengmh9.com/manhua/", "");
                 cid = cid.substring(0, cid.length() - 1);
 
                 String update = node.text("div.itemTxt > p:eq(3) > span.date");
@@ -73,7 +83,7 @@ public class GuFeng extends MangaParser {
 
     @Override
     public Request getInfoRequest(String cid) {
-        String url = "https://m.gufengmh8.com/manhua/".concat(cid) + "/";
+        String url = host() + "/manhua/".concat(cid) + "/";
         return new Request.Builder().url(url).build();
     }
 
@@ -107,7 +117,7 @@ public class GuFeng extends MangaParser {
 
     @Override
     public Request getImagesRequest(String cid, String path) {
-        String url = StringUtils.format("https://m.gufengmh8.com/manhua/%s/%s.html", cid, path);
+        String url = StringUtils.format(host() + "/manhua/%s/%s.html", cid, path);
         return new Request.Builder().url(url).build();
     }
 

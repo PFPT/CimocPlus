@@ -17,10 +17,6 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import rx.Observable;
-import rx.Subscriber;
-import rx.schedulers.Schedulers;
-
 /**
  * Created by Hiroshi on 2017/5/20.
  */
@@ -29,70 +25,57 @@ public class Local {
 
     private static Pattern chapterPattern = null;
 
-    public static Observable<List<Pair<Comic, ArrayList<Task>>>> scan(final DocumentFile root) {
-        return Observable.create(new Observable.OnSubscribe<List<Pair<Comic, ArrayList<Task>>>>() {
-            @Override
-            public void call(Subscriber<? super List<Pair<Comic, ArrayList<Task>>>> subscriber) {
-                List<Pair<Comic, ArrayList<Task>>> result = new ArrayList<>();
+    public static List<Pair<Comic, ArrayList<Task>>> scan(final DocumentFile root) {
+        List<Pair<Comic, ArrayList<Task>>> result = new ArrayList<>();
 
-                ScanInfo info = new ScanInfo(root);
-                countPicture(info);
-                if (info.count > 5) {
-                    Pair<Comic, ArrayList<Task>> pair = Pair.create(buildComic(info.dir, info.cover), new ArrayList<Task>());
-                    pair.second.add(buildTask(info.dir, info.count, true));
-                    result.add(pair);
+        ScanInfo info = new ScanInfo(root);
+        countPicture(info);
+        if (info.count > 5) {
+            Pair<Comic, ArrayList<Task>> pair = Pair.create(buildComic(info.dir, info.cover), new ArrayList<Task>());
+            pair.second.add(buildTask(info.dir, info.count, true));
+            result.add(pair);
+        } else {
+            List<DocumentFile> list = new LinkedList<>();
+            list.add(root);
+
+            while (!list.isEmpty()) {
+                DocumentFile dir = list.get(0);
+
+                List<ScanInfo> guessChapter = new LinkedList<>();
+                List<ScanInfo> guessComic = new LinkedList<>();
+                List<DocumentFile> guessOther = classify(guessChapter, guessComic, dir);
+
+                if (guessChapter.size() > 2 * guessComic.size()) {
+                    result.add(merge(dir, guessChapter, guessComic));
                 } else {
-                    List<DocumentFile> list = new LinkedList<>();
-                    list.add(root);
-
-                    while (!list.isEmpty()) {
-                        DocumentFile dir = list.get(0);
-
-                        List<ScanInfo> guessChapter = new LinkedList<>();
-                        List<ScanInfo> guessComic = new LinkedList<>();
-                        List<DocumentFile> guessOther = classify(guessChapter, guessComic, dir);
-
-                        if (guessChapter.size() > 2 * guessComic.size()) {  // 章节
-                            result.add(merge(dir, guessChapter, guessComic));
-                        } else {    // 单章节漫画
-                            split(guessChapter, result);
-                            split(guessComic, result);
-                            list.addAll(guessOther);
-                        }
-
-                        list.remove(0);
-                    }
+                    split(guessChapter, result);
+                    split(guessComic, result);
+                    list.addAll(guessOther);
                 }
-                subscriber.onNext(result);
-                subscriber.onCompleted();
+
+                list.remove(0);
             }
-        }).subscribeOn(Schedulers.io());
+        }
+        return result;
     }
 
-    public static Observable<List<ImageUrl>> images(final DocumentFile dir, final Chapter chapter) {
-        return Observable.create(new Observable.OnSubscribe<List<ImageUrl>>() {
+    public static List<ImageUrl> images(final DocumentFile dir, final Chapter chapter) {
+        List<DocumentFile> files = dir.listFiles(new DocumentFile.DocumentFileFilter() {
             @Override
-            public void call(Subscriber<? super List<ImageUrl>> subscriber) {
-                List<DocumentFile> files = dir.listFiles(new DocumentFile.DocumentFileFilter() {
-                    @Override
-                    public boolean call(DocumentFile file) {
-                        return file.isFile() && StringUtils.endWith(file.getName(), "jpg", "png", "jpeg");
-                    }
-                }, new Comparator<DocumentFile>() {
-                    @Override
-                    public int compare(DocumentFile lhs, DocumentFile rhs) {
-                        return lhs.getName().compareTo(rhs.getName());
-                    }
-                });
-                List<ImageUrl> list = Storage.buildImageUrlFromDocumentFile(files, chapter.getTitle(), chapter.getCount(), chapter);
-                if (list.size() != 0) {
-                    subscriber.onNext(list);
-                    subscriber.onCompleted();
-                } else {
-                    subscriber.onError(new Exception());
-                }
+            public boolean call(DocumentFile file) {
+                return file.isFile() && StringUtils.endWith(file.getName(), "jpg", "png", "jpeg");
             }
-        }).subscribeOn(Schedulers.io());
+        }, new Comparator<DocumentFile>() {
+            @Override
+            public int compare(DocumentFile lhs, DocumentFile rhs) {
+                return lhs.getName().compareTo(rhs.getName());
+            }
+        });
+        List<ImageUrl> list = Storage.buildImageUrlFromDocumentFile(files, chapter.getTitle(), chapter.getCount(), chapter);
+        if (list.size() != 0) {
+            return list;
+        }
+        throw new RuntimeException();
     }
 
     private static void countPicture(ScanInfo info) {

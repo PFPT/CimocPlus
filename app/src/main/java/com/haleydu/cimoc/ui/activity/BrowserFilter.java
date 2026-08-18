@@ -32,7 +32,15 @@ import com.haleydu.cimoc.source.YKMH;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.inject.Inject;
+
+import dagger.hilt.android.AndroidEntryPoint;
+
+@AndroidEntryPoint
 public class BrowserFilter extends BaseActivity {
+
+    @Inject
+    SourceManager sourceManager;
 
     @Override
     protected int getLayoutRes() {
@@ -87,12 +95,10 @@ public class BrowserFilter extends BaseActivity {
 
     private void openReader(Uri uri) {
         try {
-            SourceManager mSourceManager = SourceManager.getInstance(this);
             String comicId;
-
             for (int i : registUrlListener()) {
-                if (mSourceManager.getParser(i).isHere(uri)
-                        && ((comicId = mSourceManager.getParser(i).getComicId(uri)) != null)) {
+                if (sourceManager.getParser(i).isHere(uri)
+                        && ((comicId = sourceManager.getParser(i).getComicId(uri)) != null)) {
                     openDetailActivity(i, comicId);
                 }
             }

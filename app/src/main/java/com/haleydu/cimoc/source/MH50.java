@@ -4,7 +4,6 @@ import android.util.Pair;
 
 import com.alibaba.fastjson.JSONArray;
 import com.google.common.collect.Lists;
-import com.haleydu.cimoc.App;
 import com.haleydu.cimoc.manager.PreferenceManager;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
@@ -40,11 +39,14 @@ public class MH50 extends MangaParser {
     public static final String DEFAULT_TITLE = "漫画堆";
     public static final String  baseUrl = "https://m.manhuadai.com";
 
+    private final PreferenceManager preferenceManager;
+
     public static Source getDefaultSource() {
         return new Source(null, DEFAULT_TITLE, TYPE, true);
     }
 
-    public MH50(Source source) {
+    public MH50(Source source, PreferenceManager preferenceManager) {
+        this.preferenceManager = preferenceManager;
         init(source, new Category());
     }
 
@@ -134,8 +136,8 @@ public class MH50 extends MangaParser {
 
     @Nullable
     private String decrypt(String code) {
-        String key = App.getPreferenceManager().getString(PreferenceManager.PREFERENCES_MH50_KEY_MSG, "KA58ZAQ321oobbG8");
-        String iv = App.getPreferenceManager().getString(PreferenceManager.PREFERENCES_MH50_IV_MSG, "A1B2C3DEF1G321o8");
+        String key = preferenceManager.getString(PreferenceManager.PREFERENCES_MH50_KEY_MSG, "KA58ZAQ321oobbG8");
+        String iv = preferenceManager.getString(PreferenceManager.PREFERENCES_MH50_IV_MSG, "A1B2C3DEF1G321o8");
         try {
             return DecryptionUtils.aesDecrypt(code, key, iv);
         } catch (Exception e) {

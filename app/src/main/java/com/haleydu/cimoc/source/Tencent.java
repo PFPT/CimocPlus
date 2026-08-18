@@ -48,9 +48,10 @@ public class Tencent extends MangaParser {
 
     @Override
     public Request getSearchRequest(String keyword, int page) throws UnsupportedEncodingException {
-        String url = "";
-        if (page == 1)
-            url = "https://m.ac.qq.com/search/result?word=%s".concat(keyword);
+        if (page != 1) {
+            return null;
+        }
+        String url = StringUtils.format("https://m.ac.qq.com/search/result?word=%s", keyword);
         return new Request.Builder().url(url).build();
     }
 
@@ -115,7 +116,11 @@ public class Tencent extends MangaParser {
         int i=0;
         for (Node node : new Node(html).list("ul.normal > li.chapter-item")) {
             String title = node.text("a");
-            String path = node.href("a").substring("/chapter/index/id/518333/cid/".length());
+            String href = node.href("a");
+            if (href == null || href.isEmpty()) {
+                continue;
+            }
+            String path = href.contains("/cid/") ? href.substring(href.lastIndexOf("/cid/") + 5) : href;
             list.add(new Chapter(Long.parseLong(sourceComic + "000" + i++), sourceComic, title, path));
         }
         return Lists.reverse(list);

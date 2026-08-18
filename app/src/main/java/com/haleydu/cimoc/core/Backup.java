@@ -22,10 +22,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import rx.Observable;
-import rx.Subscriber;
-import rx.schedulers.Schedulers;
-
 /**
  * Created by Hiroshi on 2016/7/22.
  */
@@ -70,38 +66,32 @@ public class Backup {
     private static final String JSON_KEY_COMIC_FAVORITE = "favorite";
     private static final String JSON_KEY_COMIC_HISTORY = "history";
 
-    public static Observable<String[]> loadFavorite(DocumentFile root) {
+    public static String[] loadFavorite(DocumentFile root) {
         return load(root, SUFFIX_CIMOC, SUFFIX_CFBF);
     }
 
-    public static Observable<String[]> loadTag(DocumentFile root) {
+    public static String[] loadTag(DocumentFile root) {
         return load(root, SUFFIX_CTBF);
     }
 
-    public static Observable<String[]> loadSettings(DocumentFile root) {
+    public static String[] loadSettings(DocumentFile root) {
         return load(root, SUFFIX_CSBF);
     }
 
-    public static Observable<String[]> loadClearBackup(DocumentFile root) {
+    public static String[] loadClearBackup(DocumentFile root) {
         return load(root, SUFFIX_CIMOC, SUFFIX_CFBF, SUFFIX_CTBF, SUFFIX_CSBF);
     }
 
-    private static Observable<String[]> load(final DocumentFile root, final String... suffix) {
-        return Observable.create(new Observable.OnSubscribe<String[]>() {
-            @Override
-            public void call(Subscriber<? super String[]> subscriber) {
-                DocumentFile dir = DocumentUtils.getOrCreateSubDirectory(root, BACKUP);
-                if (dir != null) {
-                    String[] files = DocumentUtils.listFilesWithSuffix(dir, suffix);
-                    if (files.length != 0) {
-                        Arrays.sort(files);
-                        subscriber.onNext(files);
-                        subscriber.onCompleted();
-                    }
-                }
-                subscriber.onError(new Exception());
+    private static String[] load(final DocumentFile root, final String... suffix) {
+        DocumentFile dir = DocumentUtils.getOrCreateSubDirectory(root, BACKUP);
+        if (dir != null) {
+            String[] files = DocumentUtils.listFilesWithSuffix(dir, suffix);
+            if (files.length != 0) {
+                Arrays.sort(files);
+                return files;
             }
-        }).subscribeOn(Schedulers.io());
+        }
+        throw new RuntimeException();
     }
 
     public static void saveComicAuto(ContentResolver resolver, DocumentFile root, List<Comic> list) {
@@ -223,87 +213,60 @@ public class Backup {
         return null;
     }
 
-    public static Observable<List<Pair<Tag, List<Comic>>>> restoreTag(final ContentResolver resolver, final DocumentFile root, final String filename) {
-        return Observable.create(new Observable.OnSubscribe<List<Pair<Tag, List<Comic>>>>() {
-            @Override
-            public void call(Subscriber<? super List<Pair<Tag, List<Comic>>>> subscriber) {
-                List<Pair<Tag, List<Comic>>> result = new LinkedList<>();
-                String jsonString = readBackupFile(resolver, root, filename);
-                try {
-                    JSONObject object = new JSONObject(jsonString);
-                    switch (object.getInt(JSON_KEY_VERSION)) {
-                        case 1:
-                            result.add(Pair.create(
-                                    new Tag(null, object.getJSONObject(JSON_KEY_TAG_ARRAY).getString(JSON_KEY_TAG_TITLE)),
-                                    loadComicArray(object.getJSONArray(JSON_KEY_COMIC_ARRAY), SUFFIX_CTBF)));
-                            break;
-                        case 2:
-                            result.addAll(loadTagArray(object.getJSONArray(JSON_KEY_TAG_ARRAY)));
-                            break;
-                    }
-                    subscriber.onNext(result);
-                    subscriber.onCompleted();
-                } catch (JSONException e) {
-                    subscriber.onError(e);
-                }
+    public static List<Pair<Tag, List<Comic>>> restoreTag(final ContentResolver resolver, final DocumentFile root, final String filename) {
+        List<Pair<Tag, List<Comic>>> result = new LinkedList<>();
+        String jsonString = readBackupFile(resolver, root, filename);
+        try {
+            JSONObject object = new JSONObject(jsonString);
+            switch (object.getInt(JSON_KEY_VERSION)) {
+                case 1:
+                    result.add(Pair.create(
+                            new Tag(null, object.getJSONObject(JSON_KEY_TAG_ARRAY).getString(JSON_KEY_TAG_TITLE)),
+                            loadComicArray(object.getJSONArray(JSON_KEY_COMIC_ARRAY), SUFFIX_CTBF)));
+                    break;
+                case 2:
+                    result.addAll(loadTagArray(object.getJSONArray(JSON_KEY_TAG_ARRAY)));
+                    break;
             }
-        }).subscribeOn(Schedulers.io());
+            return result;
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    public static Observable<List<Comic>> restoreComic(final ContentResolver resolver, final DocumentFile root, final String filename) {
-        return Observable.create(new Observable.OnSubscribe<List<Comic>>() {
-            @Override
-            public void call(Subscriber<? super List<Comic>> subscriber) {
-                List<Comic> list = new LinkedList<>();
-                String jsonString = readBackupFile(resolver, root, filename);
-                try {
-                    if (filename.endsWith(SUFFIX_CIMOC)) {
-                        list.addAll(loadComicArray(new JSONArray(jsonString), SUFFIX_CIMOC));
-                    } else if (filename.endsWith(SUFFIX_CFBF)) {
-                        JSONObject object = new JSONObject(jsonString);
-                        list.addAll(loadComicArray(object.getJSONArray(JSON_KEY_COMIC_ARRAY), SUFFIX_CFBF));
-                    }
-                    subscriber.onNext(list);
-                    subscriber.onCompleted();
-                } catch (JSONException e) {
-                    subscriber.onError(e);
-                }
+    public static List<Comic> restoreComic(final ContentResolver resolver, final DocumentFile root, final String filename) {
+        List<Comic> list = new LinkedList<>();
+        String jsonString = readBackupFile(resolver, root, filename);
+        try {
+            if (filename.endsWith(SUFFIX_CIMOC)) {
+                list.addAll(loadComicArray(new JSONArray(jsonString), SUFFIX_CIMOC));
+            } else if (filename.endsWith(SUFFIX_CFBF)) {
+                JSONObject object = new JSONObject(jsonString);
+                list.addAll(loadComicArray(object.getJSONArray(JSON_KEY_COMIC_ARRAY), SUFFIX_CFBF));
             }
-        }).subscribeOn(Schedulers.io());
+            return list;
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    public static Observable<Integer> clearBackup(final DocumentFile root) {
-        return Observable.create(new Observable.OnSubscribe<Integer>() {
-            @Override
-            public void call(Subscriber<? super Integer> subscriber) {
-                DocumentFile dir = DocumentUtils.getOrCreateSubDirectory(root, BACKUP);
-                if (dir != null) dir.delete();
-                subscriber.onNext(1);
-                subscriber.onCompleted();
-            }
-        }).subscribeOn(Schedulers.io());
+    public static int clearBackup(final DocumentFile root) {
+        DocumentFile dir = DocumentUtils.getOrCreateSubDirectory(root, BACKUP);
+        if (dir != null) dir.delete();
+        return 1;
     }
 
-    public static Observable<Map<String, ?>> restoreSetting(final ContentResolver resolver, final DocumentFile root, final String filename) {
-        return Observable.create(new Observable.OnSubscribe<Map<String, ?>>() {
-            @Override
-            public void call(Subscriber<? super Map<String, ?>> subscriber) {
-
-                String jsonString = readBackupFile(resolver, root, filename);
-
-                //将jsonStr转为Map
-                Map<String, ?> entries = JSON.parseObject(
-                        jsonString, new TypeReference<Map<String, ?>>() {
-                        });
-                if (filename.endsWith(SUFFIX_CSBF)) {
-                    for (Map.Entry entry : entries.entrySet()) {
-                        App.getPreferenceManager().putObject(entry.getKey().toString(), entry.getValue());
-                    }
-                }
-                subscriber.onNext(entries);
-                subscriber.onCompleted();
+    public static Map<String, ?> restoreSetting(final ContentResolver resolver, final DocumentFile root, final String filename) {
+        String jsonString = readBackupFile(resolver, root, filename);
+        Map<String, ?> entries = JSON.parseObject(
+                jsonString, new TypeReference<Map<String, ?>>() {
+                });
+        if (filename.endsWith(SUFFIX_CSBF)) {
+            for (Map.Entry entry : entries.entrySet()) {
+                App.getPreferenceManager().putObject(entry.getKey().toString(), entry.getValue());
             }
-        }).subscribeOn(Schedulers.io());
+        }
+        return entries;
     }
 
     private static List<Pair<Tag, List<Comic>>> loadTagArray(JSONArray array) throws JSONException {

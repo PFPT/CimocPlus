@@ -6,18 +6,15 @@ import android.graphics.Color;
 import android.graphics.Rect;
 import androidx.annotation.ColorInt;
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.appcompat.widget.SwitchCompat;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CompoundButton;
-import android.widget.TextView;
 
-import com.haleydu.cimoc.R;
+import com.haleydu.cimoc.databinding.ItemSourceBinding;
 import com.haleydu.cimoc.model.Source;
 
 import java.util.List;
 
-import butterknife.BindView;
 
 /**
  * Created by Hiroshi on 2016/10/10.
@@ -35,8 +32,7 @@ public class SourceAdapter extends BaseAdapter<Source> {
 
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View view = mInflater.inflate(R.layout.item_source, parent, false);
-        return new SourceHolder(view);
+        return new SourceHolder(ItemSourceBinding.inflate(mInflater, parent, false));
     }
 
     @Override
@@ -44,9 +40,9 @@ public class SourceAdapter extends BaseAdapter<Source> {
         super.onBindViewHolder(holder, position);
         Source source = mDataSet.get(position);
         final SourceHolder viewHolder = (SourceHolder) holder;
-        viewHolder.sourceTitle.setText(source.getTitle());
-        viewHolder.sourceSwitch.setChecked(source.getEnable());
-        viewHolder.sourceSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+        viewHolder.binding.itemSourceTitle.setText(source.getTitle());
+        viewHolder.binding.itemSourceSwitch.setChecked(source.getEnable());
+        viewHolder.binding.itemSourceSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (mOnItemCheckedListener != null) {
@@ -57,10 +53,10 @@ public class SourceAdapter extends BaseAdapter<Source> {
         if (color != -1) {
             ColorStateList thumbList = new ColorStateList(new int[][]{{-android.R.attr.state_checked}, {android.R.attr.state_checked}},
                     new int[]{Color.WHITE, color});
-            viewHolder.sourceSwitch.setThumbTintList(thumbList);
+            viewHolder.binding.itemSourceSwitch.setThumbTintList(thumbList);
             ColorStateList trackList = new ColorStateList(new int[][]{{-android.R.attr.state_checked}, {android.R.attr.state_checked}},
                     new int[]{0x4C000000, (0x00FFFFFF & color | 0x4C000000)});
-            viewHolder.sourceSwitch.setTrackTintList(trackList);
+            viewHolder.binding.itemSourceSwitch.setTrackTintList(trackList);
         }
     }
 
@@ -88,13 +84,11 @@ public class SourceAdapter extends BaseAdapter<Source> {
     }
 
     static class SourceHolder extends BaseViewHolder {
-        @BindView(R.id.item_source_title)
-        TextView sourceTitle;
-        @BindView(R.id.item_source_switch)
-        SwitchCompat sourceSwitch;
+        final ItemSourceBinding binding;
 
-        SourceHolder(final View view) {
-            super(view);
+        SourceHolder(ItemSourceBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
         }
     }
 

@@ -27,7 +27,7 @@ import java.util.*
 class MangaBZ(source: Source?) : MangaParser() {
     @Throws(UnsupportedEncodingException::class)
     override fun getSearchRequest(keyword: String, page: Int): Request {
-        var url = "http://www.mangabz.com/search?title=$keyword&page=$page"
+        var url = "https://www.mangabz.com/search?title=$keyword&page=$page"
         return Request.Builder().url(url).build()
     }
 
@@ -46,7 +46,7 @@ class MangaBZ(source: Source?) : MangaParser() {
     }
 
     override fun getUrl(cid: String): String {
-        return "http://www.mangabz.com/$cid/"
+        return "https://www.mangabz.com/$cid/"
     }
 
     override fun initUrlFilterList() {
@@ -54,7 +54,7 @@ class MangaBZ(source: Source?) : MangaParser() {
     }
 
     override fun getInfoRequest(cid: String): Request {
-        val url = "http://www.mangabz.com/$cid/"
+        val url = "https://www.mangabz.com/$cid/"
         return Request.Builder().url(url).build()
     }
 
@@ -90,7 +90,7 @@ class MangaBZ(source: Source?) : MangaParser() {
     var _path = ""
 
     override fun getImagesRequest(cid: String, path: String): Request {
-        val url = "http://www.mangabz.com/$path/"
+        val url = "https://www.mangabz.com/$path/"
         this._cid = cid
         this._path = path
         return Request.Builder()
@@ -113,7 +113,7 @@ class MangaBZ(source: Source?) : MangaParser() {
             val sign = getValFromRegex(html, "MANGABZ_VIEWSIGN", """\"(\w+)\"""")!!
             val pageCount = getValFromRegex(html, "MANGABZ_IMAGE_COUNT", "(\\d+)")!!.toInt()
             for (i in 1..pageCount) {
-                val url = "http://www.mangabz.com/$_path/chapterimage.ashx?cid=$cid&page=$i&key=&_cid=$cid&_mid=$mid&_sign=$sign&_dt="
+                val url = "https://www.mangabz.com/$_path/chapterimage.ashx?cid=$cid&page=$i&key=&_cid=$cid&_mid=$mid&_sign=$sign&_dt="
                 //list.add(ImageUrl(i + 1, url, true))
 
                 val comicChapter = chapter.id
@@ -142,7 +142,7 @@ class MangaBZ(source: Source?) : MangaParser() {
 
 
         return Request.Builder()
-                .addHeader("Referer", "http://www.mangabz.com/$_path/")
+                .addHeader("Referer", "https://www.mangabz.com/$_path/")
                 .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36")
                 .url(url + dateStr).build()
     }
@@ -162,7 +162,7 @@ class MangaBZ(source: Source?) : MangaParser() {
     }
 
     override fun getHeader(): Headers {
-        return Headers.of("Referer", "http://www.mangabz.com/")
+        return Headers.headersOf("Referer", "https://www.mangabz.com/")
     }
 
     companion object {

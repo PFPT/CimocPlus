@@ -11,6 +11,7 @@ import android.widget.EditText;
 
 import com.haleydu.cimoc.R;
 import com.haleydu.cimoc.component.DialogCaller;
+import com.haleydu.cimoc.databinding.DialogEditorBinding;
 
 /**
  * Created by Hiroshi on 2016/10/15.
@@ -36,8 +37,9 @@ public class EditorDialogFragment extends DialogFragment implements DialogInterf
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        View view = getActivity().getLayoutInflater().inflate(R.layout.dialog_editor, null);
-        mEditText = view.findViewById(R.id.dialog_editor_text);
+        DialogEditorBinding binding = DialogEditorBinding.inflate(getActivity().getLayoutInflater());
+        View view = binding.getRoot();
+        mEditText = binding.dialogEditorText;
         mEditText.setText(getArguments().getString(DialogCaller.EXTRA_DIALOG_CONTENT));
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         builder.setTitle(getArguments().getInt(DialogCaller.EXTRA_DIALOG_TITLE))

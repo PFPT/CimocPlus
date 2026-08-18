@@ -81,4 +81,9 @@
         <item name="android:textColorSecondary">@color/white</item>
         <item name="colorAccent">@color/white</item>
     </style>
+
+    <style name="ReaderBottomSheetDialog" parent="Theme.MaterialComponents.Light.BottomSheetDialog">
+        <item name="colorPrimary">?attr/colorPrimary</item>
+        <item name="colorAccent">?attr/colorAccent</item>
+    </style>
 </resources>

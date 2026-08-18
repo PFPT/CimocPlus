@@ -1,6 +1,5 @@
 package com.haleydu.cimoc.source;
 
-import com.haleydu.cimoc.App;
 import com.haleydu.cimoc.core.Manga;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
@@ -23,6 +22,7 @@ import java.util.Objects;
 import java.util.Random;
 
 import okhttp3.Headers;
+import okhttp3.OkHttpClient;
 import okhttp3.Request;
 
 import static com.haleydu.cimoc.core.Manga.getResponseBody;
@@ -37,7 +37,10 @@ public class QiMiaoMH extends MangaParser {
     public static final String DEFAULT_TITLE = "奇妙漫画";
     private static final String baseUrl = "https://www.qimiaomh.com";
 
-    public QiMiaoMH(Source source) {
+    private final OkHttpClient httpClient;
+
+    public QiMiaoMH(Source source, OkHttpClient httpClient) {
+        this.httpClient = httpClient;
         init(source, null);
     }
 
@@ -125,7 +128,7 @@ public class QiMiaoMH extends MangaParser {
             float random = new Random().nextFloat();
             String url = StringUtils.format(baseUrl + "/Action/Play/AjaxLoadImgUrl?did=%s&sid=%s&tmp=%f", did, sid, random);
             Request request = new Request.Builder().url(url).build();
-            String body = getResponseBody(App.getHttpClient(), request);
+            String body = getResponseBody(httpClient, request);
 
             JSONArray jsonArray = new JSONObject(body).getJSONArray("listImg");
             for (int i = 0; i < jsonArray.length(); ++i) {
