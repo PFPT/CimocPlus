@@ -4,7 +4,7 @@ import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
 import android.view.View
-import com.haleydu.cimoc.manager.PreferenceManager
+import com.haleydu.cimoc.data.PreferenceManager
 
 object ReaderColorFilter {
 

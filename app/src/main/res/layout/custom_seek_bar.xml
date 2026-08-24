@@ -112,6 +112,18 @@
                 android:text="@string/reader_menu_settings"
                 android:textColor="@color/white"
                 android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/reader_menu_source"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:background="?android:attr/selectableItemBackground"
+                android:gravity="center"
+                android:text="@string/reader_menu_source"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
 </FrameLayout>

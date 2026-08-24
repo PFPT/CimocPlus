@@ -1,5 +1,4 @@
-package com.haleydu.cimoc.ui.fragment.recyclerview.grid
-
+package com.haleydu.cimoc.ui.library
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
@@ -11,9 +10,9 @@ import com.haleydu.cimoc.model.Task
 import com.haleydu.cimoc.event.AppEventBus
 import com.haleydu.cimoc.event.AppEvent
 import com.haleydu.cimoc.service.DownloadService
-import com.haleydu.cimoc.ui.activity.TaskActivity
-import com.haleydu.cimoc.ui.collectOnStart
-import com.haleydu.cimoc.ui.fragment.dialog.MessageDialogFragment
+import com.haleydu.cimoc.ui.library.TaskActivity
+import com.haleydu.cimoc.ui.common.collectOnStart
+import com.haleydu.cimoc.ui.common.dialog.MessageDialogFragment
 import com.haleydu.cimoc.utils.HintUtils
 import com.haleydu.cimoc.utils.ServiceUtils
 import dagger.hilt.android.AndroidEntryPoint
@@ -102,8 +101,8 @@ class DownloadFragment : GridFragment() {
     }
 
     override fun onItemClick(view: View, position: Int) {
-        val comic = mGridAdapter.getItem(position) as MiniComic
-        startActivity(TaskActivity.createIntent(activity, comic.id))
+        val comic = mGridAdapter.comicAt(position)
+        startActivity(TaskActivity.createIntent(requireActivity(), comic.id))
     }
 
     fun onDownloadAdd(comic: MiniComic) {

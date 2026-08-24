@@ -1,9 +1,9 @@
-package com.haleydu.cimoc.ui.activity;
-
+package com.haleydu.cimoc.ui.common;
 import android.os.Build;
 import android.os.Bundle;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -12,10 +12,12 @@ import androidx.core.view.WindowInsetsCompat;
 import android.view.View;
 
 import com.haleydu.cimoc.App;
+import com.haleydu.cimoc.di.AppEntryPoint;
+import dagger.hilt.android.EntryPointAccessors;
 import com.haleydu.cimoc.R;
 import com.haleydu.cimoc.component.AppGetter;
-import com.haleydu.cimoc.manager.PreferenceManager;
-import com.haleydu.cimoc.ui.fragment.dialog.ProgressDialogFragment;
+import com.haleydu.cimoc.data.PreferenceManager;
+import com.haleydu.cimoc.ui.common.dialog.ProgressDialogFragment;
 import com.haleydu.cimoc.utils.HintUtils;
 import com.haleydu.cimoc.utils.ThemeUtils;
 
@@ -25,14 +27,15 @@ public abstract class BaseActivity extends AppCompatActivity implements AppGette
     @Nullable
     protected View mNightMask;
     @Nullable
-    Toolbar mToolbar;
+    protected Toolbar mToolbar;
     private ProgressDialogFragment mProgressDialog;
     protected View mContentRoot;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mPreference = App.getPreferenceManager();
+        mPreference = EntryPointAccessors.fromApplication(getApplicationContext(), AppEntryPoint.class)
+                .preferenceManager();
         initTheme();
         mContentRoot = inflateContentView();
         setContentView(mContentRoot);
@@ -57,6 +60,7 @@ public abstract class BaseActivity extends AppCompatActivity implements AppGette
     }
 
     protected void initTheme() {
+        applyNightMode();
         int theme = mPreference.getInt(PreferenceManager.PREF_OTHER_THEME, ThemeUtils.THEME_BLUE);
         setTheme(ThemeUtils.getThemeById(theme));
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
@@ -68,13 +72,30 @@ public abstract class BaseActivity extends AppCompatActivity implements AppGette
         }
     }
 
-    protected void initNight() {
-        if (mNightMask != null) {
-            boolean night = mPreference.getBoolean(PreferenceManager.PREF_NIGHT, false);
-            int color = mPreference.getInt(PreferenceManager.PREF_OTHER_NIGHT_ALPHA, 0xB0) << 24;
-            mNightMask.setBackgroundColor(color);
-            mNightMask.setVisibility(night ? View.VISIBLE : View.INVISIBLE);
+    protected void applyNightMode() {
+        boolean night = mPreference.getBoolean(PreferenceManager.PREF_NIGHT, false);
+        int mode = night ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO;
+        if (AppCompatDelegate.getDefaultNightMode() != mode) {
+            AppCompatDelegate.setDefaultNightMode(mode);
         }
+    }
+
+    protected boolean useNightMask() {
+        return true;
+    }
+
+    protected void initNight() {
+        if (mNightMask == null) {
+            return;
+        }
+        if (!useNightMask()) {
+            mNightMask.setVisibility(View.GONE);
+            return;
+        }
+        boolean night = mPreference.getBoolean(PreferenceManager.PREF_NIGHT, false);
+        int color = mPreference.getInt(PreferenceManager.PREF_OTHER_NIGHT_ALPHA, 0xB0) << 24;
+        mNightMask.setBackgroundColor(color);
+        mNightMask.setVisibility(night ? View.VISIBLE : View.INVISIBLE);
     }
 
     protected void initToolbar() {

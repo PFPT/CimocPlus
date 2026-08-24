@@ -2,11 +2,11 @@ package com.haleydu.cimoc.helper;
 
 import com.haleydu.cimoc.BuildConfig;
 import com.haleydu.cimoc.db.SourceDao;
-import com.haleydu.cimoc.manager.PreferenceManager;
+import com.haleydu.cimoc.data.PreferenceManager;
 import com.haleydu.cimoc.model.Source;
 import com.haleydu.cimoc.source.*;
 import com.haleydu.cimoc.source.WebtoonDongManManHua;
-import com.haleydu.cimoc.manager.SourceConfigManager;
+import com.haleydu.cimoc.data.SourceConfigManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -83,7 +83,6 @@ public class UpdateHelper {
         list.add(U17.getDefaultSource());
         list.add(DM5.getDefaultSource());
         list.add(Webtoon.getDefaultSource());
-        //list.add(HHSSEE.getDefaultSource());
         list.add(MH57.getDefaultSource());
         list.add(MH50.getDefaultSource());
         list.add(Dmzjv2.getDefaultSource());

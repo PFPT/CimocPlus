@@ -24,10 +24,13 @@ import java.util.Objects;
 
 public class MangaPostprocessor extends BasePostprocessor {
 
+    public static final int STREAM_TILE_HEIGHT = 2048;
+
     private ImageUrl mImage;
     private boolean isPaging;
     private boolean isPagingReverse;
     private boolean isWhiteEdge;
+    private boolean isStreamTile;
 
     private int mWidth, mHeight;
     private int mPosX, mPosY;
@@ -35,10 +38,15 @@ public class MangaPostprocessor extends BasePostprocessor {
     private boolean jmttIsDone = false;
 
     public MangaPostprocessor(ImageUrl image, boolean paging, boolean pagingReverse, boolean whiteEdge) {
+        this(image, paging, pagingReverse, whiteEdge, false);
+    }
+
+    public MangaPostprocessor(ImageUrl image, boolean paging, boolean pagingReverse, boolean whiteEdge, boolean streamTile) {
         mImage = image;
         isPaging = paging;
         isPagingReverse = pagingReverse;
         isWhiteEdge = whiteEdge;
+        isStreamTile = streamTile;
     }
 
     @Override
@@ -51,7 +59,10 @@ public class MangaPostprocessor extends BasePostprocessor {
 
         decodeJMTTImage(sourceBitmap, reference);
 
-        if (isPaging && !jmttIsDone) {
+        if (isStreamTile && !jmttIsDone && needStreamTiles()) {
+            prepareStreamTiles();
+            isDone = true;
+        } else if (isPaging && !jmttIsDone) {
             preparePaging(isPagingReverse);
             isDone = true;
         }
@@ -108,6 +119,29 @@ public class MangaPostprocessor extends BasePostprocessor {
 
     private boolean needHorizontalPaging() {
         return mWidth > 1.2 * mHeight;
+    }
+
+    private boolean needStreamTiles() {
+        return mHeight > STREAM_TILE_HEIGHT || mHeight > 3 * mWidth;
+    }
+
+    private void prepareStreamTiles() {
+        int sourceH = mHeight;
+        int tiles = Math.max(1, (int) Math.ceil(sourceH / (double) STREAM_TILE_HEIGHT));
+        if (tiles <= 1) {
+            return;
+        }
+        if (mImage.getState() == ImageUrl.STATE_NULL) {
+            mImage.setState(ImageUrl.STATE_PAGE_1);
+            AppEventBus.post(new AppEvent(AppEvent.EVENT_PICTURE_PAGING, mImage, tiles));
+        }
+        int index = Math.max(mImage.getState(), 1);
+        mPosX = 0;
+        mPosY = (index - 1) * STREAM_TILE_HEIGHT;
+        if (mPosY >= sourceH) {
+            mPosY = Math.max(0, sourceH - STREAM_TILE_HEIGHT);
+        }
+        mHeight = Math.min(STREAM_TILE_HEIGHT, sourceH - mPosY);
     }
 
     private void prepareWhiteEdge(Bitmap bitmap) {
@@ -193,12 +227,14 @@ public class MangaPostprocessor extends BasePostprocessor {
     @Override
     public CacheKey getPostprocessorCacheKey() {
         return new SimpleCacheKey(StringUtils.format(
-                "%s-post-%d-%b-%b-%b",
+                "%s-post-%d-%d-%b-%b-%b-%b",
                 mImage.getUrl(),
                 mImage.getId(),
+                mImage.getState(),
                 isPaging,
                 isPagingReverse,
-                isWhiteEdge));
+                isWhiteEdge,
+                isStreamTile));
     }
 
     /**

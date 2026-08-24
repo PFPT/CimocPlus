@@ -1,9 +1,8 @@
-package com.haleydu.cimoc.ui.activity
-
+package com.haleydu.cimoc.ui.detail
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.haleydu.cimoc.manager.TagManager
-import com.haleydu.cimoc.manager.TagRefManager
+import com.haleydu.cimoc.data.TagManager
+import com.haleydu.cimoc.data.TagRefManager
 import com.haleydu.cimoc.misc.Switcher
 import com.haleydu.cimoc.model.Tag
 import com.haleydu.cimoc.model.TagRef

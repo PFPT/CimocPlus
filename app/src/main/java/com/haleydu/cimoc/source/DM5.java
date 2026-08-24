@@ -279,10 +279,22 @@ public class DM5 extends MangaParser {
 
         @Override
         public String getFormat(String... args) {
-            String path = args[CATEGORY_SUBJECT].concat(" ").concat(args[CATEGORY_AREA]).concat(" ").concat(args[CATEGORY_PROGRESS])
-                    .concat(" ").concat(args[CATEGORY_ORDER]).trim();
-            path = path.replaceAll("\\s+", "-");
+            String path = joinPart(args, CATEGORY_SUBJECT) + " "
+                    + joinPart(args, CATEGORY_AREA) + " "
+                    + joinPart(args, CATEGORY_PROGRESS) + " "
+                    + joinPart(args, CATEGORY_ORDER);
+            path = path.trim().replaceAll("\\s+", "-");
+            if (path.isEmpty()) {
+                return "https://www.dm5.com/manhua-list-p%d";
+            }
             return StringUtils.format("https://www.dm5.com/manhua-list-%s-p%%d", path);
+        }
+
+        private String joinPart(String[] args, int index) {
+            if (args == null || index >= args.length || args[index] == null) {
+                return "";
+            }
+            return args[index];
         }
 
         @Override

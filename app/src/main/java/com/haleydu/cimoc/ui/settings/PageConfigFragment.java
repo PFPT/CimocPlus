@@ -1,5 +1,4 @@
-package com.haleydu.cimoc.ui.fragment.config;
-
+package com.haleydu.cimoc.ui.settings;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -11,10 +10,10 @@ import com.haleydu.cimoc.R;
 import com.haleydu.cimoc.component.DialogCaller;
 import com.haleydu.cimoc.databinding.FragmentPageConfigBinding;
 import com.haleydu.cimoc.global.ClickEvents;
-import com.haleydu.cimoc.manager.PreferenceManager;
-import com.haleydu.cimoc.ui.activity.settings.EventSettingsActivity;
-import com.haleydu.cimoc.ui.fragment.BaseFragment;
-import com.haleydu.cimoc.ui.fragment.dialog.ChoiceDialogFragment;
+import com.haleydu.cimoc.data.PreferenceManager;
+import com.haleydu.cimoc.ui.settings.EventSettingsActivity;
+import com.haleydu.cimoc.ui.common.BaseFragment;
+import com.haleydu.cimoc.ui.common.dialog.ChoiceDialogFragment;
 import com.haleydu.cimoc.ui.widget.preference.CheckBoxPreference;
 import com.haleydu.cimoc.ui.widget.preference.ChoicePreference;
 import com.haleydu.cimoc.ui.widget.preference.SliderPreference;

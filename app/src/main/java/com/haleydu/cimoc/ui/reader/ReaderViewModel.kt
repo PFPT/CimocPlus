@@ -11,10 +11,11 @@ import com.haleydu.cimoc.core.Download
 import com.haleydu.cimoc.core.Local
 import com.haleydu.cimoc.core.MangaService
 import com.haleydu.cimoc.core.Storage
-import com.haleydu.cimoc.manager.ComicManager
-import com.haleydu.cimoc.manager.ImageUrlManager
-import com.haleydu.cimoc.manager.PreferenceManager
-import com.haleydu.cimoc.manager.SourceManager
+import com.haleydu.cimoc.data.ChapterManager
+import com.haleydu.cimoc.data.ComicManager
+import com.haleydu.cimoc.data.ImageUrlManager
+import com.haleydu.cimoc.data.PreferenceManager
+import com.haleydu.cimoc.data.SourceManager
 import com.haleydu.cimoc.model.Chapter
 import com.haleydu.cimoc.model.Comic
 import com.haleydu.cimoc.model.ImageUrl
@@ -26,8 +27,12 @@ import com.haleydu.cimoc.utils.pictureUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Headers
@@ -40,6 +45,7 @@ class ReaderViewModel @Inject constructor(
     @ApplicationContext context: Context,
     savedStateHandle: SavedStateHandle,
     private val comicManager: ComicManager,
+    private val chapterManager: ChapterManager,
     private val sourceManager: SourceManager,
     private val imageUrlManager: ImageUrlManager,
     private val mangaService: MangaService,
@@ -59,6 +65,8 @@ class ReaderViewModel @Inject constructor(
     private var count = 0
     private var status = LOAD_INIT
     private var loadNextSilent = false
+    private var progressJob: Job? = null
+    private var pendingPage = -1
 
     sealed class Event {
         object ParseError : Event()
@@ -79,8 +87,29 @@ class ReaderViewModel @Inject constructor(
         data class ImageLoadFail(val id: Long) : Event()
         data class PictureSaveSuccess(val uri: Uri) : Event()
         object PictureSaveFail : Event()
-        data class PicturePaging(val image: ImageUrl) : Event()
+        data class PicturePaging(val image: ImageUrl, val tiles: Int = 2) : Event()
         object ScrollToStart : Event()
+    }
+
+    data class ReaderUiState(
+        val page: Int = 1,
+        val max: Int = 1,
+        val title: String = ""
+    )
+
+    sealed class ReaderIntent {
+        data class PageChanged(val page: Int) : ReaderIntent()
+        object FlushProgress : ReaderIntent()
+    }
+
+    private val _uiState = MutableStateFlow(ReaderUiState())
+    val uiState: StateFlow<ReaderUiState> = _uiState
+
+    fun dispatch(intent: ReaderIntent) {
+        when (intent) {
+            is ReaderIntent.PageChanged -> updateComic(intent.page)
+            ReaderIntent.FlushProgress -> flushComic()
+        }
     }
 
     private val _events = MutableSharedFlow<Event>(extraBufferCapacity = 16)
@@ -90,10 +119,13 @@ class ReaderViewModel @Inject constructor(
         viewModelScope.launch {
             AppEventBus.observe(AppEvent.EVENT_PICTURE_PAGING).collect { event ->
                 val image = event.data as? ImageUrl ?: return@collect
-                _events.emit(Event.PicturePaging(image))
+                val tiles = (event.getData(1) as? Number)?.toInt() ?: 2
+                _events.emit(Event.PicturePaging(image, tiles))
             }
         }
     }
+
+    fun comicTitle(): String? = comic?.title
 
     fun parserHeader(list: List<ImageUrl>): Headers? {
         val current = comic ?: return null
@@ -143,18 +175,35 @@ class ReaderViewModel @Inject constructor(
         val comicId = savedState.get<Long>(KEY_COMIC_ID) ?: id
         savedState[KEY_COMIC_ID] = comicId
         comic = comicManager.load(comicId)
-        val current = comic ?: return
+        val current = comic
+        if (current == null) {
+            _events.tryEmit(Event.ParseError)
+            return
+        }
         val path = savedState.get<String>(KEY_CHAPTER_PATH) ?: current.last
         val page = savedState.get<Int>(KEY_PAGE)
         if (page != null) {
             current.page = page
         }
-        for (i in array.indices) {
-            if (array[i].path == path) {
-                readerChapterManger = ReaderChapterManger(array, i)
-                images(array[i])
+        val chapters = if (array.isNotEmpty()) {
+            array
+        } else {
+            val sourceComic = (current.source.toString() + "000" + current.id).toLong()
+            chapterManager.getListChapter(sourceComic).toTypedArray()
+        }
+        if (chapters.isEmpty()) {
+            _events.tryEmit(Event.ParseError)
+            return
+        }
+        for (i in chapters.indices) {
+            if (chapters[i].path == path) {
+                readerChapterManger = ReaderChapterManger(chapters, i)
+                images(chapters[i])
+                return
             }
         }
+        readerChapterManger = ReaderChapterManger(chapters, 0)
+        images(chapters[0])
     }
 
     @JvmOverloads
@@ -271,14 +320,33 @@ class ReaderViewModel @Inject constructor(
     }
 
     fun updateComic(page: Int) {
-        if (status != LOAD_INIT) {
-            val current = comic ?: return
-            current.page = page
-            savedState[KEY_PAGE] = page
-            current.last?.let { savedState[KEY_CHAPTER_PATH] = it }
-            comicManager.update(current)
-            AppEventBus.post(AppEvent(AppEvent.EVENT_COMIC_UPDATE, current.id))
+        if (status == LOAD_INIT) {
+            return
         }
+        pendingPage = page
+        progressJob?.cancel()
+        progressJob = viewModelScope.launch {
+            delay(PROGRESS_DEBOUNCE_MS)
+            persistProgress(page)
+        }
+    }
+
+    fun flushComic() {
+        progressJob?.cancel()
+        val page = pendingPage
+        if (page > 0) {
+            persistProgress(page)
+        }
+    }
+
+    private fun persistProgress(page: Int) {
+        val current = comic ?: return
+        current.page = page
+        savedState[KEY_PAGE] = page
+        current.last?.let { savedState[KEY_CHAPTER_PATH] = it }
+        comicManager.update(current)
+        AppEventBus.post(AppEvent(AppEvent.EVENT_COMIC_UPDATE, current.id))
+        _uiState.value = _uiState.value.copy(page = page, title = current.chapter ?: "")
     }
 
     fun switchNight() {
@@ -347,15 +415,14 @@ class ReaderViewModel @Inject constructor(
                 imageUrlManager.insertOrReplace(list)
                 handleImagesSuccess(list)
             } catch (e: Exception) {
-                try {
-                    handleImagesFallback()
-                } finally {
+                val recovered = handleImagesFallback()
+                if (!recovered) {
                     _events.emit(Event.ParseError)
-                    if (status != LOAD_INIT) {
-                        count++
-                        if (count < 2) {
-                            status = LOAD_NULL
-                        }
+                }
+                if (status != LOAD_INIT) {
+                    count++
+                    if (count < 2) {
+                        status = LOAD_NULL
                     }
                 }
             }
@@ -406,15 +473,17 @@ class ReaderViewModel @Inject constructor(
         }
     }
 
-    private fun handleImagesFallback() {
-        val manager = readerChapterManger ?: return
-        val currentComic = comic ?: return
+    private fun handleImagesFallback(): Boolean {
+        val manager = readerChapterManger ?: return false
+        val currentComic = comic ?: return false
         val finished = status
+        var recovered = false
         when (status) {
             LOAD_INIT -> {
                 val current = manager.moveNext()
                 val list = imageUrlManager.getListImageUrl(current.id)
                 if (!list.isNullOrEmpty()) {
+                    recovered = true
                     current.count = list.size
                     currentChapter = current
                     lastInitList = list
@@ -438,6 +507,7 @@ class ReaderViewModel @Inject constructor(
                 val current = manager.movePrev()
                 val list = imageUrlManager.getListImageUrl(current.id)
                 if (!list.isNullOrEmpty()) {
+                    recovered = true
                     current.count = list.size
                     _events.tryEmit(Event.PrevLoadSuccess(list))
                 }
@@ -446,6 +516,7 @@ class ReaderViewModel @Inject constructor(
                 val current = manager.moveNext()
                 val list = imageUrlManager.getListImageUrl(current.id)
                 if (!list.isNullOrEmpty()) {
+                    recovered = true
                     current.count = list.size
                     val silent = loadNextSilent
                     loadNextSilent = false
@@ -457,6 +528,7 @@ class ReaderViewModel @Inject constructor(
         if (finished == LOAD_INIT || finished == LOAD_NEXT) {
             ensurePreload()
         }
+        return recovered
     }
 
     private class ReaderChapterManger(val array: Array<Chapter>, index: Int) {
@@ -552,5 +624,6 @@ class ReaderViewModel @Inject constructor(
         private const val KEY_COMIC_ID = "comicId"
         private const val KEY_CHAPTER_PATH = "chapterPath"
         private const val KEY_PAGE = "page"
+        private const val PROGRESS_DEBOUNCE_MS = 600L
     }
 }

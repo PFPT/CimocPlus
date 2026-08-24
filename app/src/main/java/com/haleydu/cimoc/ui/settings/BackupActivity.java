@@ -1,5 +1,5 @@
-package com.haleydu.cimoc.ui.activity;
-
+package com.haleydu.cimoc.ui.settings;
+import com.haleydu.cimoc.ui.common.BackActivity;
 import android.os.Bundle;
 import android.view.View;
 
@@ -8,10 +8,10 @@ import androidx.lifecycle.ViewModelProvider;
 import com.haleydu.cimoc.R;
 import com.haleydu.cimoc.component.DialogCaller;
 import com.haleydu.cimoc.databinding.ActivityBackupBinding;
-import com.haleydu.cimoc.manager.PreferenceManager;
-import com.haleydu.cimoc.ui.FlowExtKt;
-import com.haleydu.cimoc.ui.fragment.dialog.ChoiceDialogFragment;
-import com.haleydu.cimoc.ui.fragment.dialog.MessageDialogFragment;
+import com.haleydu.cimoc.data.PreferenceManager;
+import com.haleydu.cimoc.ui.common.FlowExtKt;
+import com.haleydu.cimoc.ui.common.dialog.ChoiceDialogFragment;
+import com.haleydu.cimoc.ui.common.dialog.MessageDialogFragment;
 import com.haleydu.cimoc.ui.widget.preference.CheckBoxPreference;
 import com.haleydu.cimoc.utils.PermissionUtils;
 import com.haleydu.cimoc.utils.StringUtils;

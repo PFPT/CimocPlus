@@ -4,12 +4,13 @@ import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.Ignore;
+import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
 /**
  * Created by Hiroshi on 2016/7/20.
  */
-@Entity(tableName = "COMIC")
+@Entity(tableName = "COMIC", indices = {@Index(value = {"SOURCE", "CID"})})
 public class Comic {
 
     @PrimaryKey(autoGenerate = true)

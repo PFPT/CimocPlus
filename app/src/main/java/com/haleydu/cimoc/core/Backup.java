@@ -7,6 +7,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 import com.google.gson.Gson;
 import com.haleydu.cimoc.App;
+import com.haleydu.cimoc.di.AppEntryPoint;
 import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.Tag;
 import com.haleydu.cimoc.saf.DocumentFile;
@@ -21,6 +22,8 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+
+import dagger.hilt.android.EntryPointAccessors;
 
 /**
  * Created by Hiroshi on 2016/7/22.
@@ -263,7 +266,9 @@ public class Backup {
                 });
         if (filename.endsWith(SUFFIX_CSBF)) {
             for (Map.Entry entry : entries.entrySet()) {
-                App.getPreferenceManager().putObject(entry.getKey().toString(), entry.getValue());
+                EntryPointAccessors.fromApplication(App.getAppContext(), AppEntryPoint.class)
+                        .preferenceManager()
+                        .putObject(entry.getKey().toString(), entry.getValue());
             }
         }
         return entries;

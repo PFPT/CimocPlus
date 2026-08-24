@@ -1,5 +1,4 @@
-package com.haleydu.cimoc.ui.fragment.dialog;
-
+package com.haleydu.cimoc.ui.common.dialog;
 import android.app.Dialog;
 import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
@@ -10,7 +9,7 @@ import androidx.appcompat.app.AlertDialog;
 
 import com.haleydu.cimoc.R;
 import com.haleydu.cimoc.component.DialogCaller;
-import com.haleydu.cimoc.ui.activity.DirPickerActivity;
+import com.haleydu.cimoc.ui.library.DirPickerActivity;
 
 /**
  * Created by Hiroshi on 2016/12/5.

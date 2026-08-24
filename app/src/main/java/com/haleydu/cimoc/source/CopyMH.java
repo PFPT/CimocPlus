@@ -1,12 +1,15 @@
 package com.haleydu.cimoc.source;
 
+import android.util.Pair;
+
 import com.google.common.collect.Lists;
-import com.haleydu.cimoc.manager.SourceConfigManager;
+import com.haleydu.cimoc.data.SourceConfigManager;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.ImageUrl;
 import com.haleydu.cimoc.model.Source;
 import com.haleydu.cimoc.parser.JsonIterator;
+import com.haleydu.cimoc.parser.MangaCategory;
 import com.haleydu.cimoc.parser.MangaParser;
 import com.haleydu.cimoc.parser.SearchIterator;
 import com.haleydu.cimoc.parser.UrlFilter;
@@ -16,6 +19,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -41,7 +45,7 @@ public class CopyMH extends MangaParser {
     public CopyMH(Source source, SourceConfigManager sourceConfigManager, OkHttpClient httpClient) {
         this.sourceConfigManager = sourceConfigManager;
         this.httpClient = httpClient;
-        init(source, null);
+        init(source, new Category());
     }
 
     private Request apiRequest(String path) {
@@ -245,5 +249,137 @@ public class CopyMH extends MangaParser {
     @Override
     public Headers getHeader() {
         return Headers.of("Referer", webBase() + "/", "User-Agent", "COPY/3.0.0");
+    }
+
+    @Override
+    public Request getCategoryRequest(String format, int page) {
+        int offset = Math.max(page - 1, 0) * 30;
+        String path = format.contains("%d") ? StringUtils.format(format, offset) : format;
+        return apiRequest(path);
+    }
+
+    @Override
+    public List<Comic> parseCategory(String html, int page) {
+        List<Comic> list = new LinkedList<>();
+        try {
+            JSONArray array = new JSONObject(html).getJSONObject("results").getJSONArray("list");
+            JChineseConvertor convertor = JChineseConvertor.getInstance();
+            for (int i = 0; i < array.length(); i++) {
+                JSONObject object = array.getJSONObject(i);
+                String cid = object.getString("path_word");
+                String title = convertor.t2s(object.getString("name"));
+                String cover = object.getString("cover");
+                String author = null;
+                JSONArray authors = object.optJSONArray("author");
+                if (authors != null && authors.length() > 0) {
+                    author = authors.getJSONObject(0).optString("name").trim();
+                }
+                String update = object.optString("datetime_updated");
+                list.add(new Comic(TYPE, cid, title, cover, update, author));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    private static class Category extends MangaCategory {
+
+        @Override
+        public boolean isComposite() {
+            return true;
+        }
+
+        @Override
+        public String getFormat(String... args) {
+            String theme = value(args, CATEGORY_SUBJECT);
+            String top = value(args, CATEGORY_AREA);
+            String status = value(args, CATEGORY_PROGRESS);
+            String ordering = value(args, CATEGORY_ORDER);
+            if (ordering.isEmpty()) {
+                ordering = "-datetime_updated";
+            }
+            StringBuilder builder = new StringBuilder("/api/v3/comics?limit=30&offset=%d&platform=1&ordering=");
+            builder.append(ordering);
+            if (!theme.isEmpty()) {
+                builder.append("&theme=").append(theme);
+            }
+            if (!top.isEmpty()) {
+                builder.append("&top=").append(top);
+            }
+            if (!status.isEmpty()) {
+                builder.append("&status=").append(status);
+            }
+            return builder.toString();
+        }
+
+        @Override
+        protected List<Pair<String, String>> getSubject() {
+            List<Pair<String, String>> list = new ArrayList<>();
+            list.add(Pair.create("全部", ""));
+            list.add(Pair.create("爱情", "aiqing"));
+            list.add(Pair.create("冒险", "maoxian"));
+            list.add(Pair.create("奇幻", "qihuan"));
+            list.add(Pair.create("百合", "baihe"));
+            list.add(Pair.create("校园", "xiaoyuan"));
+            list.add(Pair.create("科幻", "kehuan"));
+            list.add(Pair.create("生活", "shenghuo"));
+            list.add(Pair.create("热血", "rexue"));
+            list.add(Pair.create("搞笑", "gaoxiao"));
+            list.add(Pair.create("都市", "dushi"));
+            list.add(Pair.create("悬疑", "xuanyi"));
+            list.add(Pair.create("仙侠", "xianxia"));
+            list.add(Pair.create("恐怖", "kongbu"));
+            return list;
+        }
+
+        @Override
+        protected boolean hasArea() {
+            return true;
+        }
+
+        @Override
+        protected List<Pair<String, String>> getArea() {
+            List<Pair<String, String>> list = new ArrayList<>();
+            list.add(Pair.create("全部", ""));
+            list.add(Pair.create("日漫", "japan"));
+            list.add(Pair.create("韩漫", "korea"));
+            list.add(Pair.create("美漫", "west"));
+            return list;
+        }
+
+        @Override
+        public boolean hasProgress() {
+            return true;
+        }
+
+        @Override
+        protected List<Pair<String, String>> getProgress() {
+            List<Pair<String, String>> list = new ArrayList<>();
+            list.add(Pair.create("全部", ""));
+            list.add(Pair.create("连载中", "1"));
+            list.add(Pair.create("已完结", "2"));
+            return list;
+        }
+
+        @Override
+        protected boolean hasOrder() {
+            return true;
+        }
+
+        @Override
+        protected List<Pair<String, String>> getOrder() {
+            List<Pair<String, String>> list = new ArrayList<>();
+            list.add(Pair.create("更新", "-datetime_updated"));
+            list.add(Pair.create("热门", "-popular"));
+            return list;
+        }
+
+        private String value(String[] args, int index) {
+            if (args == null || index >= args.length || args[index] == null) {
+                return "";
+            }
+            return args[index];
+        }
     }
 }

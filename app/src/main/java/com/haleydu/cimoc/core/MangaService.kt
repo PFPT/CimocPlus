@@ -1,10 +1,11 @@
 package com.haleydu.cimoc.core
 
-import com.haleydu.cimoc.manager.SourceManager
+import com.haleydu.cimoc.data.SourceManager
 import com.haleydu.cimoc.model.Chapter
 import com.haleydu.cimoc.model.Comic
 import com.haleydu.cimoc.model.ImageUrl
 import com.haleydu.cimoc.parser.Parser
+import com.haleydu.cimoc.script.JsMangaParser
 import com.haleydu.cimoc.event.AppEventBus
 import com.haleydu.cimoc.event.AppEvent
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +31,22 @@ class MangaService @Inject constructor(
     }
 
     fun getSearchResult(parser: Parser, keyword: String, page: Int, strictSearch: Boolean): Flow<Comic> = flow {
+        if (parser is JsMangaParser) {
+            val list = parser.search(keyword, page)
+            if (list.isEmpty()) {
+                if (page == 1) throw Exception()
+                return@flow
+            }
+            for (comic in list) {
+                if (indexOfIgnoreCase(comic.title ?: "", keyword)
+                    || indexOfIgnoreCase(comic.author ?: "", keyword)
+                    || !strictSearch
+                ) {
+                    emit(comic)
+                }
+            }
+            return@flow
+        }
         val request = parser.getSearchRequest(keyword, page) ?: return@flow
         val random = Random()
         val html = Manga.getResponseBody(httpClient, request)
@@ -50,8 +67,22 @@ class MangaService @Inject constructor(
     }.flowOn(Dispatchers.IO)
 
     fun getComicInfo(parser: Parser, comic: Comic): List<Chapter> {
+        if (parser is JsMangaParser) {
+            comic.url = parser.getUrl(comic.cid)
+            parser.fillInfo(comic)
+            AppEventBus.post(AppEvent(AppEvent.EVENT_COMIC_UPDATE_INFO, comic))
+            val sourceComic = (comic.source.toString() + "000" + (comic.id ?: "00")).toLong()
+            val list = parser.chapterList(comic, sourceComic)
+            if (list.isEmpty()) {
+                throw Manga.ParseErrorException()
+            }
+            return list
+        }
         comic.url = parser.getUrl(comic.cid)
         var request = parser.getInfoRequest(comic.cid)
+        if (request == null) {
+            throw Manga.ParseErrorException()
+        }
         var html = Manga.getResponseBody(httpClient, request)
         val newComic = parser.parseInfo(html, comic)
         AppEventBus.post(AppEvent(AppEvent.EVENT_COMIC_UPDATE_INFO, newComic))
@@ -68,17 +99,26 @@ class MangaService @Inject constructor(
     }
 
     fun getCategoryComic(parser: Parser, format: String, page: Int): List<Comic> {
+        if (parser is JsMangaParser) {
+            return parser.category(format, page)
+        }
         val request = parser.getCategoryRequest(format, page)
         val html = Manga.getResponseBody(httpClient, request)
-        val list = parser.parseCategory(html, page)
-        if (list.isEmpty()) {
-            throw Exception()
-        }
-        return list
+        return parser.parseCategory(html, page) ?: emptyList()
     }
 
     suspend fun getChapterImage(chapter: Chapter, parser: Parser, cid: String, path: String): List<ImageUrl> =
         withContext(Dispatchers.IO) {
+            if (parser is JsMangaParser) {
+                val jsList = parser.imageList(cid, path, chapter)
+                if (jsList.isEmpty()) {
+                    throw Manga.ParseErrorException()
+                }
+                for (imageUrl in jsList) {
+                    imageUrl.chapter = path
+                }
+                return@withContext jsList
+            }
             val request = parser.getImagesRequest(cid, path)
             val html = Manga.getResponseBody(httpClient, request)
             var list = parser.parseImages(html, chapter)
@@ -126,8 +166,12 @@ class MangaService @Inject constructor(
         for (comic in list) {
             try {
                 val parser = manager.getParser(comic.source)
-                val request = parser.getCheckRequest(comic.cid)
-                val update = parser.parseCheck(Manga.getResponseBody(client, request))
+                val update = if (parser is JsMangaParser) {
+                    parser.checkUpdate(comic.cid)
+                } else {
+                    val request = parser.getCheckRequest(comic.cid)
+                    parser.parseCheck(Manga.getResponseBody(client, request))
+                }
                 if (comic.update != null && update != null && comic.update != update) {
                     comic.favorite = System.currentTimeMillis()
                     comic.update = update

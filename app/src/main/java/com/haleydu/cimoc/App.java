@@ -20,12 +20,12 @@ import com.haleydu.cimoc.core.Storage;
 import com.haleydu.cimoc.fresco.ControllerBuilderProvider;
 import com.haleydu.cimoc.db.CimocDatabase;
 import com.haleydu.cimoc.helper.UpdateHelper;
-import com.haleydu.cimoc.manager.PreferenceManager;
-import com.haleydu.cimoc.manager.SourceConfigManager;
-import com.haleydu.cimoc.manager.SourceManager;
+import com.haleydu.cimoc.data.PreferenceManager;
+import com.haleydu.cimoc.data.SourceConfigManager;
+import com.haleydu.cimoc.data.SourceManager;
 import com.haleydu.cimoc.misc.ActivityLifecycle;
 import com.haleydu.cimoc.saf.DocumentFile;
-import com.haleydu.cimoc.ui.adapter.GridAdapter;
+import com.haleydu.cimoc.ui.common.GridAdapter;
 import com.haleydu.cimoc.utils.DocumentUtils;
 import com.haleydu.cimoc.utils.StringUtils;
 
@@ -82,6 +82,10 @@ public class App extends MultiDexApplication implements AppGetter, Thread.Uncaug
         mActivityLifecycle = new ActivityLifecycle();
         registerActivityLifecycleCallbacks(mActivityLifecycle);
         mPreferenceManager = preferenceManager;
+        boolean night = mPreferenceManager.getBoolean(PreferenceManager.PREF_NIGHT, false);
+        androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(
+                night ? androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
+                        : androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO);
         UpdateHelper.update(mPreferenceManager, sourceConfigManager, database.sourceDao());
         FrescoUtils.init(this, 250);
         initPixels();
@@ -178,7 +182,7 @@ public class App extends MultiDexApplication implements AppGetter, Thread.Uncaug
         mWidthPixels = metrics.widthPixels;
         mHeightPixels = metrics.heightPixels;
         mCoverWidthPixels = mWidthPixels / 3;
-        mCoverHeightPixels = mHeightPixels * mCoverWidthPixels / mWidthPixels;
+        mCoverHeightPixels = mCoverWidthPixels * 4 / 3;
         mLargePixels = 3 * metrics.widthPixels * metrics.heightPixels;
     }
 
@@ -192,10 +196,6 @@ public class App extends MultiDexApplication implements AppGetter, Thread.Uncaug
             initRootDocumentFile();
         }
         return mDocumentFile;
-    }
-
-    public static PreferenceManager getPreferenceManager() {
-        return mPreferenceManager;
     }
 
     public RecyclerView.RecycledViewPool getGridRecycledPool() {

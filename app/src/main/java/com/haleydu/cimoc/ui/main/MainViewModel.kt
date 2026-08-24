@@ -1,11 +1,11 @@
-package com.haleydu.cimoc.ui.activity
-
+package com.haleydu.cimoc.ui.main
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.haleydu.cimoc.core.Update
-import com.haleydu.cimoc.manager.ComicManager
-import com.haleydu.cimoc.manager.SourceConfigManager
-import com.haleydu.cimoc.manager.SourceManager
+import com.haleydu.cimoc.data.ComicManager
+import com.haleydu.cimoc.data.SourceConfigManager
+import com.haleydu.cimoc.data.SourceManager
+import com.haleydu.cimoc.data.SourceRuleManager
 import com.haleydu.cimoc.model.MiniComic
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +22,7 @@ class MainViewModel @Inject constructor(
     private val comicManager: ComicManager,
     private val sourceManager: SourceManager,
     private val sourceConfigManager: SourceConfigManager,
+    private val sourceRuleManager: SourceRuleManager,
     private val httpClient: OkHttpClient
 ) : ViewModel() {
 
@@ -109,6 +110,7 @@ class MainViewModel @Inject constructor(
             try {
                 sourceConfigManager.fetchRemote()
                 sourceConfigManager.applyToDatabase()
+                sourceRuleManager.refreshRemote()
                 sourceManager.clearParserCache()
             } catch (_: Exception) {
             }

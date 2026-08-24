@@ -1,5 +1,5 @@
-package com.haleydu.cimoc.ui.activity;
-
+package com.haleydu.cimoc.ui.explore;
+import com.haleydu.cimoc.ui.common.BackActivity;
 import android.content.Context;
 import android.content.Intent;
 import android.view.View;

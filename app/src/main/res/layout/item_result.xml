@@ -21,6 +21,10 @@
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:layout_alignParentRight="true"
+        android:ellipsize="end"
+        android:gravity="end"
+        android:maxWidth="140dp"
+        android:maxLines="2"
         android:textSize="14sp" />
 
     <TextView

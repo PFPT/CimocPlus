@@ -1,5 +1,4 @@
-package com.haleydu.cimoc.ui.fragment.dialog;
-
+package com.haleydu.cimoc.ui.common.dialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
@@ -38,8 +37,23 @@ public class ItemDialogFragment extends DialogFragment implements DialogInterfac
         int requestCode = getArguments().getInt(DialogCaller.EXTRA_DIALOG_REQUEST_CODE);
         Bundle bundle = new Bundle();
         bundle.putInt(DialogCaller.EXTRA_DIALOG_RESULT_INDEX, which);
-        DialogCaller target = (DialogCaller) (getTargetFragment() != null ? getTargetFragment() : getActivity());
-        target.onDialogResult(requestCode, bundle);
+        DialogCaller target = resolveCaller();
+        if (target != null) {
+            target.onDialogResult(requestCode, bundle);
+        }
+    }
+
+    private DialogCaller resolveCaller() {
+        if (getTargetFragment() instanceof DialogCaller) {
+            return (DialogCaller) getTargetFragment();
+        }
+        if (getParentFragment() instanceof DialogCaller) {
+            return (DialogCaller) getParentFragment();
+        }
+        if (getActivity() instanceof DialogCaller) {
+            return (DialogCaller) getActivity();
+        }
+        return null;
     }
 
 }

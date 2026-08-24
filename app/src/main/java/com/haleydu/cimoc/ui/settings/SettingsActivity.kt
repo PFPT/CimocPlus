@@ -1,5 +1,5 @@
-package com.haleydu.cimoc.ui.activity
-
+package com.haleydu.cimoc.ui.settings
+import com.haleydu.cimoc.ui.common.BackActivity
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
@@ -37,14 +37,14 @@ import com.haleydu.cimoc.R
 import com.haleydu.cimoc.component.DialogCaller
 import com.haleydu.cimoc.databinding.ActivitySettingsBinding
 import com.haleydu.cimoc.global.Extra
-import com.haleydu.cimoc.manager.PreferenceManager
+import com.haleydu.cimoc.data.PreferenceManager
 import com.haleydu.cimoc.saf.DocumentFile
 import com.haleydu.cimoc.service.DownloadService
-import com.haleydu.cimoc.ui.activity.settings.ReaderConfigActivity
-import com.haleydu.cimoc.ui.fragment.dialog.ChoiceDialogFragment
-import com.haleydu.cimoc.ui.fragment.dialog.MessageDialogFragment
-import com.haleydu.cimoc.ui.fragment.dialog.SliderDialogFragment
-import com.haleydu.cimoc.ui.fragment.dialog.StorageEditorDialogFragment
+import com.haleydu.cimoc.ui.settings.ReaderConfigActivity
+import com.haleydu.cimoc.ui.common.dialog.ChoiceDialogFragment
+import com.haleydu.cimoc.ui.common.dialog.MessageDialogFragment
+import com.haleydu.cimoc.ui.common.dialog.SliderDialogFragment
+import com.haleydu.cimoc.ui.common.dialog.StorageEditorDialogFragment
 import com.haleydu.cimoc.utils.ServiceUtils
 import com.haleydu.cimoc.utils.ThemeUtils
 import dagger.hilt.android.AndroidEntryPoint
@@ -317,7 +317,7 @@ private fun SettingsScreen(
             onChoice(
                 R.string.settings_other_launch,
                 launchItems,
-                preference.getInt(PreferenceManager.PREF_OTHER_LAUNCH, PreferenceManager.HOME_FAVORITE),
+                preference.getInt(PreferenceManager.PREF_OTHER_LAUNCH, PreferenceManager.HOME_EXPLORE),
                 0
             )
         }

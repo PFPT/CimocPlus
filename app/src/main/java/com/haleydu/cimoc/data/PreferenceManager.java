@@ -1,5 +1,4 @@
-package com.haleydu.cimoc.manager;
-
+package com.haleydu.cimoc.data;
 import android.content.Context;
 import android.content.SharedPreferences;
 
@@ -27,6 +26,7 @@ public class PreferenceManager {
     public static final int HOME_HISTORY = 3;
     public static final int HOME_DOWNLOAD = 4;
     public static final int HOME_LOCAL = 5;
+    public static final int HOME_EXPLORE = 6;
 
     public static final String PREF_APP_VERSION = "pref_app_version";
 
@@ -132,6 +132,7 @@ public class PreferenceManager {
     public static final String PREF_OTHER_STORAGE = "pref_other_storage";
     public static final String PREF_OTHER_THEME = "pref_other_theme";
     public static final String PREF_OTHER_LAUNCH = "pref_other_launch";
+    public static final String PREF_EXPLORE_SOURCE = "pref_explore_source";
     public static final String PREF_OTHER_NIGHT_ALPHA = "pref_other_night_alpha";
     public static final String PREF_OTHER_SHOW_TOPBAR = "pref_other_show_topbar";
 
@@ -141,6 +142,8 @@ public class PreferenceManager {
     public static final String PREF_BACKUP_SAVE_COMIC_COUNT = "pref_backup_save_favorite_count";
 
     public static final String PREF_SEARCH_AUTO_COMPLETE = "pref_search_auto_complete";
+    public static final String PREF_SEARCH_HISTORY = "pref_search_history";
+    public static final String PREF_SEARCH_STRICT = "pref_search_strict";
 
     public static final String PREF_CHAPTER_BUTTON_MODE = "pref_chapter_button_mode";
     public static final String PREF_CHAPTER_ASCEND_MODE = "pref_chapter_ascend_mode";

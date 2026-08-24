@@ -10,9 +10,11 @@ import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
-import com.haleydu.cimoc.App;
 import com.haleydu.cimoc.R;
-import com.haleydu.cimoc.manager.PreferenceManager;
+import com.haleydu.cimoc.di.AppEntryPoint;
+import com.haleydu.cimoc.data.PreferenceManager;
+
+import dagger.hilt.android.EntryPointAccessors;
 
 
 /**
@@ -38,7 +40,8 @@ public class CheckBoxPreference extends FrameLayout implements View.OnClickListe
         LayoutInflater layoutInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         layoutInflater.inflate(R.layout.custom_option_checkbox, this);
 
-        mPreferenceManager = ((App) context.getApplicationContext()).getPreferenceManager();
+        mPreferenceManager = EntryPointAccessors.fromApplication(
+                context.getApplicationContext(), AppEntryPoint.class).preferenceManager();
 
         init(context, attrs);
 

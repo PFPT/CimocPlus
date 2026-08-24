@@ -1,14 +1,13 @@
-package com.haleydu.cimoc.ui.fragment.recyclerview.grid
-
+package com.haleydu.cimoc.ui.library
 import android.content.Context
 import androidx.collection.LongSparseArray
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.haleydu.cimoc.App
 import com.haleydu.cimoc.core.Download
-import com.haleydu.cimoc.manager.ComicManager
-import com.haleydu.cimoc.manager.SourceManager
-import com.haleydu.cimoc.manager.TaskManager
+import com.haleydu.cimoc.data.ComicManager
+import com.haleydu.cimoc.data.SourceManager
+import com.haleydu.cimoc.data.TaskManager
 import com.haleydu.cimoc.model.Comic
 import com.haleydu.cimoc.model.MiniComic
 import com.haleydu.cimoc.model.Task

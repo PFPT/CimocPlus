@@ -5,7 +5,7 @@ import android.view.LayoutInflater
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.haleydu.cimoc.R
 import com.haleydu.cimoc.databinding.DialogReaderSettingsBinding
-import com.haleydu.cimoc.manager.PreferenceManager
+import com.haleydu.cimoc.data.PreferenceManager
 import org.adw.library.widgets.discreteseekbar.DiscreteSeekBar
 
 fun interface OnBrightnessChanged {

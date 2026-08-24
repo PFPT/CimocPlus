@@ -7,7 +7,7 @@ import com.facebook.drawee.backends.pipeline.PipelineDraweeControllerBuilder;
 import com.facebook.drawee.backends.pipeline.PipelineDraweeControllerBuilderSupplier;
 import com.facebook.imagepipeline.core.ImagePipeline;
 import com.facebook.imagepipeline.core.ImagePipelineFactory;
-import com.haleydu.cimoc.manager.SourceManager;
+import com.haleydu.cimoc.data.SourceManager;
 
 import okhttp3.OkHttpClient;
 

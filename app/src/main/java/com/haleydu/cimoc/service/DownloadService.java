@@ -20,10 +20,11 @@ import com.haleydu.cimoc.R;
 import com.haleydu.cimoc.core.Download;
 import com.haleydu.cimoc.core.MangaImages;
 import com.haleydu.cimoc.global.Extra;
-import com.haleydu.cimoc.manager.ChapterManager;
-import com.haleydu.cimoc.manager.PreferenceManager;
-import com.haleydu.cimoc.manager.SourceManager;
-import com.haleydu.cimoc.manager.TaskManager;
+import com.haleydu.cimoc.data.ChapterManager;
+import com.haleydu.cimoc.data.PreferenceManager;
+import com.haleydu.cimoc.data.SourceManager;
+import com.haleydu.cimoc.data.TaskManager;
+import com.haleydu.cimoc.di.AppEntryPoint;
 import com.haleydu.cimoc.misc.NotificationWrapper;
 import com.haleydu.cimoc.model.ImageUrl;
 import com.haleydu.cimoc.model.Task;
@@ -47,6 +48,7 @@ import java.util.concurrent.Future;
 import javax.inject.Inject;
 
 import dagger.hilt.android.AndroidEntryPoint;
+import dagger.hilt.android.EntryPointAccessors;
 
 import okhttp3.CacheControl;
 import okhttp3.Headers;
@@ -102,7 +104,8 @@ public class DownloadService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        PreferenceManager manager = ((App) getApplication()).getPreferenceManager();
+        PreferenceManager manager = EntryPointAccessors.fromApplication(
+                getApplicationContext(), AppEntryPoint.class).preferenceManager();
         int num = manager.getInt(PreferenceManager.PREF_DOWNLOAD_THREAD, 2);
         mWorkerArray = new LongSparseArray<>();
         mExecutorService = Executors.newFixedThreadPool(num);

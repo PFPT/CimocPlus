@@ -1,7 +1,7 @@
 package com.haleydu.cimoc.di
 
 import android.content.Context
-import com.haleydu.cimoc.manager.PreferenceManager
+import com.haleydu.cimoc.data.PreferenceManager
 import com.haleydu.cimoc.network.NetworkPolicy
 import dagger.Module
 import dagger.Provides

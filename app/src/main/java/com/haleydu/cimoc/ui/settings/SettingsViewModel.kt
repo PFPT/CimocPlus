@@ -1,5 +1,4 @@
-package com.haleydu.cimoc.ui.activity
-
+package com.haleydu.cimoc.ui.settings
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -7,8 +6,8 @@ import com.facebook.drawee.backends.pipeline.Fresco
 import com.haleydu.cimoc.App
 import com.haleydu.cimoc.core.Download
 import com.haleydu.cimoc.core.Storage
-import com.haleydu.cimoc.manager.ComicManager
-import com.haleydu.cimoc.manager.TaskManager
+import com.haleydu.cimoc.data.ComicManager
+import com.haleydu.cimoc.data.TaskManager
 import com.haleydu.cimoc.model.MiniComic
 import com.haleydu.cimoc.model.Task
 import com.haleydu.cimoc.event.AppEventBus

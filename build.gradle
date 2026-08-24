@@ -20,8 +20,14 @@ allprojects {
         maven { url "https://maven.aliyun.com/repository/public" }
         maven { url "https://jitpack.io" }
     }
+    buildDir = file("${projectDir}/build.nosync")
 }
 
 task clean(type: Delete) {
     delete rootProject.buildDir
+    subprojects { delete it.buildDir }
+    delete file("${rootDir}/build")
+    delete file("${rootDir}/app/build")
+    delete file("${rootDir}/core/network/build")
+    delete file("${rootDir}/core/database/build")
 }

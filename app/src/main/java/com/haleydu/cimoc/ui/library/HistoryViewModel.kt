@@ -1,14 +1,20 @@
-package com.haleydu.cimoc.ui.fragment.recyclerview.grid
-
+package com.haleydu.cimoc.ui.library
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.haleydu.cimoc.manager.ComicManager
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import androidx.paging.map
+import com.haleydu.cimoc.data.ComicManager
 import com.haleydu.cimoc.model.Comic
 import com.haleydu.cimoc.model.MiniComic
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -20,6 +26,14 @@ class HistoryViewModel @Inject constructor(
 
     private val _comics = MutableSharedFlow<List<Any>>(extraBufferCapacity = 1)
     val comics: SharedFlow<List<Any>> = _comics
+
+    val pagingComics: Flow<PagingData<MiniComic>> = Pager(
+        PagingConfig(pageSize = 30, enablePlaceholders = false)
+    ) {
+        comicManager.pagingHistory()
+    }.flow.map { data ->
+        data.map { MiniComic(it) }
+    }.cachedIn(viewModelScope)
 
     private val _clearSuccess = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val clearSuccess: SharedFlow<Unit> = _clearSuccess

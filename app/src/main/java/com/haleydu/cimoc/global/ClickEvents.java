@@ -3,7 +3,7 @@ package com.haleydu.cimoc.global;
 import android.content.Context;
 
 import com.haleydu.cimoc.R;
-import com.haleydu.cimoc.manager.PreferenceManager;
+import com.haleydu.cimoc.data.PreferenceManager;
 
 /**
  * Created by Hiroshi on 2016/10/9.

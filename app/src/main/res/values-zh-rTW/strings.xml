@@ -1,6 +1,9 @@
 <resources>
     <string name="drawer_comic">漫畫</string>
     <string name="drawer_source">圖源</string>
+    <string name="nav_library">書架</string>
+    <string name="nav_discover">發現</string>
+    <string name="nav_profile">我的</string>
     <string name="drawer_list">列表</string>
     <string name="drawer_tag">標籤</string>
     <string name="drawer_picture">截圖</string>
@@ -29,15 +32,36 @@
     <string name="search_source_select">圖源選擇</string>
     <string name="search_source_none">未選擇圖源</string>
     <string name="search_source_load_fail">讀取圖源失敗</string>
+    <string name="search_history">搜尋歷史</string>
+    <string name="search_history_clear">清空</string>
+    <string name="search_genre">分類</string>
+    <string-array name="search_genre_tags">
+        <item>熱血</item>
+        <item>戀愛</item>
+        <item>異世界</item>
+        <item>校園</item>
+        <item>冒險</item>
+        <item>奇幻</item>
+        <item>搞笑</item>
+        <item>日常</item>
+        <item>科幻</item>
+        <item>懸疑</item>
+        <item>治癒</item>
+        <item>後宮</item>
+    </string-array>
 
     <string name="result">搜尋結果</string>
     <string name="result_empty">搜尋結果為空</string>
+    <string name="result_filter_all">全部</string>
+    <string name="result_source_pick">選擇圖源</string>
 
     <string name="detail"></string>
     <string name="detail_favorite">收藏成功</string>
     <string name="detail_unfavorite">取消收藏成功</string>
     <string name="detail_tag_favorite">請先收藏漫畫</string>
     <string name="detail_history">繼續閱讀</string>
+    <string name="detail_start_read">開始閱讀</string>
+    <string name="detail_last_update">最後更新：%s</string>
     <string name="detail_download">下載</string>
     <string name="detail_download_queue_success">已加入下載佇列</string>
     <string name="detail_download_queue_fail">加入下載佇列失敗</string>
@@ -58,6 +82,7 @@
 
     <string name="category">分類</string>
 
+    <string name="comic_tab_explore">瀏覽</string>
     <string name="comic_tab_favorite">收藏</string>
     <string name="comic_tab_history">歷史</string>
     <string name="comic_tab_download">下載</string>
@@ -105,6 +130,7 @@
     <string name="reader_menu_auto">自動</string>
     <string name="reader_menu_color">色彩</string>
     <string name="reader_menu_settings">設定</string>
+    <string name="reader_menu_source">換源</string>
     <string name="reader_brightness">亮度</string>
     <string name="reader_style">閱讀模式</string>
     <string name="reader_style_page">翻頁模式</string>
@@ -135,6 +161,13 @@
     <string name="source_detail_type">圖源 ID</string>
     <string name="source_detail_title">圖源名稱</string>
     <string name="source_detail_favorite">收藏統計</string>
+    <string name="source_import_script">匯入腳本</string>
+    <string name="source_import_hint">貼上 JS 或 GitHub Raw 位址</string>
+    <string name="source_import_success">匯入成功</string>
+    <string name="source_import_fail">匯入失敗</string>
+    <string name="source_invalid">失效</string>
+    <string name="source_script_log">腳本日誌</string>
+    <string name="source_script_log_empty">暫無日誌</string>
 
     <string name="category_subject">主題</string>
     <string name="category_area">地區</string>
@@ -142,6 +175,14 @@
     <string name="category_year">年份</string>
     <string name="category_progress">進度</string>
     <string name="category_order">排序</string>
+
+    <string name="explore">漫畫列表</string>
+    <string name="explore_source">圖源</string>
+    <string name="explore_unsupported">該源暫不支援瀏覽</string>
+    <string name="explore_go_search">去搜尋</string>
+    <string name="explore_recommend">推薦</string>
+    <string name="explore_loading_more">載入中</string>
+    <string name="explore_no_more">沒有更多</string>
 
     <string name="settings_reader">閱讀設定</string>
     <string name="settings_reader_mode">預設閱讀模式</string>

@@ -1,5 +1,5 @@
-package com.haleydu.cimoc.ui.activity;
-
+package com.haleydu.cimoc.ui.detail;
+import com.haleydu.cimoc.ui.common.BackActivity;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -15,11 +15,12 @@ import android.view.View;
 import com.haleydu.cimoc.R;
 import com.haleydu.cimoc.databinding.ActivityChapterBinding;
 import com.haleydu.cimoc.global.Extra;
-import com.haleydu.cimoc.manager.PreferenceManager;
+import com.haleydu.cimoc.data.PreferenceManager;
 import com.haleydu.cimoc.misc.Switcher;
 import com.haleydu.cimoc.model.Chapter;
-import com.haleydu.cimoc.ui.adapter.BaseAdapter;
-import com.haleydu.cimoc.ui.adapter.ChapterAdapter;
+import com.haleydu.cimoc.ui.common.BaseAdapter;
+import com.haleydu.cimoc.ui.reader.ChapterListHolder;
+import com.haleydu.cimoc.ui.detail.ChapterAdapter;
 import com.haleydu.cimoc.ui.widget.ViewUtils;
 import com.haleydu.cimoc.utils.PermissionUtils;
 
@@ -45,9 +46,8 @@ public class ChapterActivity extends BackActivity implements BaseAdapter.OnItemC
     private RecyclerView.ItemDecoration mDecoration;
 
     public static Intent createIntent(Context context, ArrayList<Chapter> list) {
-        Intent intent = new Intent(context, ChapterActivity.class);
-        intent.putExtra(Extra.EXTRA_CHAPTER, list);
-        return intent;
+        ChapterListHolder.put(list);
+        return new Intent(context, ChapterActivity.class);
     }
 
     @Override
@@ -80,7 +80,13 @@ public class ChapterActivity extends BackActivity implements BaseAdapter.OnItemC
 
     private List<Switcher<Chapter>> getAdapterList() {
         isAscendMode = mPreference.getBoolean(PreferenceManager.PREF_CHAPTER_ASCEND_MODE, false);
-        List<Chapter> list = getIntent().getParcelableArrayListExtra(Extra.EXTRA_CHAPTER);
+        List<Chapter> list = ChapterListHolder.get();
+        if (list == null) {
+            list = getIntent().getParcelableArrayListExtra(Extra.EXTRA_CHAPTER);
+        }
+        if (list == null) {
+            list = new ArrayList<>();
+        }
         List<Switcher<Chapter>> result = new ArrayList<>(list.size());
         for (int i = 0; i < list.size(); ++i) {
             result.add(new Switcher<>(list.get(i), list.get(i).isDownload()));
@@ -142,9 +148,8 @@ public class ChapterActivity extends BackActivity implements BaseAdapter.OnItemC
         if (list.isEmpty()) {
             showSnackbar(R.string.chapter_download_empty);
         } else if (PermissionUtils.hasStoragePermission(this)) {
-            Intent intent = new Intent();
-            intent.putParcelableArrayListExtra(Extra.EXTRA_CHAPTER, list);
-            setResult(Activity.RESULT_OK, intent);
+            ChapterListHolder.put(list);
+            setResult(Activity.RESULT_OK, new Intent());
             finish();
         } else {
             showSnackbar(R.string.chapter_download_perm_fail);

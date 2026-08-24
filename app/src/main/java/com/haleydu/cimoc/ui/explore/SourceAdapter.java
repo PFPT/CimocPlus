@@ -1,5 +1,5 @@
-package com.haleydu.cimoc.ui.adapter;
-
+package com.haleydu.cimoc.ui.explore;
+import com.haleydu.cimoc.ui.common.BaseAdapter;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -13,7 +13,9 @@ import android.widget.CompoundButton;
 import com.haleydu.cimoc.databinding.ItemSourceBinding;
 import com.haleydu.cimoc.model.Source;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 
 /**
@@ -25,6 +27,7 @@ public class SourceAdapter extends BaseAdapter<Source> {
     private OnItemCheckedListener mOnItemCheckedListener;
     private @ColorInt
     int color = -1;
+    private final Set<Integer> invalidTypes = new HashSet<>();
 
     public SourceAdapter(Context context, List<Source> list) {
         super(context, list);
@@ -41,6 +44,8 @@ public class SourceAdapter extends BaseAdapter<Source> {
         Source source = mDataSet.get(position);
         final SourceHolder viewHolder = (SourceHolder) holder;
         viewHolder.binding.itemSourceTitle.setText(source.getTitle());
+        viewHolder.binding.itemSourceInvalid.setVisibility(
+                invalidTypes.contains(source.getType()) ? View.VISIBLE : View.GONE);
         viewHolder.binding.itemSourceSwitch.setChecked(source.getEnable());
         viewHolder.binding.itemSourceSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -77,6 +82,14 @@ public class SourceAdapter extends BaseAdapter<Source> {
 
     public void setColor(@ColorInt int color) {
         this.color = color;
+    }
+
+    public void setInvalidTypes(Set<Integer> types) {
+        invalidTypes.clear();
+        if (types != null) {
+            invalidTypes.addAll(types);
+        }
+        notifyDataSetChanged();
     }
 
     public interface OnItemCheckedListener {

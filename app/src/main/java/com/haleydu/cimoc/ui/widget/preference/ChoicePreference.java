@@ -8,12 +8,14 @@ import android.view.View;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
-import com.haleydu.cimoc.App;
 import com.haleydu.cimoc.R;
-import com.haleydu.cimoc.manager.PreferenceManager;
-import com.haleydu.cimoc.ui.fragment.BaseFragment;
-import com.haleydu.cimoc.ui.fragment.dialog.ChoiceDialogFragment;
+import com.haleydu.cimoc.di.AppEntryPoint;
+import com.haleydu.cimoc.data.PreferenceManager;
+import com.haleydu.cimoc.ui.common.BaseFragment;
+import com.haleydu.cimoc.ui.common.dialog.ChoiceDialogFragment;
 import com.haleydu.cimoc.ui.widget.Option;
+
+import dagger.hilt.android.EntryPointAccessors;
 
 /**
  * Created by Hiroshi on 2017/1/10.
@@ -42,7 +44,8 @@ public class ChoicePreference extends Option implements View.OnClickListener {
         LayoutInflater layoutInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         layoutInflater.inflate(R.layout.custom_option, this);
 
-        mPreferenceManager = ((App) context.getApplicationContext()).getPreferenceManager();
+        mPreferenceManager = EntryPointAccessors.fromApplication(
+                context.getApplicationContext(), AppEntryPoint.class).preferenceManager();
 
         setOnClickListener(this);
     }

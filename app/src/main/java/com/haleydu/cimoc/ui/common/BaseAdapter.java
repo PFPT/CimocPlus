@@ -1,5 +1,4 @@
-package com.haleydu.cimoc.ui.adapter;
-
+package com.haleydu.cimoc.ui.common;
 import android.content.Context;
 import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -121,8 +120,9 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (mClickListener != null && isClickValid()) {
-                    mClickListener.onItemClick(v, holder.getAdapterPosition());
+                int position = holder.getBindingAdapterPosition();
+                if (mClickListener != null && isClickValid() && position != RecyclerView.NO_POSITION) {
+                    mClickListener.onItemClick(v, position);
                 }
             }
         });
@@ -132,7 +132,11 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
                 if (mLongClickListener == null) {
                     return false;
                 }
-                return mLongClickListener.onItemLongClick(v, holder.getAdapterPosition());
+                int position = holder.getBindingAdapterPosition();
+                if (position == RecyclerView.NO_POSITION) {
+                    return false;
+                }
+                return mLongClickListener.onItemLongClick(v, position);
             }
         });
     }

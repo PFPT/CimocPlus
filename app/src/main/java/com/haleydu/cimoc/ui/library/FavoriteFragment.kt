@@ -1,5 +1,4 @@
-package com.haleydu.cimoc.ui.fragment.recyclerview.grid
-
+package com.haleydu.cimoc.ui.library
 import android.content.Context
 import android.net.wifi.WifiManager
 import android.os.Bundle
@@ -7,14 +6,15 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import com.haleydu.cimoc.R
 import com.haleydu.cimoc.component.DialogCaller
-import com.haleydu.cimoc.manager.PreferenceManager
+import com.haleydu.cimoc.data.PreferenceManager
 import com.haleydu.cimoc.misc.NotificationWrapper
 import com.haleydu.cimoc.model.MiniComic
 import com.haleydu.cimoc.event.AppEventBus
 import com.haleydu.cimoc.event.AppEvent
-import com.haleydu.cimoc.ui.fragment.dialog.MessageDialogFragment
+import com.haleydu.cimoc.ui.common.dialog.MessageDialogFragment
 import com.haleydu.cimoc.utils.HintUtils
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -31,7 +31,7 @@ class FavoriteFragment : GridFragment() {
 
     override fun initData() {
         viewLifecycleOwner.lifecycleScope.launch {
-            vm.comics.collect { list -> onComicLoadSuccess(list) }
+            vm.pagingComics.collectLatest { mGridAdapter.submitPaging(it) }
         }
         viewLifecycleOwner.lifecycleScope.launch {
             vm.check.collect { event ->
@@ -69,7 +69,7 @@ class FavoriteFragment : GridFragment() {
                 onHighlightCancel(it.getData() as MiniComic)
             }
         }
-        vm.load()
+        maybeAutoCheckUpdate()
     }
 
     override fun onDestroyView() {
@@ -95,7 +95,6 @@ class FavoriteFragment : GridFragment() {
             DIALOG_REQUEST_UPDATE -> checkUpdate()
             DIALOG_REQUEST_DELETE -> {
                 vm.unfavoriteComic(mSavedId)
-                OnComicUnFavorite(mSavedId)
                 HintUtils.showToast(activity, R.string.common_execute_success)
             }
         }
@@ -103,7 +102,6 @@ class FavoriteFragment : GridFragment() {
 
     fun cancelAllHighlight() {
         vm.cancelAllHighlight()
-        mGridAdapter.cancelAllHighlight()
     }
 
     private fun checkUpdate() {
@@ -135,8 +133,7 @@ class FavoriteFragment : GridFragment() {
         fragment.show(requireActivity().supportFragmentManager, null)
     }
 
-    override fun onComicLoadSuccess(list: List<Any>) {
-        super.onComicLoadSuccess(list)
+    private fun maybeAutoCheckUpdate() {
         val manager = activity?.applicationContext?.getSystemService(Context.WIFI_SERVICE) as? WifiManager
         if (manager != null && manager.isWifiEnabled &&
             mPreference.getBoolean(PreferenceManager.PREF_OTHER_CHECK_UPDATE, false)
@@ -152,22 +149,15 @@ class FavoriteFragment : GridFragment() {
     }
 
     fun OnComicFavorite(comic: MiniComic) {
-        mGridAdapter.add(mGridAdapter.findFirstNotHighlight(), comic)
     }
 
     fun OnComicRestore(list: List<Any>) {
-        mGridAdapter.addAll(mGridAdapter.findFirstNotHighlight(), list)
     }
 
     fun OnComicUnFavorite(id: Long) {
-        mGridAdapter.removeItemById(id)
     }
 
     fun onComicCheckSuccess(comic: MiniComic?, progress: Int, max: Int) {
-        if (comic != null) {
-            mGridAdapter.remove(comic)
-            mGridAdapter.add(0, comic)
-        }
         notification?.post(progress, max)
     }
 
@@ -183,11 +173,9 @@ class FavoriteFragment : GridFragment() {
     }
 
     fun onHighlightCancel(comic: MiniComic) {
-        mGridAdapter.moveItemTop(comic)
     }
 
     fun onComicRead(comic: MiniComic) {
-        mGridAdapter.moveItemTop(comic)
     }
 
     override fun getActionButtonRes(): Int = R.drawable.ic_sync_white_24dp

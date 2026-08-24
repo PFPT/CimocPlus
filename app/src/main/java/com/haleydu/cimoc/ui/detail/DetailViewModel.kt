@@ -1,5 +1,4 @@
-package com.haleydu.cimoc.ui.activity
-
+package com.haleydu.cimoc.ui.detail
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -8,11 +7,11 @@ import com.haleydu.cimoc.core.Backup
 import com.haleydu.cimoc.core.Download
 import com.haleydu.cimoc.core.Manga
 import com.haleydu.cimoc.core.MangaService
-import com.haleydu.cimoc.manager.ChapterManager
-import com.haleydu.cimoc.manager.ComicManager
-import com.haleydu.cimoc.manager.SourceManager
-import com.haleydu.cimoc.manager.TagRefManager
-import com.haleydu.cimoc.manager.TaskManager
+import com.haleydu.cimoc.data.ChapterManager
+import com.haleydu.cimoc.data.ComicManager
+import com.haleydu.cimoc.data.SourceManager
+import com.haleydu.cimoc.data.TagRefManager
+import com.haleydu.cimoc.data.TaskManager
 import com.haleydu.cimoc.model.Chapter
 import com.haleydu.cimoc.model.Comic
 import com.haleydu.cimoc.model.MiniComic
@@ -55,7 +54,7 @@ class DetailViewModel @Inject constructor(
         data class LastChange(val last: String?) : Event()
     }
 
-    private val _events = MutableSharedFlow<Event>(extraBufferCapacity = 8)
+    private val _events = MutableSharedFlow<Event>(replay = 2, extraBufferCapacity = 8)
     val events: SharedFlow<Event> = _events
 
     fun parserHeader(): Headers? {
@@ -63,12 +62,35 @@ class DetailViewModel @Inject constructor(
         return sourceManager.getParser(current.source).header
     }
 
-    fun load(id: Long, source: Int, cid: String?) {
+    fun enabledSourceTypes(): IntArray {
+        val list = sourceManager.listEnable()
+        return IntArray(list.size) { list[it].type }
+    }
+
+    fun load(
+        id: Long,
+        source: Int,
+        cid: String?,
+        title: String? = null,
+        cover: String? = null,
+        author: String? = null
+    ) {
         comic = if (id == -1L) {
             comicManager.loadOrCreate(source, cid)
         } else {
             comicManager.load(id)
         }
+        val current = comic ?: return
+        if (!title.isNullOrEmpty() && current.title.isNullOrEmpty()) {
+            current.title = title
+        }
+        if (!cover.isNullOrEmpty() && current.cover.isNullOrEmpty()) {
+            current.cover = cover
+        }
+        if (!author.isNullOrEmpty() && current.author.isNullOrEmpty()) {
+            current.author = author
+        }
+        _events.tryEmit(Event.ComicLoaded(current))
         cancelHighlight()
         preLoad()
         loadChapters()
@@ -112,9 +134,10 @@ class DetailViewModel @Inject constructor(
                 if (list.isNotEmpty()) {
                     _events.emit(Event.PreLoad(list, current))
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
-                _events.emit(Event.ComicLoaded(current))
-                _events.emit(Event.ParseError)
+                e.printStackTrace()
             }
         }
     }
@@ -124,6 +147,10 @@ class DetailViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val list = withContext(Dispatchers.IO) {
+                    if (current.id == null || current.id == 0L) {
+                        current.id = null
+                        comicManager.updateOrInsert(current)
+                    }
                     val chapters = mangaService.getComicInfo(sourceManager.getParser(current.source), current)
                     if (current.id != null) {
                         updateChapterList(chapters)
@@ -133,12 +160,17 @@ class DetailViewModel @Inject constructor(
                 chapterManager.insertOrReplace(list)
                 _events.emit(Event.ComicLoaded(current))
                 _events.emit(Event.ChapterLoaded(list))
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Manga.NetworkErrorException) {
                 _events.emit(Event.ComicLoaded(current))
                 _events.emit(Event.NetworkError)
-            } catch (e: Exception) {
+            } catch (e: Manga.ParseErrorException) {
                 _events.emit(Event.ComicLoaded(current))
                 _events.emit(Event.ParseError)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _events.emit(Event.ComicLoaded(current))
             }
         }
     }
@@ -163,9 +195,12 @@ class DetailViewModel @Inject constructor(
             current.last = path
             current.page = 1
         }
+        if (current.id == null || current.id == 0L) {
+            current.id = null
+        }
         comicManager.updateOrInsert(current)
         AppEventBus.post(AppEvent(AppEvent.EVENT_COMIC_READ, MiniComic(current)))
-        return current.id
+        return current.id ?: -1
     }
 
     fun backup() {

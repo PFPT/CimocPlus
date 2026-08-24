@@ -1,6 +1,6 @@
 package com.haleydu.cimoc.core;
 
-import com.haleydu.cimoc.manager.ChapterManager;
+import com.haleydu.cimoc.data.ChapterManager;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.ImageUrl;
 import com.haleydu.cimoc.parser.Parser;

@@ -1,12 +1,11 @@
-package com.haleydu.cimoc.ui.activity
-
+package com.haleydu.cimoc.ui.library
 import androidx.collection.LongSparseArray
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.haleydu.cimoc.manager.ComicManager
-import com.haleydu.cimoc.manager.SourceManager
-import com.haleydu.cimoc.manager.TagManager
-import com.haleydu.cimoc.manager.TagRefManager
+import com.haleydu.cimoc.data.ComicManager
+import com.haleydu.cimoc.data.SourceManager
+import com.haleydu.cimoc.data.TagManager
+import com.haleydu.cimoc.data.TagRefManager
 import com.haleydu.cimoc.model.Comic
 import com.haleydu.cimoc.model.MiniComic
 import com.haleydu.cimoc.model.TagRef
@@ -68,15 +67,15 @@ class PartFavoriteViewModel @Inject constructor(
         }
     }
 
-    private fun buildIdList(list: List<Any>): List<Long> {
+    private fun buildIdList(list: List<MiniComic>): List<Long> {
         val result = ArrayList<Long>(list.size)
         for (item in list) {
-            result.add((item as MiniComic).id)
+            result.add(item.id)
         }
         return result
     }
 
-    fun loadComicTitle(list: List<Any>) {
+    fun loadComicTitle(list: List<MiniComic>) {
         viewModelScope.launch {
             try {
                 val titles = withContext(Dispatchers.IO) {

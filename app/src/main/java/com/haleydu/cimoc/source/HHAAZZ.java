@@ -2,7 +2,7 @@ package com.haleydu.cimoc.source;
 
 import android.util.Log;
 
-import com.haleydu.cimoc.manager.PreferenceManager;
+import com.haleydu.cimoc.data.PreferenceManager;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.ImageUrl;

@@ -1,5 +1,4 @@
-package com.haleydu.cimoc.ui.fragment;
-
+package com.haleydu.cimoc.ui.common;
 import android.graphics.PorterDuff;
 import android.os.Bundle;
 import androidx.annotation.LayoutRes;
@@ -15,23 +14,26 @@ import android.view.ViewGroup;
 import android.widget.ProgressBar;
 
 import com.haleydu.cimoc.App;
+import com.haleydu.cimoc.di.AppEntryPoint;
+import dagger.hilt.android.EntryPointAccessors;
 import com.haleydu.cimoc.R;
 import com.haleydu.cimoc.component.AppGetter;
-import com.haleydu.cimoc.manager.PreferenceManager;
-import com.haleydu.cimoc.ui.activity.BaseActivity;
+import com.haleydu.cimoc.data.PreferenceManager;
+import com.haleydu.cimoc.ui.common.BaseActivity;
 import com.haleydu.cimoc.utils.ThemeUtils;
 
 public abstract class BaseFragment extends Fragment implements AppGetter {
 
     protected PreferenceManager mPreference;
     @Nullable
-    ProgressBar mProgressBar;
+    protected ProgressBar mProgressBar;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(getLayoutRes(), container, false);
         bindViews(view);
-        mPreference = App.getPreferenceManager();
+        mPreference = EntryPointAccessors.fromApplication(requireActivity().getApplicationContext(), AppEntryPoint.class)
+                .preferenceManager();
         initViewModel();
         initProgressBar();
         initView();

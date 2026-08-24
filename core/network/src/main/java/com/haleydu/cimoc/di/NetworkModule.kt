@@ -8,9 +8,12 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import okhttp3.Cache
+import okhttp3.ConnectionPool
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Response
+import java.io.File
 import java.io.IOException
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
@@ -35,9 +38,15 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(wifiOnlyInterceptor: WifiOnlyInterceptor): OkHttpClient {
+    fun provideOkHttpClient(
+        @ApplicationContext context: Context,
+        wifiOnlyInterceptor: WifiOnlyInterceptor
+    ): OkHttpClient {
         val trustAllCerts = TrustAllCerts()
+        val cacheDir = File(context.cacheDir, "http")
         return OkHttpClient.Builder()
+            .cache(Cache(cacheDir, 256L * 1024L * 1024L))
+            .connectionPool(ConnectionPool(8, 5, TimeUnit.MINUTES))
             .sslSocketFactory(createSslSocketFactory(trustAllCerts), trustAllCerts)
             .hostnameVerifier(HostnameVerifier { _, _ -> true })
             .followRedirects(true)
@@ -60,6 +69,19 @@ object NetworkModule {
                     request
                 }
                 chain.proceed(next)
+            }
+            .addNetworkInterceptor { chain ->
+                val response = chain.proceed(chain.request())
+                val type = response.header("Content-Type").orEmpty()
+                val cacheControl = if (type.startsWith("image/")) {
+                    "public, max-age=604800"
+                } else {
+                    "no-store"
+                }
+                response.newBuilder()
+                    .removeHeader("Pragma")
+                    .header("Cache-Control", cacheControl)
+                    .build()
             }
             .build()
     }

@@ -2,7 +2,7 @@ package com.haleydu.cimoc.source;
 
 import android.util.Pair;
 
-import com.haleydu.cimoc.manager.SourceConfigManager;
+import com.haleydu.cimoc.data.SourceConfigManager;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.ImageUrl;
@@ -13,7 +13,7 @@ import com.haleydu.cimoc.parser.NodeIterator;
 import com.haleydu.cimoc.parser.SearchIterator;
 import com.haleydu.cimoc.parser.UrlFilter;
 import com.haleydu.cimoc.soup.Node;
-import com.haleydu.cimoc.ui.activity.ResultActivity;
+import com.haleydu.cimoc.ui.search.ResultActivity;
 import com.haleydu.cimoc.utils.DecryptionUtils;
 import com.haleydu.cimoc.utils.StringUtils;
 
@@ -176,7 +176,7 @@ public class PuFei extends MangaParser {
         return Headers.of("Referer", host());
     }
 
-    private static class Category extends MangaCategory {
+    private class Category extends MangaCategory {
 
         @Override
         public boolean isComposite() {
@@ -185,8 +185,12 @@ public class PuFei extends MangaParser {
 
         @Override
         public String getFormat(String... args) {
-            return StringUtils.format("http://m.pufei.com/act/?act=list&page=%%d&catid=%s&ajax=1&order=%s",
-                    args[CATEGORY_SUBJECT], args[CATEGORY_ORDER]);
+            String subject = args != null && args.length > CATEGORY_SUBJECT && args[CATEGORY_SUBJECT] != null
+                    ? args[CATEGORY_SUBJECT] : "manhua/update";
+            String order = args != null && args.length > CATEGORY_ORDER && args[CATEGORY_ORDER] != null
+                    ? args[CATEGORY_ORDER] : "update";
+            return StringUtils.format(host() + "/act/?act=list&page=%%d&catid=%s&ajax=1&order=%s",
+                    subject, order);
         }
 
         @Override

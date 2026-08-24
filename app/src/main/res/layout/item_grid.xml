@@ -2,15 +2,16 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:fresco="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="140dp"
+    android:layout_height="wrap_content"
     android:clickable="true"
     android:foreground="?android:attr/selectableItemBackground">
 
     <com.facebook.drawee.view.SimpleDraweeView
         android:id="@+id/item_grid_image"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        fresco:actualImageScaleType="centerCrop" />
+        android:layout_height="wrap_content"
+        fresco:actualImageScaleType="centerCrop"
+        fresco:viewAspectRatio="0.75" />
 
     <View
         android:id="@+id/item_grid_symbol"

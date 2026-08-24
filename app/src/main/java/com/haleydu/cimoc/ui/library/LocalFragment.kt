@@ -1,5 +1,4 @@
-package com.haleydu.cimoc.ui.fragment.recyclerview.grid
-
+package com.haleydu.cimoc.ui.library
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Intent
@@ -12,10 +11,10 @@ import com.haleydu.cimoc.component.DialogCaller
 import com.haleydu.cimoc.global.Extra
 import com.haleydu.cimoc.model.MiniComic
 import com.haleydu.cimoc.saf.DocumentFile
-import com.haleydu.cimoc.ui.activity.DirPickerActivity
-import com.haleydu.cimoc.ui.activity.TaskActivity
-import com.haleydu.cimoc.ui.collectOnStart
-import com.haleydu.cimoc.ui.fragment.dialog.MessageDialogFragment
+import com.haleydu.cimoc.ui.library.DirPickerActivity
+import com.haleydu.cimoc.ui.library.TaskActivity
+import com.haleydu.cimoc.ui.common.collectOnStart
+import com.haleydu.cimoc.ui.common.dialog.MessageDialogFragment
 import com.haleydu.cimoc.utils.HintUtils
 import com.haleydu.cimoc.utils.StringUtils
 import dagger.hilt.android.AndroidEntryPoint
@@ -72,8 +71,8 @@ class LocalFragment : GridFragment() {
     }
 
     override fun onItemClick(view: View, position: Int) {
-        val comic = mGridAdapter.getItem(position) as MiniComic
-        startActivity(TaskActivity.createIntent(activity, comic.id))
+        val comic = mGridAdapter.comicAt(position)
+        startActivity(TaskActivity.createIntent(requireActivity(), comic.id))
     }
 
     override fun onDialogResult(requestCode: Int, bundle: Bundle) {

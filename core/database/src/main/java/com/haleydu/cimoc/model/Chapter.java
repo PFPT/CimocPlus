@@ -7,6 +7,7 @@ import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.Ignore;
+import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
 /**
@@ -14,7 +15,7 @@ import androidx.room.PrimaryKey;
  * fixed by Haleydu on 2020/8/25.
  * Modified by lx200916 on 2021/2/7
  */
-@Entity(tableName = "CHAPTER")
+@Entity(tableName = "CHAPTER", indices = {@Index("SOURCE_COMIC")})
 public class Chapter implements Parcelable {
 
     public final static Parcelable.Creator<Chapter> CREATOR = new Parcelable.Creator<Chapter>() {

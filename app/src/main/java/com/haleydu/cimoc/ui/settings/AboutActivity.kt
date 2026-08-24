@@ -1,5 +1,5 @@
-package com.haleydu.cimoc.ui.activity
-
+package com.haleydu.cimoc.ui.settings
+import com.haleydu.cimoc.ui.common.BackActivity
 import android.content.Intent
 import android.content.pm.PackageInfo
 import android.net.Uri

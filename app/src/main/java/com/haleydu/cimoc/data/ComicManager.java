@@ -1,5 +1,4 @@
-package com.haleydu.cimoc.manager;
-
+package com.haleydu.cimoc.data;
 import com.haleydu.cimoc.db.CimocDatabase;
 import com.haleydu.cimoc.db.ComicDao;
 import com.haleydu.cimoc.model.Comic;
@@ -46,6 +45,14 @@ public class ComicManager {
 
     public List<Comic> listFavoriteOrdered() {
         return mComicDao.listFavoriteOrdered();
+    }
+
+    public androidx.paging.PagingSource<Integer, Comic> pagingFavorite() {
+        return mComicDao.pagingFavorite();
+    }
+
+    public androidx.paging.PagingSource<Integer, Comic> pagingHistory() {
+        return mComicDao.pagingHistory();
     }
 
     public List<Comic> listFinish() {

@@ -1,8 +1,7 @@
-package com.haleydu.cimoc.ui.fragment
-
+package com.haleydu.cimoc.ui.library
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.haleydu.cimoc.manager.TagManager
+import com.haleydu.cimoc.data.TagManager
 import com.haleydu.cimoc.model.Tag
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers

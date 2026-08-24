@@ -1,16 +1,18 @@
-package com.haleydu.cimoc.ui.fragment.recyclerview.grid
-
+package com.haleydu.cimoc.ui.library
 import android.os.Bundle
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import com.haleydu.cimoc.R
 import com.haleydu.cimoc.component.DialogCaller
 import com.haleydu.cimoc.model.MiniComic
 import com.haleydu.cimoc.event.AppEventBus
 import com.haleydu.cimoc.event.AppEvent
-import com.haleydu.cimoc.ui.collectOnStart
-import com.haleydu.cimoc.ui.fragment.dialog.MessageDialogFragment
+import com.haleydu.cimoc.ui.common.collectOnStart
+import com.haleydu.cimoc.ui.common.dialog.MessageDialogFragment
 import com.haleydu.cimoc.utils.HintUtils
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class HistoryFragment : GridFragment() {
@@ -18,7 +20,9 @@ class HistoryFragment : GridFragment() {
     private val vm: HistoryViewModel by viewModels()
 
     override fun initData() {
-        vm.comics.collectOnStart(viewLifecycleOwner) { onComicLoadSuccess(it) }
+        viewLifecycleOwner.lifecycleScope.launch {
+            vm.pagingComics.collectLatest { mGridAdapter.submitPaging(it) }
+        }
         vm.clearSuccess.collectOnStart(viewLifecycleOwner) { onHistoryClearSuccess() }
         vm.loadFail.collectOnStart(viewLifecycleOwner) { onComicLoadFail() }
         vm.fail.collectOnStart(viewLifecycleOwner) { onExecuteFail() }
@@ -29,7 +33,6 @@ class HistoryFragment : GridFragment() {
         AppEventBus.observe(AppEvent.EVENT_COMIC_HISTORY_RESTORE).collectOnStart(viewLifecycleOwner) {
             OnComicRestore(it.getData() as List<Any>)
         }
-        vm.load()
     }
 
     override fun performActionButtonClick() {
@@ -75,23 +78,18 @@ class HistoryFragment : GridFragment() {
 
     fun onHistoryClearSuccess() {
         hideProgressDialog()
-        mGridAdapter.clear()
         HintUtils.showToast(activity, R.string.common_execute_success)
     }
 
     fun onHistoryDelete(id: Long) {
         hideProgressDialog()
-        mGridAdapter.removeItemById(mSavedId)
         HintUtils.showToast(activity, R.string.common_execute_success)
     }
 
     fun OnComicRestore(list: List<Any>) {
-        mGridAdapter.addAll(0, list)
     }
 
     fun onItemUpdate(comic: MiniComic) {
-        mGridAdapter.remove(comic)
-        mGridAdapter.add(0, comic)
     }
 
     override fun getActionButtonRes(): Int = R.drawable.ic_delete_white_24dp

@@ -78,6 +78,7 @@
 -dontwarn org.mozilla.javascript.**
 -dontwarn org.mozilla.classfile.**
 -keep class org.mozilla.javascript.** { *; }
+-keep class com.haleydu.cimoc.script.** { *; }
 
 # jsoup
 -keeppackagenames org.jsoup.nodes

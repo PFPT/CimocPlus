@@ -1,9 +1,9 @@
-package com.haleydu.cimoc.ui.fragment.recyclerview.grid;
-
+package com.haleydu.cimoc.ui.library;
 import android.content.Intent;
 import androidx.annotation.ColorRes;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import android.view.View;
@@ -12,23 +12,20 @@ import com.haleydu.cimoc.R;
 import com.haleydu.cimoc.component.DialogCaller;
 import com.haleydu.cimoc.component.ThemeResponsive;
 import com.haleydu.cimoc.databinding.FragmentGridBinding;
-import com.haleydu.cimoc.manager.SourceManager;
+import com.haleydu.cimoc.data.SourceManager;
 import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.MiniComic;
-import com.haleydu.cimoc.ui.activity.DetailActivity;
-import com.haleydu.cimoc.ui.activity.TaskActivity;
-import com.haleydu.cimoc.ui.adapter.BaseAdapter;
-import com.haleydu.cimoc.ui.adapter.GridAdapter;
-import com.haleydu.cimoc.ui.fragment.dialog.ItemDialogFragment;
-import com.haleydu.cimoc.ui.fragment.dialog.MessageDialogFragment;
-import com.haleydu.cimoc.ui.fragment.recyclerview.RecyclerViewFragment;
+import com.haleydu.cimoc.ui.detail.DetailActivity;
+import com.haleydu.cimoc.ui.library.TaskActivity;
+import com.haleydu.cimoc.ui.common.GridAdapter;
+import com.haleydu.cimoc.ui.common.dialog.ItemDialogFragment;
+import com.haleydu.cimoc.ui.common.dialog.MessageDialogFragment;
+import com.haleydu.cimoc.ui.common.RecyclerViewFragment;
 import com.haleydu.cimoc.utils.HintUtils;
 import com.haleydu.cimoc.utils.StringUtils;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -43,13 +40,19 @@ public abstract class GridFragment extends RecyclerViewFragment implements Dialo
     protected static final int DIALOG_REQUEST_OPERATION = 0;
     protected GridAdapter mGridAdapter;
     protected long mSavedId = -1;
-    FloatingActionButton mActionButton;
+    protected FloatingActionButton mActionButton;
     @Inject
     SourceManager sourceManager;
 
     @Override
-    protected BaseAdapter initAdapter() {
-        mGridAdapter = new GridAdapter(getActivity(), new LinkedList<>());
+    protected void initView() {
+        super.initView();
+        mRecyclerView.setItemAnimator(new DefaultItemAnimator());
+    }
+
+    @Override
+    protected RecyclerView.Adapter initAdapter() {
+        mGridAdapter = new GridAdapter(getActivity());
         mGridAdapter.setProvider(getAppInstance().getBuilderProvider());
         mGridAdapter.setTitleGetter(sourceManager.new TitleGetter());
         mRecyclerView.setRecycledViewPool(getAppInstance().getGridRecycledPool());
@@ -83,15 +86,23 @@ public abstract class GridFragment extends RecyclerViewFragment implements Dialo
 
     @Override
     public void onItemClick(View view, int position) {
-        MiniComic comic = (MiniComic) mGridAdapter.getItem(position);
-        Intent intent = comic.isLocal() ? TaskActivity.createIntent(getActivity(), comic.getId()) :
-                DetailActivity.createIntent(getActivity(), comic.getId(), -1, null);
+        MiniComic comic = mGridAdapter.comicAt(position);
+        if (comic.isLocal()) {
+            startActivity(TaskActivity.createIntent(getActivity(), comic.getId()));
+            return;
+        }
+        if (getActivity() instanceof com.haleydu.cimoc.ui.main.MainActivity) {
+            ((com.haleydu.cimoc.ui.main.MainActivity) getActivity())
+                    .openDetail(comic.getId(), comic.getSource(), comic.getCid(), view);
+            return;
+        }
+        Intent intent = DetailActivity.createIntent(getActivity(), comic.getId(), -1, null);
         startActivity(intent);
     }
 
     @Override
     public boolean onItemLongClick(View view, int position) {
-        mSavedId = ((MiniComic)mGridAdapter.getItem(position)).getId();
+        mSavedId = mGridAdapter.comicAt(position).getId();
         ItemDialogFragment fragment = ItemDialogFragment.newInstance(R.string.common_operation_select,
                 getOperationItems(), DIALOG_REQUEST_OPERATION);
         fragment.setTargetFragment(this, 0);
@@ -99,8 +110,8 @@ public abstract class GridFragment extends RecyclerViewFragment implements Dialo
         return true;
     }
 
-    public void onComicLoadSuccess(List<Object> list) {
-        mGridAdapter.addAll(list);
+    public void onComicLoadSuccess(List<?> list) {
+        mGridAdapter.setData(list);
     }
 
     public void onComicLoadFail() {

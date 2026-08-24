@@ -1,5 +1,4 @@
-package com.haleydu.cimoc.ui.adapter;
-
+package com.haleydu.cimoc.ui.search;
 import android.content.Context;
 import androidx.annotation.NonNull;
 import android.widget.ArrayAdapter;

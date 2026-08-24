@@ -1,12 +1,12 @@
-package com.haleydu.cimoc.ui.fragment.recyclerview;
-
+package com.haleydu.cimoc.ui.common;
 import androidx.recyclerview.widget.RecyclerView;
 import android.view.View;
 
 import com.haleydu.cimoc.R;
 import com.haleydu.cimoc.databinding.FragmentRecyclerViewBinding;
-import com.haleydu.cimoc.ui.adapter.BaseAdapter;
-import com.haleydu.cimoc.ui.fragment.BaseFragment;
+import com.haleydu.cimoc.ui.common.BaseAdapter;
+import com.haleydu.cimoc.ui.common.GridAdapter;
+import com.haleydu.cimoc.ui.common.BaseFragment;
 
 
 /**
@@ -23,16 +23,24 @@ public abstract class RecyclerViewFragment extends BaseFragment implements BaseA
         mRecyclerView.setHasFixedSize(true);
         mRecyclerView.setItemAnimator(null);
         mRecyclerView.setLayoutManager(initLayoutManager());
-        BaseAdapter adapter = initAdapter();
+        RecyclerView.Adapter adapter = initAdapter();
+        if (adapter instanceof BaseAdapter) {
+            BaseAdapter base = (BaseAdapter) adapter;
+            base.setOnItemClickListener(this);
+            base.setOnItemLongClickListener(this);
+            mRecyclerView.addItemDecoration(base.getItemDecoration());
+        } else if (adapter instanceof GridAdapter) {
+            GridAdapter grid = (GridAdapter) adapter;
+            grid.setOnItemClickListener(this);
+            grid.setOnItemLongClickListener(this);
+            mRecyclerView.addItemDecoration(grid.getItemDecoration());
+        }
         if (adapter != null) {
-            adapter.setOnItemClickListener(this);
-            adapter.setOnItemLongClickListener(this);
-            mRecyclerView.addItemDecoration(adapter.getItemDecoration());
             mRecyclerView.setAdapter(adapter);
         }
     }
 
-    abstract protected BaseAdapter initAdapter();
+    abstract protected RecyclerView.Adapter initAdapter();
 
     protected abstract RecyclerView.LayoutManager initLayoutManager();
 

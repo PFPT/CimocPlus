@@ -3,7 +3,7 @@ package com.haleydu.cimoc.source;
 import android.net.Uri;
 import android.util.Log;
 
-import com.haleydu.cimoc.manager.SourceConfigManager;
+import com.haleydu.cimoc.data.SourceConfigManager;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.ImageUrl;

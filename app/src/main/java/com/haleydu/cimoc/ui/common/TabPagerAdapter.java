@@ -1,10 +1,9 @@
-package com.haleydu.cimoc.ui.adapter;
-
+package com.haleydu.cimoc.ui.common;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentPagerAdapter;
 
-import com.haleydu.cimoc.ui.fragment.BaseFragment;
+import com.haleydu.cimoc.ui.common.BaseFragment;
 
 /**
  * Created by Hiroshi on 2016/10/11.

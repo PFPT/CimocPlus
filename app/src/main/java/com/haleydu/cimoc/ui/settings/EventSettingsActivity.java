@@ -1,5 +1,4 @@
-package com.haleydu.cimoc.ui.activity.settings;
-
+package com.haleydu.cimoc.ui.settings;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
@@ -17,14 +16,14 @@ import com.haleydu.cimoc.component.DialogCaller;
 import com.haleydu.cimoc.databinding.ActivityEventBinding;
 import com.haleydu.cimoc.global.ClickEvents;
 import com.haleydu.cimoc.global.Extra;
-import com.haleydu.cimoc.ui.activity.BaseActivity;
-import com.haleydu.cimoc.ui.fragment.dialog.ChoiceDialogFragment;
+import com.haleydu.cimoc.ui.common.BaseActivity;
+import com.haleydu.cimoc.ui.common.dialog.ChoiceDialogFragment;
 
 import java.util.Arrays;
 import java.util.List;
 
 
-import static com.haleydu.cimoc.manager.PreferenceManager.READER_ORIENTATION_AUTO;
+import static com.haleydu.cimoc.data.PreferenceManager.READER_ORIENTATION_AUTO;
 
 /**
  * Created by Hiroshi on 2016/10/9.

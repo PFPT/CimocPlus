@@ -1,8 +1,7 @@
-package com.haleydu.cimoc.ui.activity
-
+package com.haleydu.cimoc.ui.explore
 import androidx.lifecycle.ViewModel
-import com.haleydu.cimoc.manager.ComicManager
-import com.haleydu.cimoc.manager.SourceManager
+import com.haleydu.cimoc.data.ComicManager
+import com.haleydu.cimoc.data.SourceManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 

@@ -189,6 +189,20 @@ public class FrescoUtils {
      * 暂停网络请求
      * 在listview快速滑动时使用
      */
+    public static void prefetchToDiskCache(ImagePipeline pipeline, String url, Object callerContext) {
+        if (pipeline == null || TextUtils.isEmpty(url)) {
+            return;
+        }
+        try {
+            ImageRequest request = ImageRequest.fromUri(Uri.parse(url));
+            if (request == null) {
+                return;
+            }
+            pipeline.prefetchToDiskCache(request, callerContext);
+        } catch (Exception ignored) {
+        }
+    }
+
     public static void pause(){
         Fresco.getImagePipeline().pause();
     }

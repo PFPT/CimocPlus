@@ -1,5 +1,4 @@
-package com.haleydu.cimoc.ui.adapter;
-
+package com.haleydu.cimoc.ui.explore;
 import android.content.Context;
 import android.util.Pair;
 import android.widget.ArrayAdapter;

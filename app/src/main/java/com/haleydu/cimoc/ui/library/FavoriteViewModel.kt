@@ -1,5 +1,4 @@
-package com.haleydu.cimoc.ui.fragment.recyclerview.grid
-
+package com.haleydu.cimoc.ui.library
 import android.os.Bundle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -7,16 +6,23 @@ import com.google.firebase.analytics.FirebaseAnalytics
 import com.haleydu.cimoc.App
 import com.haleydu.cimoc.R
 import com.haleydu.cimoc.core.MangaService
-import com.haleydu.cimoc.manager.ComicManager
-import com.haleydu.cimoc.manager.PreferenceManager
-import com.haleydu.cimoc.manager.SourceManager
-import com.haleydu.cimoc.manager.TagRefManager
+import com.haleydu.cimoc.data.ComicManager
+import com.haleydu.cimoc.data.PreferenceManager
+import com.haleydu.cimoc.data.SourceManager
+import com.haleydu.cimoc.data.TagRefManager
 import com.haleydu.cimoc.model.Comic
 import com.haleydu.cimoc.model.MiniComic
 import dagger.hilt.android.lifecycle.HiltViewModel
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import androidx.paging.map
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -38,6 +44,14 @@ class FavoriteViewModel @Inject constructor(
 
     private val _comics = MutableSharedFlow<List<Any>>(extraBufferCapacity = 1)
     val comics: SharedFlow<List<Any>> = _comics
+
+    val pagingComics: Flow<PagingData<MiniComic>> = Pager(
+        PagingConfig(pageSize = 30, enablePlaceholders = false)
+    ) {
+        comicManager.pagingFavorite()
+    }.flow.map { data ->
+        data.map { MiniComic(it) }
+    }.cachedIn(viewModelScope)
 
     private val _check = MutableSharedFlow<CheckEvent>(extraBufferCapacity = 8)
     val check: SharedFlow<CheckEvent> = _check

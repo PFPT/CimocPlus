@@ -1,5 +1,4 @@
-package com.haleydu.cimoc.ui
-
+package com.haleydu.cimoc.ui.common
 import androidx.core.util.Consumer
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner

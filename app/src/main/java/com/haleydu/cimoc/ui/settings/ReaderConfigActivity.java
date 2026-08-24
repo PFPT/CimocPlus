@@ -1,5 +1,4 @@
-package com.haleydu.cimoc.ui.activity.settings;
-
+package com.haleydu.cimoc.ui.settings;
 import android.os.Bundle;
 import com.google.android.material.tabs.TabLayout;
 import androidx.viewpager.widget.ViewPager;
@@ -8,11 +7,11 @@ import com.haleydu.cimoc.R;
 import com.haleydu.cimoc.component.DialogCaller;
 import com.haleydu.cimoc.databinding.ActivityReaderConfigBinding;
 import com.haleydu.cimoc.global.ClickEvents;
-import com.haleydu.cimoc.ui.activity.BackActivity;
-import com.haleydu.cimoc.ui.adapter.TabPagerAdapter;
-import com.haleydu.cimoc.ui.fragment.BaseFragment;
-import com.haleydu.cimoc.ui.fragment.config.PageConfigFragment;
-import com.haleydu.cimoc.ui.fragment.config.StreamConfigFragment;
+import com.haleydu.cimoc.ui.common.BackActivity;
+import com.haleydu.cimoc.ui.common.TabPagerAdapter;
+import com.haleydu.cimoc.ui.common.BaseFragment;
+import com.haleydu.cimoc.ui.settings.PageConfigFragment;
+import com.haleydu.cimoc.ui.settings.StreamConfigFragment;
 
 
 /**

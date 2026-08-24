@@ -10,7 +10,11 @@ public class Extra {
     public static final String EXTRA_TASK = "cimoc.intent.extra.EXTRA_TASK";
     public static final String EXTRA_ID = "cimoc.intent.extra.EXTRA_ID";
     public static final String EXTRA_SOURCE = "cimoc.intent.extra.EXTRA_SOURCE";
+    public static final String EXTRA_SOURCE_LIST = "cimoc.intent.extra.EXTRA_SOURCE_LIST";
     public static final String EXTRA_CID = "cimoc.intent.extra.EXTRA_CID";
+    public static final String EXTRA_TITLE = "cimoc.intent.extra.EXTRA_TITLE";
+    public static final String EXTRA_COVER = "cimoc.intent.extra.EXTRA_COVER";
+    public static final String EXTRA_AUTHOR = "cimoc.intent.extra.EXTRA_AUTHOR";
     public static final String EXTRA_KEYWORD = "cimoc.intent.extra.EXTRA_KEYWORD";
     public static final String EXTRA_STRICT = "cimoc.intent.extra.EXTRA_STRICT";
     public static final String EXTRA_MODE = "cimoc.intent.extra.EXTRA_MODE";

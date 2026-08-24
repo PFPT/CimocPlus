@@ -2,8 +2,13 @@
 <resources>
     <color name="colorBackgroundTrans">#AAFAFAFA</color>
 
-    <color name="colorPrimaryBlue">#2196F3</color>
-    <color name="colorPrimaryBlueDark">#1976D2</color>
+    <color name="colorPrimaryBlue">#1E6FBF</color>
+    <color name="colorPrimaryBlueDark">#155A9E</color>
+
+    <color name="colorBackground">#F5F5F5</color>
+    <color name="colorSurface">#FFFFFF</color>
+    <color name="colorOnSurface">#DE000000</color>
+    <color name="colorOnSurfaceVariant">#99000000</color>
 
     <color name="colorPrimaryGrey">#455A64</color>
     <color name="colorPrimaryGreyDark">#607D8B</color>

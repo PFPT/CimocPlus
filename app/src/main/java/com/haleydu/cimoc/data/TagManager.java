@@ -1,5 +1,4 @@
-package com.haleydu.cimoc.manager;
-
+package com.haleydu.cimoc.data;
 import com.haleydu.cimoc.db.TagDao;
 import com.haleydu.cimoc.model.Tag;
 

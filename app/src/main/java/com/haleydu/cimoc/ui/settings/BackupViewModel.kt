@@ -1,15 +1,14 @@
-package com.haleydu.cimoc.ui.activity
-
+package com.haleydu.cimoc.ui.settings
 import android.content.Context
 import android.util.Pair
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.haleydu.cimoc.App
 import com.haleydu.cimoc.core.Backup
-import com.haleydu.cimoc.manager.ComicManager
-import com.haleydu.cimoc.manager.PreferenceManager
-import com.haleydu.cimoc.manager.TagManager
-import com.haleydu.cimoc.manager.TagRefManager
+import com.haleydu.cimoc.data.ComicManager
+import com.haleydu.cimoc.data.PreferenceManager
+import com.haleydu.cimoc.data.TagManager
+import com.haleydu.cimoc.data.TagRefManager
 import com.haleydu.cimoc.model.Comic
 import com.haleydu.cimoc.model.MiniComic
 import com.haleydu.cimoc.model.Tag

@@ -1,5 +1,5 @@
-package com.haleydu.cimoc.ui.adapter;
-
+package com.haleydu.cimoc.ui.detail;
+import com.haleydu.cimoc.ui.common.BaseAdapter;
 import android.content.Context;
 import android.graphics.Rect;
 import androidx.recyclerview.widget.RecyclerView;

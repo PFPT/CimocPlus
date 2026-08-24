@@ -1,5 +1,4 @@
-package com.haleydu.cimoc.ui.fragment.dialog
-
+package com.haleydu.cimoc.ui.common.dialog
 import android.graphics.PorterDuff
 import android.os.Bundle
 import android.view.LayoutInflater

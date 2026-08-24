@@ -2,12 +2,14 @@ package com.haleydu.cimoc.source;
 
 import android.net.Uri;
 import android.util.Base64;
+import android.util.Pair;
 
-import com.haleydu.cimoc.manager.SourceConfigManager;
+import com.haleydu.cimoc.data.SourceConfigManager;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.ImageUrl;
 import com.haleydu.cimoc.model.Source;
+import com.haleydu.cimoc.parser.MangaCategory;
 import com.haleydu.cimoc.parser.MangaParser;
 import com.haleydu.cimoc.parser.NodeIterator;
 import com.haleydu.cimoc.parser.SearchIterator;
@@ -38,7 +40,7 @@ public class Ohmanhua extends MangaParser {
 
     public Ohmanhua(Source source, SourceConfigManager sourceConfigManager) {
         this.sourceConfigManager = sourceConfigManager;
-        init(source, null);
+        init(source, new Category());
     }
 
     private String baseUrl() {
@@ -242,5 +244,72 @@ public class Ohmanhua extends MangaParser {
         return Headers.of("Referer", baseUrl());
     }
 
+    @Override
+    public List<Comic> parseCategory(String html, int page) {
+        List<Comic> list = new LinkedList<>();
+        Node body = new Node(html);
+        List<Node> nodes = body.list("ul.fed-list-info > li, .fed-list-info > li");
+        if (nodes.isEmpty()) {
+            nodes = body.list("dl.fed-deta-info");
+        }
+        for (Node node : nodes) {
+            String cid = node.href("a.fed-list-pics");
+            if (cid == null || cid.isEmpty()) {
+                cid = node.href("dt > a");
+            }
+            if (cid == null || cid.isEmpty()) {
+                cid = node.href("a");
+            }
+            if (cid == null || cid.isEmpty()) {
+                continue;
+            }
+            String title = node.text("a.fed-list-title");
+            if (title == null || title.isEmpty()) {
+                title = node.text("dd > h1 > a");
+            }
+            if (title == null || title.isEmpty()) {
+                title = node.text("a");
+            }
+            String cover = node.attr("a.fed-list-pics", "data-original");
+            if (cover == null || cover.isEmpty()) {
+                cover = node.attr("dt > a", "data-original");
+            }
+            String update = node.text(".fed-list-remarks");
+            list.add(new Comic(TYPE, cid, title, cover, update, null));
+        }
+        return list;
+    }
+
+    private class Category extends MangaCategory {
+
+        @Override
+        public boolean isComposite() {
+            return true;
+        }
+
+        @Override
+        public String getFormat(String... args) {
+            String id = args != null && args.length > CATEGORY_SUBJECT && args[CATEGORY_SUBJECT] != null
+                    ? args[CATEGORY_SUBJECT] : "1";
+            if (id.isEmpty()) {
+                id = "1";
+            }
+            return StringUtils.format(baseUrl() + "/show?id=%s&page=%%d", id);
+        }
+
+        @Override
+        protected List<Pair<String, String>> getSubject() {
+            List<Pair<String, String>> list = new ArrayList<>();
+            list.add(Pair.create("全部", "1"));
+            list.add(Pair.create("热血", "2"));
+            list.add(Pair.create("恋爱", "3"));
+            list.add(Pair.create("校园", "4"));
+            list.add(Pair.create("冒险", "5"));
+            list.add(Pair.create("科幻", "6"));
+            list.add(Pair.create("生活", "7"));
+            list.add(Pair.create("搞笑", "8"));
+            return list;
+        }
+    }
 }
 

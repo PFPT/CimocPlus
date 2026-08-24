@@ -1,12 +1,13 @@
-package com.haleydu.cimoc.ui.activity;
-
+package com.haleydu.cimoc.ui.main;
+import com.haleydu.cimoc.ui.common.BaseActivity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.widget.Toast;
 
 import com.haleydu.cimoc.R;
-import com.haleydu.cimoc.manager.SourceManager;
+import com.haleydu.cimoc.data.SourceManager;
+import com.haleydu.cimoc.ui.detail.DetailActivity;
 import com.haleydu.cimoc.source.Animx2;
 import com.haleydu.cimoc.source.BaiNian;
 import com.haleydu.cimoc.source.BuKa;

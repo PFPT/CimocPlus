@@ -34,6 +34,12 @@ object DatabaseModule {
     fun provideSourceDao(database: CimocDatabase) = database.sourceDao()
 
     @Provides
+    fun provideSourceRuleDao(database: CimocDatabase) = database.sourceRuleDao()
+
+    @Provides
+    fun provideSourceHealthDao(database: CimocDatabase) = database.sourceHealthDao()
+
+    @Provides
     fun provideTaskDao(database: CimocDatabase) = database.taskDao()
 
     @Provides

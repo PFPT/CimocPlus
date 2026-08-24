@@ -1,5 +1,4 @@
-package com.haleydu.cimoc.ui.activity;
-
+package com.haleydu.cimoc.ui.common;
 import android.graphics.PorterDuff;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
@@ -15,7 +14,7 @@ import com.haleydu.cimoc.utils.ThemeUtils;
  */
 public abstract class BackActivity extends BaseActivity {
 
-    ProgressBar mProgressBar;
+    protected ProgressBar mProgressBar;
 
     @Override
     protected void initToolbar() {

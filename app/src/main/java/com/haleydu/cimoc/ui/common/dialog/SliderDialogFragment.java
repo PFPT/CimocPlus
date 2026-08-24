@@ -1,5 +1,4 @@
-package com.haleydu.cimoc.ui.fragment.dialog;
-
+package com.haleydu.cimoc.ui.common.dialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.os.Bundle;

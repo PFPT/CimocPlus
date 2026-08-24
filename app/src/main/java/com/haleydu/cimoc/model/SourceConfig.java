@@ -31,6 +31,14 @@ public class SourceConfig {
     public final String parseImageUrl;
     public final String parseImageFaultImage;
     public final String imageServerUrl;
+    public final String parseCategoryPath;
+    public final String parseCategoryInfoList;
+    public final String parseCategoryInfoCid;
+    public final String parseCategoryInfoCidPre;
+    public final String parseCategoryInfoTitle;
+    public final String parseCategoryInfoCover;
+    public final String parseCategoryInfoAuthor;
+    public final String parseCategoryInfoUpdate;
 
     public SourceConfig(String key, int type, String title, JSONObject object) {
         this.key = key;
@@ -60,6 +68,18 @@ public class SourceConfig {
         this.parseImageUrl = firstNonEmpty(opt(object, "parseImageUrl"), opt(object, "parseImageSrc"));
         this.parseImageFaultImage = opt(object, "parseImageFaultImage");
         this.imageServerUrl = firstNonEmpty(opt(object, "imageServerUrl"), this.serverUrl);
+        this.parseCategoryPath = opt(object, "parseCategoryPath");
+        this.parseCategoryInfoList = firstNonEmpty(opt(object, "parseCategoryInfoList"), this.searchInfoList);
+        this.parseCategoryInfoCid = firstNonEmpty(opt(object, "parseCategoryInfoCid"), this.searchInfoCid);
+        this.parseCategoryInfoCidPre = opt(object, "parseCategoryInfoCidPre");
+        this.parseCategoryInfoTitle = firstNonEmpty(opt(object, "parseCategoryInfoTitle"), this.searchInfoTitle);
+        this.parseCategoryInfoCover = firstNonEmpty(opt(object, "parseCategoryInfoCover"), this.searchInfoCover);
+        this.parseCategoryInfoAuthor = firstNonEmpty(opt(object, "parseCategoryInfoAuthor"), this.searchInfoAuthor);
+        this.parseCategoryInfoUpdate = firstNonEmpty(opt(object, "parseCategoryInfoUpdate"), this.searchInfoUpdate);
+    }
+
+    public boolean hasCategory() {
+        return !parseCategoryPath.isEmpty();
     }
 
     public boolean isComplete() {

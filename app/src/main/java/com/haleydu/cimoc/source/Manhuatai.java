@@ -5,7 +5,7 @@ import android.util.Pair;
 
 import com.google.common.collect.Lists;
 import com.haleydu.cimoc.core.Manga;
-import com.haleydu.cimoc.manager.SourceConfigManager;
+import com.haleydu.cimoc.data.SourceConfigManager;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.ImageUrl;
@@ -224,6 +224,25 @@ public class Manhuatai extends MangaParser {
     @Override
     public List<Comic> parseCategory(String html, int page) {
         List<Comic> list = new LinkedList<>();
+        if (html == null) {
+            return list;
+        }
+        String trim = html.trim();
+        if (trim.startsWith("{")) {
+            try {
+                JSONArray array = new JSONObject(trim).getJSONObject("data").getJSONArray("data");
+                for (int i = 0; i < array.length(); i++) {
+                    JSONObject object = array.getJSONObject(i);
+                    String title = object.getString("comic_name");
+                    String cid = object.getString("comic_newid");
+                    String cover = "https://image.yqmh.com/mh/" + object.getString("comic_id") + ".jpg-300x400.webp";
+                    list.add(new Comic(TYPE, cid, title, cover, null, null));
+                }
+                return list;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
         Node body = new Node(html);
         for (Node node : body.list("a.sdiv")) {
             String cid = node.hrefWithSplit(0);
@@ -249,7 +268,7 @@ public class Manhuatai extends MangaParser {
         return list;
     }
 
-    private static class Category extends MangaCategory {
+    private class Category extends MangaCategory {
 
         @Override
         public boolean isComposite() {
@@ -258,8 +277,13 @@ public class Manhuatai extends MangaParser {
 
         @Override
         public String getFormat(String... args) {
-            return StringUtils.format("https://www.kanman.com/%s_p%%d.html",
-                    args[CATEGORY_SUBJECT]);
+            String subject = args != null && args.length > CATEGORY_SUBJECT && args[CATEGORY_SUBJECT] != null
+                    ? args[CATEGORY_SUBJECT] : "all";
+            if (subject.isEmpty()) {
+                subject = "all";
+            }
+            return mobileHost() + "/api/getsortlist/?product_id=2&productname=mht&platformname=wap&orderby=click&comic_sort="
+                    + subject + "&page=%d&size=48";
         }
 
         @Override

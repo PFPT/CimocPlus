@@ -28,10 +28,10 @@
             android:value="true" />
 
         <activity
-            android:name=".ui.activity.MainActivity"
+            android:name=".ui.main.MainActivity"
             android:exported="true"
             android:configChanges="orientation|keyboardHidden|screenSize"
-            android:windowSoftInputMode="adjustPan">
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -39,49 +39,52 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".ui.activity.ResultActivity"
+            android:name=".ui.search.ResultActivity"
             android:configChanges="orientation|keyboardHidden|screenSize" />
         <activity
-            android:name=".ui.activity.DetailActivity"
+            android:name=".ui.detail.DetailActivity"
             android:configChanges="orientation|keyboardHidden|screenSize" />
         <activity
-            android:name=".ui.activity.ChapterActivity"
+            android:name=".ui.detail.ChapterActivity"
             android:configChanges="orientation|keyboardHidden|screenSize" />
         <activity
-            android:name=".ui.activity.TagEditorActivity"
+            android:name=".ui.detail.TagEditorActivity"
             android:configChanges="orientation|keyboardHidden|screenSize" />
         <activity
-            android:name=".ui.activity.TaskActivity"
+            android:name=".ui.library.TaskActivity"
             android:configChanges="orientation|keyboardHidden|screenSize" />
         <activity
-            android:name=".ui.activity.SettingsActivity"
+            android:name=".ui.settings.SettingsActivity"
             android:configChanges="orientation|keyboardHidden|screenSize" />
         <activity
-            android:name=".ui.activity.settings.ReaderConfigActivity"
+            android:name=".ui.settings.ReaderConfigActivity"
             android:configChanges="orientation|keyboardHidden|screenSize" />
         <activity
-            android:name=".ui.activity.BackupActivity"
+            android:name=".ui.settings.BackupActivity"
             android:configChanges="orientation|keyboardHidden|screenSize" />
         <activity
-            android:name=".ui.activity.AboutActivity"
+            android:name=".ui.settings.AboutActivity"
             android:configChanges="orientation|keyboardHidden|screenSize" />
         <activity
-            android:name=".ui.activity.CategoryActivity"
+            android:name=".ui.explore.ExploreActivity"
             android:configChanges="orientation|keyboardHidden|screenSize" />
         <activity
-            android:name=".ui.activity.SearchActivity"
+            android:name=".ui.search.SearchActivity"
             android:configChanges="orientation|keyboardHidden|screenSize" />
         <activity
-            android:name=".ui.activity.SourceDetailActivity"
+            android:name=".ui.explore.SourceActivity"
             android:configChanges="orientation|keyboardHidden|screenSize" />
         <activity
-            android:name=".ui.activity.PartFavoriteActivity"
+            android:name=".ui.explore.SourceDetailActivity"
             android:configChanges="orientation|keyboardHidden|screenSize" />
         <activity
-            android:name=".ui.activity.DirPickerActivity"
+            android:name=".ui.library.PartFavoriteActivity"
             android:configChanges="orientation|keyboardHidden|screenSize" />
         <activity
-            android:name=".ui.activity.settings.EventSettingsActivity"
+            android:name=".ui.library.DirPickerActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize" />
+        <activity
+            android:name=".ui.settings.EventSettingsActivity"
             android:configChanges="orientation|keyboardHidden|screenSize" />
         <activity
             android:name=".ui.reader.PageReaderActivity"
@@ -94,7 +97,7 @@
             android:theme="@style/AppThemeNoDark"
             android:configChanges="orientation|keyboardHidden|screenSize" />
         <activity
-            android:name=".ui.activity.BrowserFilter"
+            android:name=".ui.main.BrowserFilter"
             android:exported="true"
             android:theme="@android:style/Theme.NoDisplay">
             <intent-filter>

@@ -1,13 +1,12 @@
-package com.haleydu.cimoc.ui.activity
-
+package com.haleydu.cimoc.ui.library
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.haleydu.cimoc.App
 import com.haleydu.cimoc.core.Download
-import com.haleydu.cimoc.manager.ComicManager
-import com.haleydu.cimoc.manager.SourceManager
-import com.haleydu.cimoc.manager.TaskManager
+import com.haleydu.cimoc.data.ComicManager
+import com.haleydu.cimoc.data.SourceManager
+import com.haleydu.cimoc.data.TaskManager
 import com.haleydu.cimoc.model.Chapter
 import com.haleydu.cimoc.model.Comic
 import com.haleydu.cimoc.model.MiniComic
@@ -34,6 +33,11 @@ class TaskViewModel @Inject constructor(
     private val app = context.applicationContext as App
     var comic: Comic? = null
         private set
+
+    fun enabledSourceTypes(): IntArray {
+        val list = sourceManager.listEnable()
+        return IntArray(list.size) { list[it].type }
+    }
 
     data class LoadResult(val list: List<Task>, val isLocal: Boolean)
 

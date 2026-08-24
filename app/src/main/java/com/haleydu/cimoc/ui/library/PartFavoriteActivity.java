@@ -1,5 +1,5 @@
-package com.haleydu.cimoc.ui.activity;
-
+package com.haleydu.cimoc.ui.library;
+import com.haleydu.cimoc.ui.common.BackActivity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -17,20 +17,19 @@ import com.haleydu.cimoc.R;
 import com.haleydu.cimoc.component.DialogCaller;
 import com.haleydu.cimoc.databinding.ActivityPartFavoriteBinding;
 import com.haleydu.cimoc.global.Extra;
-import com.haleydu.cimoc.manager.TagManager;
+import com.haleydu.cimoc.data.TagManager;
 import com.haleydu.cimoc.model.MiniComic;
 import com.haleydu.cimoc.event.AppEventBus;
 import com.haleydu.cimoc.event.AppEvent;
-import com.haleydu.cimoc.ui.FlowExtKt;
-import com.haleydu.cimoc.ui.adapter.BaseAdapter;
-import com.haleydu.cimoc.ui.adapter.GridAdapter;
-import com.haleydu.cimoc.ui.fragment.dialog.MessageDialogFragment;
-import com.haleydu.cimoc.ui.fragment.dialog.MultiDialogFragment;
+import com.haleydu.cimoc.ui.common.FlowExtKt;
+import com.haleydu.cimoc.ui.common.BaseAdapter;
+import com.haleydu.cimoc.ui.common.GridAdapter;
+import com.haleydu.cimoc.ui.common.dialog.MessageDialogFragment;
+import com.haleydu.cimoc.ui.common.dialog.MultiDialogFragment;
+import com.haleydu.cimoc.ui.detail.DetailActivity;
 import com.haleydu.cimoc.utils.HintUtils;
 import dagger.hilt.android.AndroidEntryPoint;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 
@@ -69,7 +68,7 @@ public class PartFavoriteActivity extends BackActivity implements DialogCaller, 
     @Override
     protected void initView() {
         super.initView();
-        mGridAdapter = new GridAdapter(this, new LinkedList<Object>());
+        mGridAdapter = new GridAdapter(this);
         mGridAdapter.setSymbol(true);
         mGridAdapter.setProvider(((App) getApplication()).getBuilderProvider());
         mGridAdapter.setTitleGetter(vm.titleGetter());
@@ -77,7 +76,6 @@ public class PartFavoriteActivity extends BackActivity implements DialogCaller, 
         mGridAdapter.setOnItemLongClickListener(this);
         mRecyclerView.setLayoutManager(new GridLayoutManager(this, 3));
         mRecyclerView.setHasFixedSize(true);
-        mRecyclerView.setItemAnimator(null);
         mRecyclerView.addItemDecoration(mGridAdapter.getItemDecoration());
         mRecyclerView.setAdapter(mGridAdapter);
     }
@@ -132,7 +130,7 @@ public class PartFavoriteActivity extends BackActivity implements DialogCaller, 
 
     @Override
     public void onItemClick(View view, int position) {
-        MiniComic comic = (MiniComic) mGridAdapter.getItem(position);
+        MiniComic comic = mGridAdapter.comicAt(position);
         Intent intent = DetailActivity.createIntent(this, comic.getId(), -1, null);
         startActivity(intent);
     }
@@ -140,7 +138,7 @@ public class PartFavoriteActivity extends BackActivity implements DialogCaller, 
     @Override
     public boolean onItemLongClick(View view, int position) {
         if (isDeletable) {
-            mSavedComic = (MiniComic) mGridAdapter.getItem(position);
+            mSavedComic = mGridAdapter.comicAt(position);
             MessageDialogFragment fragment = MessageDialogFragment.newInstance(R.string.dialog_confirm,
                     R.string.part_favorite_delete_confirm, true, DIALOG_REQUEST_DELETE);
             fragment.show(getSupportFragmentManager(), null);
@@ -171,9 +169,9 @@ public class PartFavoriteActivity extends BackActivity implements DialogCaller, 
         HintUtils.showToast(this, R.string.common_data_load_fail);
     }
 
-    public void onComicLoadSuccess(List<Object> list) {
+    public void onComicLoadSuccess(List<?> list) {
         hideProgressBar();
-        mGridAdapter.addAll(list);
+        mGridAdapter.setData(list);
 
     }
 

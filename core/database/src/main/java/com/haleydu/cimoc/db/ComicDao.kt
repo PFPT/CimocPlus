@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.paging.PagingSource
 import com.haleydu.cimoc.model.Comic
 
 @Dao
@@ -24,6 +25,12 @@ interface ComicDao {
 
     @Query("SELECT * FROM COMIC WHERE FAVORITE IS NOT NULL ORDER BY HIGHLIGHT DESC, FAVORITE DESC")
     fun listFavoriteOrdered(): List<Comic>
+
+    @Query("SELECT * FROM COMIC WHERE FAVORITE IS NOT NULL ORDER BY HIGHLIGHT DESC, FAVORITE DESC")
+    fun pagingFavorite(): PagingSource<Int, Comic>
+
+    @Query("SELECT * FROM COMIC WHERE HISTORY IS NOT NULL ORDER BY HISTORY DESC")
+    fun pagingHistory(): PagingSource<Int, Comic>
 
     @Query("SELECT * FROM COMIC WHERE FAVORITE IS NOT NULL AND FINISH = 1 ORDER BY HIGHLIGHT DESC, FAVORITE DESC")
     fun listFinish(): List<Comic>

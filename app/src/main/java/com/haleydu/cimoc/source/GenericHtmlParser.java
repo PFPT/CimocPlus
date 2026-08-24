@@ -1,12 +1,14 @@
 package com.haleydu.cimoc.source;
 
 import android.net.Uri;
+import android.util.Pair;
 
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.ImageUrl;
 import com.haleydu.cimoc.model.Source;
 import com.haleydu.cimoc.model.SourceConfig;
+import com.haleydu.cimoc.parser.MangaCategory;
 import com.haleydu.cimoc.parser.MangaParser;
 import com.haleydu.cimoc.parser.NodeIterator;
 import com.haleydu.cimoc.parser.SearchIterator;
@@ -15,8 +17,10 @@ import com.haleydu.cimoc.soup.Node;
 import com.haleydu.cimoc.utils.StringUtils;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -33,7 +37,7 @@ public class GenericHtmlParser extends MangaParser {
     public GenericHtmlParser(Source source, SourceConfig config) {
         mConfig = config;
         mType = source == null ? config.type : source.getType();
-        init(source == null ? config.toSource(true) : source, null);
+        init(source == null ? config.toSource(true) : source, config.hasCategory() ? new Category() : null);
         mTitle = config.title;
     }
 
@@ -161,6 +165,36 @@ public class GenericHtmlParser extends MangaParser {
     @Override
     public Headers getHeader() {
         return Headers.of("Referer", mConfig.baseUrl + "/");
+    }
+
+    @Override
+    public List<Comic> parseCategory(String html, int page) {
+        List<Comic> list = new LinkedList<>();
+        if (html == null) {
+            return list;
+        }
+        String trim = html.trim();
+        if (trim.startsWith("{") || trim.startsWith("[")) {
+            return parseJsonCategory(trim);
+        }
+        Node body = new Node(html);
+        String selector = mConfig.parseCategoryInfoList;
+        if (selector == null || selector.isEmpty() || isJsonKey(selector)) {
+            selector = mConfig.searchInfoList;
+        }
+        List<Node> nodes;
+        try {
+            nodes = body.list(selector);
+        } catch (Exception e) {
+            return list;
+        }
+        for (Node node : nodes) {
+            Comic comic = parseCategoryNode(node);
+            if (comic != null) {
+                list.add(comic);
+            }
+        }
+        return list;
     }
 
     private int addChapters(List<Chapter> list, Node body, String selector, Long sourceComic, int index) {
@@ -433,5 +467,219 @@ public class GenericHtmlParser extends MangaParser {
 
     private String emptyTo(String value, String fallback) {
         return value == null || value.isEmpty() ? fallback : value;
+    }
+
+    private Comic parseCategoryNode(Node node) {
+        String cid = extractPath(attrOrHref(node, mConfig.parseCategoryInfoCid));
+        if ((cid == null || cid.isEmpty()) && !mConfig.parseCategoryInfoCidPre.isEmpty()) {
+            String text = textOrAttr(node, mConfig.parseCategoryInfoCid);
+            if (text != null && !text.isEmpty()) {
+                cid = mConfig.parseCategoryInfoCidPre + text;
+            }
+        }
+        if (cid == null || cid.isEmpty()) {
+            return null;
+        }
+        if (!mConfig.parseCategoryInfoCidPre.isEmpty() && !cid.startsWith("http") && !cid.startsWith(mConfig.parseCategoryInfoCidPre)) {
+            cid = mConfig.parseCategoryInfoCidPre + cid;
+        }
+        String title = textOrAttr(node, mConfig.parseCategoryInfoTitle);
+        String cover = coverOf(node, mConfig.parseCategoryInfoCover, null);
+        String author = textOrAttr(node, mConfig.parseCategoryInfoAuthor);
+        String update = textOrAttr(node, mConfig.parseCategoryInfoUpdate);
+        return new Comic(mType, cid, title, cover, update, author);
+    }
+
+    private List<Comic> parseJsonCategory(String html) {
+        List<Comic> list = new LinkedList<>();
+        try {
+            JSONObject root = html.startsWith("[") ? new JSONObject().put("list", new JSONArray(html)) : new JSONObject(html);
+            String key = isJsonKey(mConfig.parseCategoryInfoList) ? mConfig.parseCategoryInfoList : "list";
+            JSONArray array = findJsonArray(root, key);
+            if (array == null) {
+                array = findJsonArray(root, "books");
+            }
+            if (array == null) {
+                array = findJsonArray(root, "list");
+            }
+            if (array == null) {
+                return list;
+            }
+            String cidKey = isJsonKey(mConfig.parseCategoryInfoCid) ? mConfig.parseCategoryInfoCid : "id";
+            String titleKey = isJsonKey(mConfig.parseCategoryInfoTitle) ? mConfig.parseCategoryInfoTitle : "name";
+            String coverKey = isJsonKey(mConfig.parseCategoryInfoCover) ? mConfig.parseCategoryInfoCover : "cover";
+            String authorKey = isJsonKey(mConfig.parseCategoryInfoAuthor) ? mConfig.parseCategoryInfoAuthor : "author";
+            String updateKey = isJsonKey(mConfig.parseCategoryInfoUpdate) ? mConfig.parseCategoryInfoUpdate : "update";
+            String pre = mConfig.parseCategoryInfoCidPre;
+            for (int i = 0; i < array.length(); i++) {
+                JSONObject object = array.optJSONObject(i);
+                if (object == null) {
+                    continue;
+                }
+                String cid = object.optString(cidKey);
+                if (cid == null || cid.isEmpty()) {
+                    continue;
+                }
+                if (!pre.isEmpty() && !cid.startsWith("http") && !cid.startsWith(pre)) {
+                    cid = pre + cid;
+                }
+                String title = object.optString(titleKey);
+                String cover = absImage(object.optString(coverKey));
+                String author = object.optString(authorKey);
+                String update = object.optString(updateKey);
+                list.add(new Comic(mType, cid, title, cover, update, author));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    private JSONArray findJsonArray(JSONObject root, String key) {
+        if (root == null || key == null || key.isEmpty()) {
+            return null;
+        }
+        JSONArray direct = root.optJSONArray(key);
+        if (direct != null) {
+            return direct;
+        }
+        JSONObject data = root.optJSONObject("data");
+        if (data != null) {
+            JSONArray nested = data.optJSONArray(key);
+            if (nested != null) {
+                return nested;
+            }
+        }
+        JSONObject results = root.optJSONObject("results");
+        if (results != null) {
+            return results.optJSONArray(key);
+        }
+        return null;
+    }
+
+    private boolean isJsonKey(String value) {
+        return value != null && value.matches("[A-Za-z_][A-Za-z0-9_]*");
+    }
+
+    private class Category extends MangaCategory {
+
+        @Override
+        public boolean isComposite() {
+            return true;
+        }
+
+        @Override
+        public String getFormat(String... args) {
+            String path = mConfig.parseCategoryPath;
+            path = path.replace("page=%s", "page=%d");
+            path = path.replace("page/%s", "page/%d");
+            path = fillPercentS(path, args);
+            if (!path.contains("%d")) {
+                path = path + (path.contains("?") ? "&page=%d" : "?page=%d");
+            }
+            if (path.startsWith("http://") || path.startsWith("https://")) {
+                return path;
+            }
+            if (!path.startsWith("/")) {
+                path = "/" + path;
+            }
+            return mConfig.baseUrl + path;
+        }
+
+        @Override
+        protected List<Pair<String, String>> getSubject() {
+            List<Pair<String, String>> list = new ArrayList<>();
+            list.add(Pair.create("全部", "all"));
+            return list;
+        }
+
+        @Override
+        protected boolean hasArea() {
+            return countPercentS(mConfig.parseCategoryPath) >= 2;
+        }
+
+        @Override
+        protected List<Pair<String, String>> getArea() {
+            List<Pair<String, String>> list = new ArrayList<>();
+            list.add(Pair.create("全部", "all"));
+            return list;
+        }
+
+        @Override
+        protected boolean hasProgress() {
+            return countPercentS(mConfig.parseCategoryPath) >= 3;
+        }
+
+        @Override
+        protected List<Pair<String, String>> getProgress() {
+            List<Pair<String, String>> list = new ArrayList<>();
+            list.add(Pair.create("全部", "all"));
+            return list;
+        }
+
+        @Override
+        protected boolean hasOrder() {
+            return countPercentS(mConfig.parseCategoryPath) >= 4;
+        }
+
+        @Override
+        protected List<Pair<String, String>> getOrder() {
+            List<Pair<String, String>> list = new ArrayList<>();
+            list.add(Pair.create("全部", "all"));
+            return list;
+        }
+
+        private int countPercentS(String path) {
+            if (path == null) {
+                return 0;
+            }
+            String normalized = path.replace("page=%s", "page=%d").replace("page/%s", "page/%d");
+            int count = 0;
+            for (int i = 0; i < normalized.length() - 1; i++) {
+                if (normalized.charAt(i) == '%' && normalized.charAt(i + 1) == 's') {
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        private String fillPercentS(String path, String... args) {
+            String[] ordered = new String[]{
+                    argAt(args, CATEGORY_SUBJECT),
+                    argAt(args, CATEGORY_AREA),
+                    argAt(args, CATEGORY_READER),
+                    argAt(args, CATEGORY_YEAR),
+                    argAt(args, CATEGORY_PROGRESS),
+                    argAt(args, CATEGORY_ORDER)
+            };
+            StringBuilder builder = new StringBuilder();
+            int argIndex = 0;
+            int i = 0;
+            while (i < path.length()) {
+                if (i + 1 < path.length() && path.charAt(i) == '%' && path.charAt(i + 1) == 's') {
+                    String value = "all";
+                    while (argIndex < ordered.length) {
+                        String candidate = ordered[argIndex++];
+                        if (candidate != null && !candidate.isEmpty()) {
+                            value = candidate;
+                            break;
+                        }
+                    }
+                    builder.append(value);
+                    i += 2;
+                } else {
+                    builder.append(path.charAt(i));
+                    i++;
+                }
+            }
+            return builder.toString();
+        }
+
+        private String argAt(String[] args, int index) {
+            if (args == null || index >= args.length) {
+                return null;
+            }
+            return args[index];
+        }
     }
 }

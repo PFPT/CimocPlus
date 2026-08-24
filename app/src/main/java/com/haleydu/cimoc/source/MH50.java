@@ -4,7 +4,8 @@ import android.util.Pair;
 
 import com.alibaba.fastjson.JSONArray;
 import com.google.common.collect.Lists;
-import com.haleydu.cimoc.manager.PreferenceManager;
+import com.haleydu.cimoc.data.PreferenceManager;
+import com.haleydu.cimoc.data.SourceConfigManager;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.ImageUrl;
@@ -37,23 +38,35 @@ public class MH50 extends MangaParser {
 
     public static final int TYPE = 80;
     public static final String DEFAULT_TITLE = "漫画堆";
-    public static final String  baseUrl = "https://m.manhuadai.com";
+    public static final String  baseUrl = "https://www.maofly.com";
 
     private final PreferenceManager preferenceManager;
+    private final SourceConfigManager sourceConfigManager;
 
     public static Source getDefaultSource() {
         return new Source(null, DEFAULT_TITLE, TYPE, true);
     }
 
-    public MH50(Source source, PreferenceManager preferenceManager) {
+    public MH50(Source source, PreferenceManager preferenceManager, SourceConfigManager sourceConfigManager) {
         this.preferenceManager = preferenceManager;
+        this.sourceConfigManager = sourceConfigManager;
         init(source, new Category());
+    }
+
+    private String host() {
+        if (sourceConfigManager == null) {
+            return baseUrl;
+        }
+        return sourceConfigManager.getUrl("MH50", baseUrl);
     }
 
     @Override
     public Request getSearchRequest(String keyword, int page) {
         if (page == 1) {
-            String url = StringUtils.format(baseUrl+"/search/?keywords=%s&page=%d", keyword, page);
+            String url = StringUtils.format(host()+"/search/?keywords=%s&page=%d", keyword, page);
+            if (host().contains("maofly")) {
+                url = StringUtils.format(host() + "/search.html?q=%s", keyword);
+            }
             return HttpUtils.getSimpleMobileRequest(url);
         }
         return null;
@@ -62,15 +75,23 @@ public class MH50 extends MangaParser {
     @Override
     public SearchIterator getSearchIterator(String html, int page) {
         Node body = new Node(html);
-        return new NodeIterator(body.list(".UpdateList > .itemBox")) {
+        return new NodeIterator(body.list(".UpdateList > .itemBox, .comic-main-section > .row > div")) {
             @Override
             protected Comic parse(Node node) {
                 String cid = node.hrefWithSplit(".itemTxt > a", 1);
                 String title = node.text(".itemTxt > a");
                 String cover = node.src(".itemImg > a > img");
-                if (cover.startsWith("//")) cover = "https:" + cover;
+                if (title == null || title.isEmpty()) {
+                    cid = node.hrefWithSplit("h2 > a", 1);
+                    title = node.text("h2");
+                    cover = node.src("img");
+                }
+                if (cover != null && cover.startsWith("//")) cover = "https:" + cover;
                 String update = node.text(".itemTxt > p.txtItme:eq(3)");
                 String author = node.text(".itemTxt > p.txtItme:eq(1)");
+                if (author == null || author.isEmpty()) {
+                    author = node.text(".comic-author");
+                }
                 return new Comic(TYPE, cid, title, cover, update, author);
             }
         };
@@ -78,17 +99,18 @@ public class MH50 extends MangaParser {
 
     @Override
     public String getUrl(String cid) {
-        return StringUtils.format(baseUrl + "/manhua/%s/", cid);
+        return StringUtils.format(host() + "/manhua/%s/", cid);
     }
 
     @Override
     protected void initUrlFilterList() {
-        filter.add(new UrlFilter(baseUrl));
+        filter.add(new UrlFilter("maofly.com"));
+        filter.add(new UrlFilter("manhuadai.com"));
     }
 
     @Override
     public Request getInfoRequest(String cid) {
-        String url = StringUtils.format(baseUrl + "/manhua/%s/", cid);
+        String url = StringUtils.format(host() + "/manhua/%s/", cid);
         return HttpUtils.getSimpleMobileRequest(url);
     }
 
@@ -96,12 +118,30 @@ public class MH50 extends MangaParser {
     public Comic parseInfo(String html, Comic comic) {
         Node body = new Node(html);
         String intro = body.text("#full-des");
+        if (intro == null || intro.isEmpty()) {
+            intro = body.text("div.comic-info > p.comic_story, p.comic_story");
+        }
         String title = body.text("#comicName");
+        if (title == null || title.isEmpty()) {
+            title = body.text("td.comic-titles, h1");
+        }
         String cover = body.src("#Cover > img");
-        if (cover.startsWith("//")) cover = "https:" + cover;
+        if (cover == null || cover.isEmpty()) {
+            cover = body.src("img.img-round");
+        }
+        if (cover != null && cover.startsWith("//")) cover = "https:" + cover;
         String author = body.text(".Introduct_Sub > .sub_r > .txtItme:eq(0)");
+        if (author == null || author.isEmpty()) {
+            author = body.text("td.pub-duration");
+        }
         String update = body.text(".Introduct_Sub > .sub_r > .txtItme:eq(4)");
+        if (update == null || update.isEmpty()) {
+            update = body.text("div > table > tbody > tr:eq(10) > td");
+        }
         boolean status = isFinish(body.text(".Introduct_Sub > .sub_r > .txtItme:eq(2) > a:eq(3)"));
+        if (!status) {
+            status = isFinish(body.text("div.comic-info > ul.tags"));
+        }
         comic.setInfo(title, cover, update, intro, author, status);
         return comic;
     }
@@ -110,10 +150,17 @@ public class MH50 extends MangaParser {
     public List<Chapter> parseChapter(String html, Comic comic, Long sourceComic) {
         List<Chapter> list = new LinkedList<>();
         Node body = new Node(html);
+        List<Node> nodes = body.list(".chapter-warp > ul > li > a");
+        if (nodes.isEmpty()) {
+            nodes = body.list("ol.links-of-books > li > a");
+        }
         int i=0;
-        for (Node node : body.list(".chapter-warp > ul > li > a")) {
+        for (Node node : nodes) {
             String title = node.text();
             String path = StringUtils.split(node.href(), "/", 3);
+            if (path == null || path.isEmpty()) {
+                path = node.href();
+            }
             list.add(new Chapter(Long.parseLong(sourceComic + "000" + i++), sourceComic, title, path));
         }
 
@@ -122,7 +169,7 @@ public class MH50 extends MangaParser {
 
     @Override
     public Request getImagesRequest(String cid, String path) {
-        String url = StringUtils.format(baseUrl + "/manhua/%s/%s", cid, path);
+        String url = StringUtils.format(host() + "/manhua/%s/%s", cid, path);
         return HttpUtils.getSimpleMobileRequest(url);
     }
 
@@ -207,21 +254,45 @@ public class MH50 extends MangaParser {
     public List<Comic> parseCategory(String html, int page) {
         List<Comic> list = new LinkedList<>();
         Node body = new Node(html);
-        int totalPage = Integer.parseInt(body.attr("#total-page", "value"));
-        if (page <= totalPage) {
-            for (Node node : body.list("#comic-items > li")) {
+        try {
+            String total = body.attr("#total-page", "value");
+            if (total != null && !total.isEmpty() && page > Integer.parseInt(total)) {
+                return list;
+            }
+        } catch (Exception ignored) {
+        }
+        List<Node> nodes = body.list("#comic-items > li");
+        if (!nodes.isEmpty()) {
+            for (Node node : nodes) {
                 String cid = node.hrefWithSplit("a.ImgA", 1);
                 String title = node.text("a.txtA");
                 String cover = node.src("a.ImgA img");
-                if (cover.startsWith("//")) cover = "https:" + cover;
+                if (cover != null && cover.startsWith("//")) cover = "https:" + cover;
                 String update = node.text(".info");
                 list.add(new Comic(TYPE, cid, title, cover, update, null));
+            }
+            return list;
+        }
+        for (Node node : body.list(".comic-main-section > .row > div, .comic-main-section > div")) {
+            String cid = node.hrefWithSplit("h2 > a", 1);
+            if (cid == null || cid.isEmpty()) {
+                cid = node.hrefWithSplit("a", 1);
+            }
+            String title = node.text("h2");
+            if (title == null || title.isEmpty()) {
+                title = node.attr("img", "alt");
+            }
+            String cover = node.src("img");
+            if (cover != null && cover.startsWith("//")) cover = "https:" + cover;
+            String author = node.text(".comic-author, div.comic-creators");
+            if (cid != null && !cid.isEmpty()) {
+                list.add(new Comic(TYPE, cid, title, cover, null, author));
             }
         }
         return list;
     }
 
-    private static class Category extends MangaCategory {
+    private class Category extends MangaCategory {
 
         @Override
         public boolean isComposite() {
@@ -230,16 +301,23 @@ public class MH50 extends MangaParser {
 
         @Override
         public String getFormat(String... args) {
-            String path = args[CATEGORY_SUBJECT].concat(" ").concat(args[CATEGORY_AREA]).concat(" ")
-                    .concat(args[CATEGORY_READER]).concat(" ").concat(args[CATEGORY_YEAR]).concat(" ")
-                    .concat(args[CATEGORY_PROGRESS]).trim();
-            String finalPath;
+            String path = part(args, CATEGORY_SUBJECT) + " "
+                    + part(args, CATEGORY_AREA) + " "
+                    + part(args, CATEGORY_READER) + " "
+                    + part(args, CATEGORY_YEAR) + " "
+                    + part(args, CATEGORY_PROGRESS);
+            path = path.trim().replaceAll("\\s+", "-");
             if (path.isEmpty()) {
-                finalPath = StringUtils.format(baseUrl + "/list/");
-            } else {
-                finalPath = StringUtils.format(baseUrl + "/list/%s/?page=%%d", path).replaceAll("\\s+", "-");
+                return host() + "/list/?page=%d";
             }
-            return finalPath;
+            return StringUtils.format(host() + "/list/%s/?page=%%d", path);
+        }
+
+        private String part(String[] args, int index) {
+            if (args == null || index >= args.length || args[index] == null) {
+                return "";
+            }
+            return args[index];
         }
 
         @Override

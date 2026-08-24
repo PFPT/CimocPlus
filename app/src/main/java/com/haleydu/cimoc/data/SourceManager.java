@@ -1,11 +1,14 @@
-package com.haleydu.cimoc.manager;
-
+package com.haleydu.cimoc.data;
 import android.util.SparseArray;
 
 import com.haleydu.cimoc.db.SourceDao;
+import com.haleydu.cimoc.db.SourceRuleDao;
 import com.haleydu.cimoc.model.Source;
 import com.haleydu.cimoc.model.SourceConfig;
+import com.haleydu.cimoc.model.SourceRule;
 import com.haleydu.cimoc.parser.Parser;
+import com.haleydu.cimoc.script.JsMangaParser;
+import com.haleydu.cimoc.script.ScriptRunner;
 import com.haleydu.cimoc.source.*;
 import com.haleydu.cimoc.source.WebtoonDongManManHua;
 
@@ -21,18 +24,22 @@ import okhttp3.OkHttpClient;
 public class SourceManager {
 
     private SourceDao mSourceDao;
+    private SourceRuleDao sourceRuleDao;
     private SourceConfigManager sourceConfigManager;
     private PreferenceManager preferenceManager;
     private OkHttpClient httpClient;
+    private ScriptRunner scriptRunner;
     private SparseArray<Parser> mParserArray = new SparseArray<>();
 
     @Inject
-    public SourceManager(SourceDao sourceDao, SourceConfigManager sourceConfigManager,
-                         PreferenceManager preferenceManager, OkHttpClient httpClient) {
+    public SourceManager(SourceDao sourceDao, SourceRuleDao sourceRuleDao, SourceConfigManager sourceConfigManager,
+                         PreferenceManager preferenceManager, OkHttpClient httpClient, ScriptRunner scriptRunner) {
         mSourceDao = sourceDao;
+        this.sourceRuleDao = sourceRuleDao;
         this.sourceConfigManager = sourceConfigManager;
         this.preferenceManager = preferenceManager;
         this.httpClient = httpClient;
+        this.scriptRunner = scriptRunner;
     }
 
     public List<Source> list() {
@@ -58,6 +65,16 @@ public class SourceManager {
     public Parser getParser(int type) {
         Parser parser = mParserArray.get(type);
         if (parser == null) {
+            SourceRule rule = sourceRuleDao.load(type);
+            if (rule != null && rule.getScriptContent() != null && !rule.getScriptContent().isEmpty()) {
+                Source source = load(type);
+                if (source == null) {
+                    source = new Source(null, "JS " + type, type, true);
+                }
+                parser = new JsMangaParser(source, rule, scriptRunner);
+                mParserArray.put(type, parser);
+                return parser;
+            }
             Source source = load(type);
             switch (type) {
                 case IKanman.TYPE:
@@ -81,14 +98,11 @@ public class SourceManager {
                 case Webtoon.TYPE:
                     parser = new Webtoon(source);
                     break;
-//                case HHSSEE.TYPE:
-//                    parser = new HHSSEE(source);
-//                    break;
                 case MH57.TYPE:
                     parser = new MH57(source);
                     break;
                 case MH50.TYPE:
-                    parser = new MH50(source, preferenceManager);
+                    parser = new MH50(source, preferenceManager, sourceConfigManager);
                     break;
                 case Dmzjv2.TYPE:
                     parser = new Dmzjv2(source);

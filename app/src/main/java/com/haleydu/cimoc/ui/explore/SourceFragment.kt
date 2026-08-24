@@ -1,29 +1,33 @@
-package com.haleydu.cimoc.ui.fragment.recyclerview
-
+package com.haleydu.cimoc.ui.explore
+import com.haleydu.cimoc.ui.common.RecyclerViewFragment
 import android.content.Intent
+import android.os.Bundle
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import androidx.annotation.ColorRes
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.haleydu.cimoc.R
+import com.haleydu.cimoc.component.DialogCaller
 import com.haleydu.cimoc.model.Source
-import com.haleydu.cimoc.ui.activity.CategoryActivity
-import com.haleydu.cimoc.ui.activity.SearchActivity
-import com.haleydu.cimoc.ui.activity.SourceDetailActivity
-import com.haleydu.cimoc.ui.adapter.BaseAdapter
-import com.haleydu.cimoc.ui.adapter.SourceAdapter
-import com.haleydu.cimoc.ui.collectOnStart
+import com.haleydu.cimoc.ui.explore.ExploreActivity
+import com.haleydu.cimoc.ui.search.SearchActivity
+import com.haleydu.cimoc.ui.explore.SourceDetailActivity
+import com.haleydu.cimoc.ui.common.BaseAdapter
+import com.haleydu.cimoc.ui.explore.SourceAdapter
+import com.haleydu.cimoc.ui.common.collectOnStart
+import com.haleydu.cimoc.ui.explore.ScriptImportDialogFragment
 import com.haleydu.cimoc.component.ThemeResponsive
 import com.haleydu.cimoc.utils.HintUtils
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class SourceFragment : RecyclerViewFragment(), ThemeResponsive, SourceAdapter.OnItemCheckedListener {
+class SourceFragment : RecyclerViewFragment(), ThemeResponsive, SourceAdapter.OnItemCheckedListener, DialogCaller {
 
     private val vm: SourceViewModel by viewModels()
     private lateinit var mSourceAdapter: SourceAdapter
@@ -45,7 +49,14 @@ class SourceFragment : RecyclerViewFragment(), ThemeResponsive, SourceAdapter.On
 
     override fun initData() {
         vm.sources.collectOnStart(viewLifecycleOwner) { onSourceLoadSuccess(it) }
+        vm.invalidTypes.collectOnStart(viewLifecycleOwner) { mSourceAdapter.setInvalidTypes(it) }
         vm.fail.collectOnStart(viewLifecycleOwner) { onSourceLoadFail() }
+        vm.importSuccess.collectOnStart(viewLifecycleOwner) {
+            HintUtils.showToast(activity, R.string.source_import_success)
+        }
+        vm.importFail.collectOnStart(viewLifecycleOwner) {
+            HintUtils.showToast(activity, R.string.source_import_fail)
+        }
         vm.load()
     }
 
@@ -81,18 +92,31 @@ class SourceFragment : RecyclerViewFragment(), ThemeResponsive, SourceAdapter.On
                 }
                 mSourceAdapter.notifyDataSetChanged()
             }
+            R.id.source_import_script -> {
+                val fragment = ScriptImportDialogFragment.newInstance(DIALOG_IMPORT)
+                fragment.setTargetFragment(this, 0)
+                fragment.show(requireActivity().supportFragmentManager, null)
+            }
+            R.id.source_script_log -> {
+                val logs = vm.logs().ifBlank { getString(R.string.source_script_log_empty) }
+                AlertDialog.Builder(requireActivity())
+                    .setTitle(R.string.source_script_log)
+                    .setMessage(logs)
+                    .setPositiveButton(R.string.dialog_positive, null)
+                    .show()
+            }
         }
         return super.onOptionsItemSelected(item)
     }
 
     override fun onItemClick(view: View, position: Int) {
         val source = mSourceAdapter.getItem(position)
-        val intent = if (!vm.hasCategory(source.type)) {
-            SearchActivity.createIntent(activity, source.type, source.title)
+        val host = activity
+        if (host is com.haleydu.cimoc.ui.main.MainActivity) {
+            host.openExploreSource(source.type)
         } else {
-            CategoryActivity.createIntent(activity, source.type, source.title)
+            startActivity(ExploreActivity.createIntent(requireActivity(), source.type))
         }
-        startActivity(intent)
     }
 
     override fun onItemLongClick(view: View, position: Int): Boolean {
@@ -108,7 +132,7 @@ class SourceFragment : RecyclerViewFragment(), ThemeResponsive, SourceAdapter.On
 
     fun onSourceLoadSuccess(list: List<Source>) {
         hideProgressBar()
-        mSourceAdapter.addAll(list)
+        mSourceAdapter.setData(list)
     }
 
     fun onSourceLoadFail() {
@@ -119,5 +143,16 @@ class SourceFragment : RecyclerViewFragment(), ThemeResponsive, SourceAdapter.On
     override fun onThemeChange(@ColorRes primary: Int, @ColorRes accent: Int) {
         mSourceAdapter.setColor(ContextCompat.getColor(requireActivity(), accent))
         mSourceAdapter.notifyDataSetChanged()
+    }
+
+    override fun onDialogResult(requestCode: Int, bundle: Bundle) {
+        if (requestCode == DIALOG_IMPORT) {
+            val value = bundle.getString(DialogCaller.EXTRA_DIALOG_RESULT_VALUE).orEmpty()
+            vm.importScript(value)
+        }
+    }
+
+    companion object {
+        private const val DIALOG_IMPORT = 0
     }
 }

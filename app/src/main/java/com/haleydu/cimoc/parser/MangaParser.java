@@ -85,7 +85,7 @@ public abstract class MangaParser implements Parser {
 
     @Override
     public List<Comic> parseCategory(String html, int page) {
-        return null;
+        return new ArrayList<>();
     }
 
     @Override

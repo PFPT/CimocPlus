@@ -1,5 +1,4 @@
-package com.haleydu.cimoc.manager;
-
+package com.haleydu.cimoc.data;
 import android.content.Context;
 import android.util.SparseArray;
 
