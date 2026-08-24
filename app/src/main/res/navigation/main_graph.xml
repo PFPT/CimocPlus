@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main_graph"
+    app:startDestination="@id/navPlaceholder">
+
+    <fragment
+        android:id="@+id/navPlaceholder"
+        android:name="androidx.fragment.app.Fragment" />
+
+    <fragment
+        android:id="@+id/detailFragment"
+        android:name="com.haleydu.cimoc.ui.detail.DetailFragment"
+        android:label="@string/detail">
+        <argument
+            android:name="cimoc.intent.extra.EXTRA_ID"
+            android:defaultValue="-1L"
+            app:argType="long" />
+        <argument
+            android:name="cimoc.intent.extra.EXTRA_SOURCE"
+            android:defaultValue="-1"
+            app:argType="integer" />
+        <argument
+            android:name="cimoc.intent.extra.EXTRA_CID"
+            android:defaultValue="@null"
+            app:argType="string"
+            app:nullable="true" />
+        <argument
+            android:name="cimoc.intent.extra.EXTRA_TITLE"
+            android:defaultValue="@null"
+            app:argType="string"
+            app:nullable="true" />
+        <argument
+            android:name="cimoc.intent.extra.EXTRA_COVER"
+            android:defaultValue="@null"
+            app:argType="string"
+            app:nullable="true" />
+        <argument
+            android:name="cimoc.intent.extra.EXTRA_AUTHOR"
+            android:defaultValue="@null"
+            app:argType="string"
+            app:nullable="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/resultFragment"
+        android:name="com.haleydu.cimoc.ui.search.ResultFragment"
+        android:label="@string/result">
+        <argument
+            android:name="cimoc.intent.extra.EXTRA_MODE"
+            android:defaultValue="0"
+            app:argType="integer" />
+        <argument
+            android:name="cimoc.intent.extra.EXTRA_KEYWORD"
+            android:defaultValue="@null"
+            app:argType="string"
+            app:nullable="true" />
+        <argument
+            android:name="cimoc.intent.extra.EXTRA_STRICT"
+            android:defaultValue="true"
+            app:argType="boolean" />
+        <argument
+            android:name="cimoc.intent.extra.EXTRA_SOURCE_LIST"
+            android:defaultValue="@null"
+            app:argType="integer[]"
+            app:nullable="true" />
+        <action
+            android:id="@+id/action_result_to_detail"
+            app:destination="@id/detailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/exploreSourceFragment"
+        android:name="com.haleydu.cimoc.ui.explore.ExploreFragment"
+        android:label="@string/explore">
+        <argument
+            android:name="cimoc.intent.extra.EXTRA_SOURCE"
+            android:defaultValue="-1"
+            app:argType="integer" />
+    </fragment>
+</navigation>
