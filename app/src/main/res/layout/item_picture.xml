@@ -1,6 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.haleydu.cimoc.ui.reader.ReaderPageImageView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/reader_image_view"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/black" />
+    android:background="@android:color/black">
+
+    <com.haleydu.cimoc.ui.reader.ReaderPageImageView
+        android:id="@+id/reader_image_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <TextView
+        android:id="@+id/reader_image_error"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:text="@string/reader_picture_load_fail"
+        android:textColor="@android:color/white"
+        android:visibility="gone" />
+</FrameLayout>

@@ -2,9 +2,6 @@ package com.haleydu.cimoc.ui.explore
 import com.haleydu.cimoc.ui.common.RecyclerViewFragment
 import android.content.Intent
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
 import android.view.View
 import androidx.annotation.ColorRes
 import androidx.appcompat.app.AlertDialog
@@ -20,7 +17,9 @@ import com.haleydu.cimoc.ui.search.SearchActivity
 import com.haleydu.cimoc.ui.explore.SourceDetailActivity
 import com.haleydu.cimoc.ui.common.BaseAdapter
 import com.haleydu.cimoc.ui.explore.SourceAdapter
+import com.haleydu.cimoc.ui.common.addMenu
 import com.haleydu.cimoc.ui.common.collectOnStart
+import com.haleydu.cimoc.ui.common.dialog.showForCaller
 import com.haleydu.cimoc.ui.explore.ScriptImportDialogFragment
 import com.haleydu.cimoc.component.ThemeResponsive
 import com.haleydu.cimoc.utils.HintUtils
@@ -31,11 +30,6 @@ class SourceFragment : RecyclerViewFragment(), ThemeResponsive, SourceAdapter.On
 
     private val vm: SourceViewModel by viewModels()
     private lateinit var mSourceAdapter: SourceAdapter
-
-    override fun initView() {
-        setHasOptionsMenu(true)
-        super.initView()
-    }
 
     override fun initAdapter(): BaseAdapter<*> {
         mSourceAdapter = SourceAdapter(activity, ArrayList())
@@ -48,6 +42,55 @@ class SourceFragment : RecyclerViewFragment(), ThemeResponsive, SourceAdapter.On
     }
 
     override fun initData() {
+        addMenu(R.menu.menu_source) { item ->
+            when (item.itemId) {
+                R.id.comic_search -> {
+                    startActivity(Intent(activity, SearchActivity::class.java))
+                    true
+                }
+                R.id.comic_inverseSelection -> {
+                    for (i in 0 until mSourceAdapter.itemCount) {
+                        val source = mSourceAdapter.getItem(i)
+                        source.enable = !source.enable
+                        vm.update(source)
+                    }
+                    mSourceAdapter.notifyDataSetChanged()
+                    true
+                }
+                R.id.comic_allSelection -> {
+                    for (i in 0 until mSourceAdapter.itemCount) {
+                        val source = mSourceAdapter.getItem(i)
+                        source.enable = true
+                        vm.update(source)
+                    }
+                    mSourceAdapter.notifyDataSetChanged()
+                    true
+                }
+                R.id.comic_AllDeselect -> {
+                    for (i in 0 until mSourceAdapter.itemCount) {
+                        val source = mSourceAdapter.getItem(i)
+                        source.enable = false
+                        vm.update(source)
+                    }
+                    mSourceAdapter.notifyDataSetChanged()
+                    true
+                }
+                R.id.source_import_script -> {
+                    ScriptImportDialogFragment.newInstance(DIALOG_IMPORT).showForCaller(this)
+                    true
+                }
+                R.id.source_script_log -> {
+                    val logs = vm.logs().ifBlank { getString(R.string.source_script_log_empty) }
+                    AlertDialog.Builder(requireActivity())
+                        .setTitle(R.string.source_script_log)
+                        .setMessage(logs)
+                        .setPositiveButton(R.string.dialog_positive, null)
+                        .show()
+                    true
+                }
+                else -> false
+            }
+        }
         vm.sources.collectOnStart(viewLifecycleOwner) { onSourceLoadSuccess(it) }
         vm.invalidTypes.collectOnStart(viewLifecycleOwner) { mSourceAdapter.setInvalidTypes(it) }
         vm.fail.collectOnStart(viewLifecycleOwner) { onSourceLoadFail() }
@@ -58,55 +101,6 @@ class SourceFragment : RecyclerViewFragment(), ThemeResponsive, SourceAdapter.On
             HintUtils.showToast(activity, R.string.source_import_fail)
         }
         vm.load()
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        super.onCreateOptionsMenu(menu, inflater)
-        inflater.inflate(R.menu.menu_source, menu)
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.comic_search -> startActivity(Intent(activity, SearchActivity::class.java))
-            R.id.comic_inverseSelection -> {
-                for (i in 0 until mSourceAdapter.itemCount) {
-                    val source = mSourceAdapter.getItem(i)
-                    source.enable = !source.enable
-                    vm.update(source)
-                }
-                mSourceAdapter.notifyDataSetChanged()
-            }
-            R.id.comic_allSelection -> {
-                for (i in 0 until mSourceAdapter.itemCount) {
-                    val source = mSourceAdapter.getItem(i)
-                    source.enable = true
-                    vm.update(source)
-                }
-                mSourceAdapter.notifyDataSetChanged()
-            }
-            R.id.comic_AllDeselect -> {
-                for (i in 0 until mSourceAdapter.itemCount) {
-                    val source = mSourceAdapter.getItem(i)
-                    source.enable = false
-                    vm.update(source)
-                }
-                mSourceAdapter.notifyDataSetChanged()
-            }
-            R.id.source_import_script -> {
-                val fragment = ScriptImportDialogFragment.newInstance(DIALOG_IMPORT)
-                fragment.setTargetFragment(this, 0)
-                fragment.show(requireActivity().supportFragmentManager, null)
-            }
-            R.id.source_script_log -> {
-                val logs = vm.logs().ifBlank { getString(R.string.source_script_log_empty) }
-                AlertDialog.Builder(requireActivity())
-                    .setTitle(R.string.source_script_log)
-                    .setMessage(logs)
-                    .setPositiveButton(R.string.dialog_positive, null)
-                    .show()
-            }
-        }
-        return super.onOptionsItemSelected(item)
     }
 
     override fun onItemClick(view: View, position: Int) {

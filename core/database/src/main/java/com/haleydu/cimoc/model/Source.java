@@ -3,6 +3,7 @@ package com.haleydu.cimoc.model;
 import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+import androidx.room.Ignore;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
@@ -23,6 +24,7 @@ public class Source {
     public Source() {
     }
 
+    @Ignore
     public Source(Long id, @NonNull String title, int type, boolean enable) {
         this.id = id;
         this.title = title;

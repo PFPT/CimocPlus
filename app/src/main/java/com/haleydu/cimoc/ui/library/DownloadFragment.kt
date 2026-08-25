@@ -13,6 +13,7 @@ import com.haleydu.cimoc.service.DownloadService
 import com.haleydu.cimoc.ui.library.TaskActivity
 import com.haleydu.cimoc.ui.common.collectOnStart
 import com.haleydu.cimoc.ui.common.dialog.MessageDialogFragment
+import com.haleydu.cimoc.ui.common.dialog.showForCaller
 import com.haleydu.cimoc.utils.HintUtils
 import com.haleydu.cimoc.utils.ServiceUtils
 import dagger.hilt.android.AndroidEntryPoint
@@ -66,8 +67,7 @@ class DownloadFragment : GridFragment() {
                         true,
                         DIALOG_REQUEST_DELETE
                     )
-                    fragment.setTargetFragment(this, 0)
-                    fragment.show(requireActivity().supportFragmentManager, null)
+                    fragment.showForCaller(this)
                 }
             }
             DIALOG_REQUEST_SWITCH -> if (isDownload) {
@@ -96,8 +96,7 @@ class DownloadFragment : GridFragment() {
             true,
             DIALOG_REQUEST_SWITCH
         )
-        fragment.setTargetFragment(this, 0)
-        fragment.show(requireActivity().supportFragmentManager, null)
+        fragment.showForCaller(this)
     }
 
     override fun onItemClick(view: View, position: Int) {

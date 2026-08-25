@@ -108,8 +108,10 @@ public class MultiAdpaterDialogFragment extends DialogFragment implements Dialog
                 int requestCode = getArguments().getInt(DialogCaller.EXTRA_DIALOG_REQUEST_CODE);
                 Bundle bundle = new Bundle();
                 bundle.putBooleanArray(DialogCaller.EXTRA_DIALOG_RESULT_VALUE, mCheckArray);
-                DialogCaller target = (DialogCaller) (getTargetFragment() != null ? getTargetFragment() : getActivity());
-                target.onDialogResult(requestCode, bundle);
+                DialogCaller target = DialogCaller.from(this);
+                if (target != null) {
+                    target.onDialogResult(requestCode, bundle);
+                }
                 isCloseDialog(dialogInterface,true);
                 break;
             case Dialog.BUTTON_NEUTRAL:

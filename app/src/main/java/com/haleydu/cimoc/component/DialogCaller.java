@@ -2,9 +2,7 @@ package com.haleydu.cimoc.component;
 
 import android.os.Bundle;
 
-/**
- * Created by Hiroshi on 2016/12/4.
- */
+import androidx.fragment.app.Fragment;
 
 public interface DialogCaller {
 
@@ -19,5 +17,18 @@ public interface DialogCaller {
     String EXTRA_DIALOG_CHOICE_ITEMS = "cimoc.intent.extra.EXTRA_DIALOG_CHOICE_ITEMS";
 
     void onDialogResult(int requestCode, Bundle bundle);
+
+    static DialogCaller from(Fragment fragment) {
+        if (fragment.getParentFragment() instanceof DialogCaller) {
+            return (DialogCaller) fragment.getParentFragment();
+        }
+        if (fragment.getTargetFragment() instanceof DialogCaller) {
+            return (DialogCaller) fragment.getTargetFragment();
+        }
+        if (fragment.getActivity() instanceof DialogCaller) {
+            return (DialogCaller) fragment.getActivity();
+        }
+        return null;
+    }
 
 }

@@ -14,6 +14,7 @@ import com.haleydu.cimoc.utils.DecryptionUtils;
 import com.haleydu.cimoc.utils.StringUtils;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.UnsupportedEncodingException;
@@ -156,26 +157,91 @@ public class Tencent extends MangaParser {
     }
 
     @Override
-    public List<ImageUrl> parseImages(String html, Chapter chapter) {
+    public List<ImageUrl> parseImages(String html, Chapter chapter) throws JSONException {
         List<ImageUrl> list = new LinkedList<>();
         String str = StringUtils.match("data:\\s*'(.*)?',", html, 1);
-        if (str != null) {
-            try {
-                str = DecryptionUtils.base64Decrypt(
-                        decodeData(str, StringUtils.match("<script>window.*?=(.*?)<\\/script>", html, 1))
-                );
-                JSONObject object = new JSONObject(str);
-                JSONArray array = object.getJSONArray("picture");
-                for (int i = 0; i != array.length(); ++i) {
-                    Long comicChapter = chapter.getId();
-                    Long id = Long.parseLong(comicChapter + "000" + i);
-                    list.add(new ImageUrl(id, comicChapter, i + 1, array.getJSONObject(i).getString("url"), false));
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+        if (str == null) {
+            return list;
+        }
+        String nonce = StringUtils.match("<script>window.*?=(.*?)<\\/script>", html, 1);
+        if (nonce == null) {
+            throw new JSONException("nonce");
+        }
+        try {
+            str = DecryptionUtils.base64Decrypt(decodeData(str, nonce));
+        } catch (Exception e) {
+            throw new JSONException(e.getMessage() != null ? e.getMessage() : "decode");
+        }
+        JSONObject object = new JSONObject(str);
+        JSONArray array = object.optJSONArray("picture");
+        if (array == null) {
+            throw new JSONException("picture");
+        }
+        boolean preview = isPaywalled(object) || (array.length() <= 1 && hasPayFlag(object));
+        for (int i = 0; i != array.length(); ++i) {
+            String url = pictureUrl(array.getJSONObject(i));
+            if (url == null || url.isEmpty()) {
+                continue;
             }
+            Long comicChapter = chapter.getId();
+            Long id = Long.parseLong(comicChapter + "000" + i);
+            ImageUrl imageUrl = new ImageUrl(id, comicChapter, i + 1, url, false);
+            imageUrl.setPreview(preview);
+            list.add(imageUrl);
         }
         return list;
+    }
+
+    private String pictureUrl(JSONObject item) {
+        String url = item.optString("url");
+        if (url == null || url.isEmpty()) {
+            url = item.optString("src");
+        }
+        if (url == null || url.isEmpty()) {
+            url = item.optString("pic");
+        }
+        return url;
+    }
+
+    private boolean isPaywalled(JSONObject root) {
+        return isDenied(root)
+                || isDenied(root.optJSONObject("chapter"))
+                || isDenied(root.optJSONObject("comic"));
+    }
+
+    private boolean isDenied(JSONObject obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (obj.has("canRead") && !obj.optBoolean("canRead")) {
+            return true;
+        }
+        if (obj.has("buy") && !obj.optBoolean("buy")) {
+            return true;
+        }
+        if (obj.optInt("needPay", 0) == 1) {
+            return true;
+        }
+        if (obj.optInt("payState", 0) > 1) {
+            return true;
+        }
+        if (obj.optInt("payStatus", 0) > 1) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean hasPayFlag(JSONObject root) {
+        JSONObject chapter = root.optJSONObject("chapter");
+        if (chapter == null) {
+            chapter = root;
+        }
+        return chapter.has("payState")
+                || chapter.has("payStatus")
+                || chapter.has("needPay")
+                || chapter.has("vip")
+                || chapter.has("vipState")
+                || root.has("payState");
     }
 
     @Override

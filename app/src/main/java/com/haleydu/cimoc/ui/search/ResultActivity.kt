@@ -81,9 +81,10 @@ class ResultActivity : BackActivity(), BaseAdapter.OnItemClickListener, DialogCa
             }
         })
         binding.resultRecyclerView.adapter = adapter
-        binding.resultFilterChips.setOnCheckedChangeListener { _, checkedId ->
-            if (checkedId == View.NO_ID) return@setOnCheckedChangeListener
-            val chip = binding.resultFilterChips.findViewById<Chip>(checkedId) ?: return@setOnCheckedChangeListener
+        binding.resultFilterChips.setOnCheckedStateChangeListener { _, checkedIds ->
+            val checkedId = checkedIds.firstOrNull() ?: View.NO_ID
+            if (checkedId == View.NO_ID) return@setOnCheckedStateChangeListener
+            val chip = binding.resultFilterChips.findViewById<Chip>(checkedId) ?: return@setOnCheckedStateChangeListener
             val source = chip.tag as? Int ?: ResultViewModel.FILTER_ALL
             vm.setFilter(source)
         }

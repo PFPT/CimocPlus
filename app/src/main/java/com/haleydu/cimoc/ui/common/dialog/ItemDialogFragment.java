@@ -44,16 +44,7 @@ public class ItemDialogFragment extends DialogFragment implements DialogInterfac
     }
 
     private DialogCaller resolveCaller() {
-        if (getTargetFragment() instanceof DialogCaller) {
-            return (DialogCaller) getTargetFragment();
-        }
-        if (getParentFragment() instanceof DialogCaller) {
-            return (DialogCaller) getParentFragment();
-        }
-        if (getActivity() instanceof DialogCaller) {
-            return (DialogCaller) getActivity();
-        }
-        return null;
+        return DialogCaller.from(this);
     }
 
 }

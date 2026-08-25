@@ -9,6 +9,7 @@ import com.haleydu.cimoc.event.AppEventBus
 import com.haleydu.cimoc.event.AppEvent
 import com.haleydu.cimoc.ui.common.collectOnStart
 import com.haleydu.cimoc.ui.common.dialog.MessageDialogFragment
+import com.haleydu.cimoc.ui.common.dialog.showForCaller
 import com.haleydu.cimoc.utils.HintUtils
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
@@ -45,8 +46,7 @@ class HistoryFragment : GridFragment() {
             true,
             DIALOG_REQUEST_CLEAR
         )
-        fragment.setTargetFragment(this, 0)
-        fragment.show(requireActivity().supportFragmentManager, null)
+        fragment.showForCaller(this)
     }
 
     override fun onDialogResult(requestCode: Int, bundle: Bundle) {
@@ -60,8 +60,7 @@ class HistoryFragment : GridFragment() {
                         true,
                         DIALOG_REQUEST_DELETE
                     )
-                    fragment.setTargetFragment(this, 0)
-                    fragment.show(requireActivity().supportFragmentManager, null)
+                    fragment.showForCaller(this)
                 }
             }
             DIALOG_REQUEST_CLEAR -> {
@@ -81,15 +80,15 @@ class HistoryFragment : GridFragment() {
         HintUtils.showToast(activity, R.string.common_execute_success)
     }
 
-    fun onHistoryDelete(id: Long) {
+    fun onHistoryDelete(@Suppress("UNUSED_PARAMETER") id: Long) {
         hideProgressDialog()
         HintUtils.showToast(activity, R.string.common_execute_success)
     }
 
-    fun OnComicRestore(list: List<Any>) {
+    fun OnComicRestore(@Suppress("UNUSED_PARAMETER") list: List<Any>) {
     }
 
-    fun onItemUpdate(comic: MiniComic) {
+    fun onItemUpdate(@Suppress("UNUSED_PARAMETER") comic: MiniComic) {
     }
 
     override fun getActionButtonRes(): Int = R.drawable.ic_delete_white_24dp

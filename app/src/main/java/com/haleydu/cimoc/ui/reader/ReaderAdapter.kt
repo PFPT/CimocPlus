@@ -9,6 +9,7 @@ import android.graphics.drawable.Drawable
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import coil.ImageLoader
 import coil.annotation.ExperimentalCoilApi
@@ -84,6 +85,7 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
         val urls = imageUrl.urls ?: return
         val raw = urls.firstOrNull { !it.isNullOrEmpty() } ?: return
         val url = normalizeUrl(raw)
+        holder.showError(false)
         val transformation = MangaTransformation(
             imageUrl,
             isPaging,
@@ -99,7 +101,7 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
         applyHeaders(requestBuilder)
 
         if (reader == READER_PAGE) {
-            val pageView = holder.itemView as ReaderPageImageView
+            val pageView = holder.imageView as? ReaderPageImageView ?: return
             pageView.tapListener = tapGestureListener
             pageView.alwaysBlockParent = isBanTurn
             pageView.setDoubleTapZoomScale(scaleFactor)
@@ -107,6 +109,7 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
             requestBuilder.target(
                 onSuccess = { result ->
                     imageUrl.isSuccess = true
+                    holder.showError(false)
                     val bitmap = drawableToBitmap(result)
                     if (bitmap != null && !bitmap.isRecycled) {
                         pageView.setImage(ImageSource.bitmap(bitmap))
@@ -115,6 +118,7 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
                 },
                 onError = {
                     imageUrl.isSuccess = false
+                    holder.showError(true)
                 }
             )
             holder.disposable = loader.enqueue(requestBuilder.build())
@@ -122,17 +126,19 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
                 if (imageUrl.isSuccess) {
                     false
                 } else {
+                    holder.showError(false)
                     holder.disposable = loader.enqueue(requestBuilder.build())
                     true
                 }
             }
         } else {
-            val imageView = holder.itemView as ImageView
+            val imageView = holder.imageView as? ImageView ?: return
             bindStreamTap(imageView)
             val request = requestBuilder
                 .target(
                     onSuccess = { result ->
                         imageUrl.isSuccess = true
+                        holder.showError(false)
                         imageView.setImageDrawable(result)
                         val bitmap = drawableToBitmap(result)
                         if (bitmap != null && bitmap.height > 0) {
@@ -146,6 +152,7 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
                     },
                     onError = {
                         imageUrl.isSuccess = false
+                        holder.showError(true)
                     }
                 )
                 .build()
@@ -154,6 +161,7 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
                 if (imageUrl.isSuccess) {
                     false
                 } else {
+                    holder.showError(false)
                     holder.disposable = loader.enqueue(request)
                     true
                 }
@@ -334,15 +342,25 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
     }
 
     class ImageHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val imageView: View? = view.findViewById(R.id.reader_image_view)
+        private val errorView: TextView? = view.findViewById(R.id.reader_image_error)
         var disposable: Disposable? = null
         var onRetry: () -> Boolean = { false }
 
+        init {
+            errorView?.setOnClickListener { retry() }
+        }
+
         fun retry(): Boolean = onRetry.invoke()
+
+        fun showError(show: Boolean) {
+            errorView?.visibility = if (show) View.VISIBLE else View.GONE
+        }
 
         fun dispose() {
             disposable?.dispose()
             disposable = null
-            val view = itemView
+            val view = imageView
             if (view is ImageView) {
                 view.dispose()
             }

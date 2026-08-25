@@ -54,8 +54,10 @@ public class SliderDialogFragment extends DialogFragment implements DialogInterf
         int requestCode = getArguments().getInt(DialogCaller.EXTRA_DIALOG_REQUEST_CODE);
         Bundle bundle = new Bundle();
         bundle.putInt(DialogCaller.EXTRA_DIALOG_RESULT_VALUE, mSeekBar.getProgress());
-        DialogCaller target = (DialogCaller) (getTargetFragment() != null ? getTargetFragment() : getActivity());
-        target.onDialogResult(requestCode, bundle);
+        DialogCaller target = DialogCaller.from(this);
+        if (target != null) {
+            target.onDialogResult(requestCode, bundle);
+        }
     }
 
 }

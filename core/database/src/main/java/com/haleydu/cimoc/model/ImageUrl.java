@@ -48,6 +48,8 @@ public class ImageUrl {
     private boolean success;
     @ColumnInfo(name = "DOWNLOAD")
     private boolean download;
+    @Ignore
+    private boolean preview;
 
     @Ignore
     public ImageUrl(Long id, Long comicChapter, int num, String[] urls, String chapter, int state, boolean lazy) {
@@ -61,6 +63,7 @@ public class ImageUrl {
                0, 0, lazy, false, false, false);
     }
 
+    @Ignore
     public ImageUrl(Long id, @NonNull Long comicChapter, int num, String[] urls,
             String chapter, int state, int height, int width, boolean lazy, boolean loading,
             boolean success, boolean download) {
@@ -167,6 +170,16 @@ public class ImageUrl {
 
     public void setDownload(boolean download) {
         this.download = download;
+    }
+
+    @Ignore
+    public boolean isPreview() {
+        return preview;
+    }
+
+    @Ignore
+    public void setPreview(boolean preview) {
+        this.preview = preview;
     }
 
     @Override

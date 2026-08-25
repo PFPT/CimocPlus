@@ -77,6 +77,7 @@ public class Comic {
                 null, null, null, download, null, null, null, null,null,null);
     }
 
+    @Ignore
     public Comic(Long id, int source, @NonNull String cid, @NonNull String title, @NonNull String cover, boolean highlight,
             boolean local, String update, Boolean finish, Long favorite, Long history, Long download, String last, Integer page,
             String chapter, String url, String intro, String author) {

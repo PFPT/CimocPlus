@@ -46,8 +46,10 @@ public class ChoiceDialogFragment extends DialogFragment implements DialogInterf
         Bundle bundle = new Bundle();
         bundle.putInt(DialogCaller.EXTRA_DIALOG_RESULT_INDEX, index);
         bundle.putString(DialogCaller.EXTRA_DIALOG_RESULT_VALUE, value);
-        DialogCaller target = (DialogCaller) (getTargetFragment() != null ? getTargetFragment() : getActivity());
-        target.onDialogResult(requestCode, bundle);
+        DialogCaller target = DialogCaller.from(this);
+        if (target != null) {
+            target.onDialogResult(requestCode, bundle);
+        }
     }
 
 }

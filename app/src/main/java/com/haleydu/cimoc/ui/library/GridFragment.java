@@ -105,8 +105,7 @@ public abstract class GridFragment extends RecyclerViewFragment implements Dialo
         mSavedId = mGridAdapter.comicAt(position).getId();
         ItemDialogFragment fragment = ItemDialogFragment.newInstance(R.string.common_operation_select,
                 getOperationItems(), DIALOG_REQUEST_OPERATION);
-        fragment.setTargetFragment(this, 0);
-        fragment.show(requireActivity().getSupportFragmentManager(), null);
+        fragment.show(getChildFragmentManager(), null);
         return true;
     }
 
@@ -132,8 +131,7 @@ public abstract class GridFragment extends RecyclerViewFragment implements Dialo
         if (comic == null) {
             MessageDialogFragment fragment = MessageDialogFragment.newInstance(R.string.common_execute_fail,
                     R.string.comic_info_not_found, true, request);
-            fragment.setTargetFragment(this, 0);
-            fragment.show(requireActivity().getSupportFragmentManager(), null);
+            fragment.show(getChildFragmentManager(), null);
             return;
         }
         String content =
@@ -152,8 +150,7 @@ public abstract class GridFragment extends RecyclerViewFragment implements Dialo
                                 StringUtils.getFormatTime("yyyy-MM-dd HH:mm:ss", comic.getHistory()));
         MessageDialogFragment fragment = MessageDialogFragment.newInstance(R.string.comic_info,
                 content, true, request);
-        fragment.setTargetFragment(this, 0);
-        fragment.show(requireActivity().getSupportFragmentManager(), null);
+        fragment.show(getChildFragmentManager(), null);
     }
 
     protected abstract void performActionButtonClick();

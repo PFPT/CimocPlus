@@ -3,9 +3,6 @@ import com.haleydu.cimoc.ui.common.BaseFragment
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
 import android.view.View
 import androidx.annotation.ColorRes
 import androidx.fragment.app.viewModels
@@ -17,8 +14,10 @@ import com.haleydu.cimoc.data.TagManager
 import com.haleydu.cimoc.model.Tag
 import com.haleydu.cimoc.ui.main.MainActivity
 import com.haleydu.cimoc.ui.library.PartFavoriteActivity
+import com.haleydu.cimoc.ui.common.addMenu
 import com.haleydu.cimoc.ui.common.collectOnStart
 import com.haleydu.cimoc.ui.common.dialog.ItemDialogFragment
+import com.haleydu.cimoc.ui.common.dialog.showForCaller
 import com.haleydu.cimoc.ui.library.DownloadFragment
 import com.haleydu.cimoc.ui.library.FavoriteFragment
 import com.haleydu.cimoc.ui.library.HistoryFragment
@@ -52,11 +51,11 @@ class LibraryFragment : BaseFragment(), DialogCaller, ThemeResponsive {
     }
 
     override fun initView() {
-        setHasOptionsMenu(true)
         val binding = binding ?: return
         ensureChildren()
-        binding.libraryChipGroup.setOnCheckedChangeListener { _, checkedId ->
-            if (checkedId == View.NO_ID) return@setOnCheckedChangeListener
+        binding.libraryChipGroup.setOnCheckedStateChangeListener { _, checkedIds ->
+            val checkedId = checkedIds.firstOrNull() ?: View.NO_ID
+            if (checkedId == View.NO_ID) return@setOnCheckedStateChangeListener
             val tag = when (checkedId) {
                 R.id.library_chip_history -> TAG_HISTORY
                 R.id.library_chip_local -> TAG_LOCAL
@@ -75,35 +74,34 @@ class LibraryFragment : BaseFragment(), DialogCaller, ThemeResponsive {
     }
 
     override fun initData() {
+        addMenu(R.menu.menu_comic) { item ->
+            when (item.itemId) {
+                R.id.comic_filter -> {
+                    showProgressDialog()
+                    tagList.clear()
+                    vm.loadTag()
+                    true
+                }
+                R.id.comic_search -> {
+                    (activity as? MainActivity)?.openSearch()
+                    true
+                }
+                R.id.comic_bbs -> {
+                    try {
+                        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.home_page_gitter_url))))
+                    } catch (_: Exception) {
+                    }
+                    true
+                }
+                R.id.comic_cancel_highlight -> {
+                    (childFragmentManager.findFragmentByTag(TAG_FAVORITE) as? FavoriteFragment)?.cancelAllHighlight()
+                    true
+                }
+                else -> false
+            }
+        }
         vm.tags.collectOnStart(viewLifecycleOwner) { onTagLoadSuccess(it) }
         vm.fail.collectOnStart(viewLifecycleOwner) { onTagLoadFail() }
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        super.onCreateOptionsMenu(menu, inflater)
-        inflater.inflate(R.menu.menu_comic, menu)
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.comic_filter -> {
-                showProgressDialog()
-                tagList.clear()
-                vm.loadTag()
-            }
-            R.id.comic_search -> (activity as? MainActivity)?.openSearch()
-            R.id.comic_bbs -> {
-                try {
-                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.home_page_gitter_url))))
-                } catch (_: Exception) {
-                }
-            }
-            R.id.comic_cancel_highlight -> {
-                (childFragmentManager.findFragmentByTag(TAG_FAVORITE) as? FavoriteFragment)?.cancelAllHighlight()
-            }
-            else -> return super.onOptionsItemSelected(item)
-        }
-        return true
     }
 
     override fun onDialogResult(requestCode: Int, bundle: Bundle) {
@@ -181,9 +179,8 @@ class LibraryFragment : BaseFragment(), DialogCaller, ThemeResponsive {
         tagList.add(Tag(TagManager.TAG_CONTINUE, getString(R.string.comic_status_continue)))
         tagList.addAll(list)
         val items = Array(tagList.size) { tagList[it].title }
-        val fragment = ItemDialogFragment.newInstance(R.string.comic_tag_select, items, DIALOG_REQUEST_FILTER)
-        fragment.setTargetFragment(this, 0)
-        fragment.show(requireActivity().supportFragmentManager, null)
+        ItemDialogFragment.newInstance(R.string.comic_tag_select, items, DIALOG_REQUEST_FILTER)
+            .showForCaller(this)
     }
 
     private fun onTagLoadFail() {

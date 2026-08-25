@@ -5,9 +5,6 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.KeyEvent
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.ArrayAdapter
@@ -26,8 +23,10 @@ import com.haleydu.cimoc.model.Source
 import com.haleydu.cimoc.ui.search.ResultActivity
 import com.haleydu.cimoc.ui.search.SearchViewModel
 import com.haleydu.cimoc.ui.search.AutoCompleteAdapter
+import com.haleydu.cimoc.ui.common.addMenu
 import com.haleydu.cimoc.ui.common.collectOnStart
 import com.haleydu.cimoc.ui.common.dialog.MultiAdpaterDialogFragment
+import com.haleydu.cimoc.ui.common.dialog.showForCaller
 import com.haleydu.cimoc.utils.CollectionUtils
 import com.haleydu.cimoc.utils.HintUtils
 import dagger.hilt.android.AndroidEntryPoint
@@ -50,7 +49,6 @@ class SearchFragment : BaseFragment(), DialogCaller, ThemeResponsive, TextView.O
 
     override fun initView() {
         val binding = binding ?: return
-        setHasOptionsMenu(true)
         autoComplete = mPreference.getBoolean(PreferenceManager.PREF_SEARCH_AUTO_COMPLETE, false)
         binding.searchKeywordInput.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
@@ -82,42 +80,35 @@ class SearchFragment : BaseFragment(), DialogCaller, ThemeResponsive, TextView.O
     }
 
     override fun initData() {
+        addMenu(R.menu.menu_search, onCreate = { menu ->
+            menu.findItem(R.id.search_menu_strict)?.isChecked = vm.strictSearch
+        }) { item ->
+            when (item.itemId) {
+                R.id.search_menu_source -> {
+                    if (sourceList.isEmpty()) return@addMenu true
+                    val titles = Array(sourceList.size) { sourceList[it].element.title }
+                    val checks = BooleanArray(sourceList.size) { sourceList[it].isEnable }
+                    MultiAdpaterDialogFragment.newInstance(
+                        R.string.search_source_select,
+                        titles,
+                        checks,
+                        DIALOG_REQUEST_SOURCE
+                    ).showForCaller(this)
+                    true
+                }
+                R.id.search_menu_strict -> {
+                    item.isChecked = !item.isChecked
+                    vm.strictSearch = item.isChecked
+                    true
+                }
+                else -> false
+            }
+        }
         vm.sources.collectOnStart(viewLifecycleOwner) { onSourceLoadSuccess(it) }
         vm.sourceFail.collectOnStart(viewLifecycleOwner) { onSourceLoadFail() }
         vm.autoComplete.collectOnStart(viewLifecycleOwner) { onAutoCompleteLoadSuccess(it) }
         vm.history.collectOnStart(viewLifecycleOwner) { bindHistoryChips(it) }
         vm.loadSource()
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        super.onCreateOptionsMenu(menu, inflater)
-        inflater.inflate(R.menu.menu_search, menu)
-        menu.findItem(R.id.search_menu_strict)?.isChecked = vm.strictSearch
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.search_menu_source -> {
-                if (sourceList.isEmpty()) return true
-                val titles = Array(sourceList.size) { sourceList[it].element.title }
-                val checks = BooleanArray(sourceList.size) { sourceList[it].isEnable }
-                val fragment = MultiAdpaterDialogFragment.newInstance(
-                    R.string.search_source_select,
-                    titles,
-                    checks,
-                    DIALOG_REQUEST_SOURCE
-                )
-                fragment.setTargetFragment(this, 0)
-                fragment.show(requireActivity().supportFragmentManager, null)
-                return true
-            }
-            R.id.search_menu_strict -> {
-                item.isChecked = !item.isChecked
-                vm.strictSearch = item.isChecked
-                return true
-            }
-        }
-        return super.onOptionsItemSelected(item)
     }
 
     override fun onDialogResult(requestCode: Int, bundle: Bundle) {

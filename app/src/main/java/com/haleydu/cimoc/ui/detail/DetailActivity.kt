@@ -7,7 +7,9 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.core.content.IntentCompat
 import androidx.appcompat.app.AlertDialog
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
@@ -53,6 +55,17 @@ class DetailActivity : BackActivity(), BaseAdapter.OnItemClickListener, BaseAdap
 
     @Inject
     lateinit var httpClient: OkHttpClient
+
+    private val downloadLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
+        showProgressDialog()
+        val list = ChapterListHolder.take()
+            ?: result.data?.let {
+                IntentCompat.getParcelableArrayListExtra(it, Extra.EXTRA_CHAPTER, Chapter::class.java)
+            }
+            ?: return@registerForActivityResult
+        vm.addTask(detailAdapter.dateSet, list)
+    }
 
     override fun inflateContentView(): View {
         binding = ActivityDetailBinding.inflate(layoutInflater)
@@ -166,7 +179,7 @@ class DetailActivity : BackActivity(), BaseAdapter.OnItemClickListener, BaseAdap
             R.id.detail_download -> {
                 if (detailAdapter.dateSet.isNotEmpty()) {
                     val intent = ChapterActivity.createIntent(this, ArrayList(detailAdapter.dateSet))
-                    startActivityForResult(intent, REQUEST_CODE_DOWNLOAD)
+                    downloadLauncher.launch(intent)
                 }
             }
             R.id.detail_tag -> {
@@ -195,17 +208,6 @@ class DetailActivity : BackActivity(), BaseAdapter.OnItemClickListener, BaseAdap
             R.id.detail_reverse_list -> detailAdapter.reverse()
         }
         return super.onOptionsItemSelected(item)
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode == Activity.RESULT_OK && requestCode == REQUEST_CODE_DOWNLOAD) {
-            showProgressDialog()
-            val list = ChapterListHolder.take()
-                ?: data?.getParcelableArrayListExtra<Chapter>(Extra.EXTRA_CHAPTER)
-                ?: return
-            vm.addTask(detailAdapter.dateSet, list)
-        }
     }
 
     override fun onItemClick(view: View, position: Int) {

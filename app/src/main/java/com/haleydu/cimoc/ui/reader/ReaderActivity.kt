@@ -7,6 +7,7 @@ import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.graphics.Color
 import android.graphics.Point
+import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
@@ -20,6 +21,7 @@ import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
+import androidx.core.content.IntentCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import coil.ImageLoader
@@ -30,6 +32,7 @@ import com.haleydu.cimoc.global.Extra
 import com.haleydu.cimoc.data.PreferenceManager
 import com.haleydu.cimoc.model.Chapter
 import com.haleydu.cimoc.model.ImageUrl
+import com.haleydu.cimoc.source.Tencent
 import com.haleydu.cimoc.ui.common.BaseActivity
 import com.haleydu.cimoc.ui.search.ResultActivity
 import com.haleydu.cimoc.ui.common.collectOnStart
@@ -248,7 +251,7 @@ abstract class ReaderActivity : BaseActivity(), OnTapGestureListener,
             val id = intent.getLongExtra(Extra.EXTRA_ID, -1)
             val list = ChapterListHolder.get(id)
                 ?: ChapterListHolder.get()
-                ?: intent.getParcelableArrayListExtra<Chapter>(Extra.EXTRA_CHAPTER)
+                ?: IntentCompat.getParcelableArrayListExtra(intent, Extra.EXTRA_CHAPTER, Chapter::class.java)
             vm.loadInit(id, list?.toTypedArray() ?: emptyArray())
         } catch (e: Exception) {
             e.printStackTrace()
@@ -278,7 +281,7 @@ abstract class ReaderActivity : BaseActivity(), OnTapGestureListener,
     }
 
     fun onBackClick() {
-        onBackPressed()
+        onBackPressedDispatcher.onBackPressed()
     }
 
     abstract override fun onProgressChanged(seekBar: DiscreteSeekBar, value: Int, fromUser: Boolean)
@@ -423,14 +426,22 @@ abstract class ReaderActivity : BaseActivity(), OnTapGestureListener,
         }
         mLoadingText.visibility = View.GONE
         mRecyclerView.visibility = View.VISIBLE
+        max = list.size
         this.pageProgress = progress.coerceAtLeast(1)
         updateProgress()
         mSourceBtn?.visibility = if (local) View.GONE else View.VISIBLE
         prefetchAround((progress - 1).coerceAtLeast(0))
+        if (source == Tencent.TYPE && list.isNotEmpty() &&
+            (list.size == 1 || list.any { it.isPreview })
+        ) {
+            HintUtils.showToast(this, R.string.reader_tencent_preview)
+        }
     }
 
     fun onChapterChange(chapter: Chapter) {
-        max = chapter.count
+        if (chapter.count > 0) {
+            max = chapter.count
+        }
         val title = chapter.title
         val titleLengthMax = 15
         mChapterTitle.text = if (title.length > titleLengthMax) {
@@ -453,7 +464,9 @@ abstract class ReaderActivity : BaseActivity(), OnTapGestureListener,
     }
 
     fun onPictureSaveSuccess(uri: Uri) {
-        sendBroadcast(Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, uri))
+        uri.path?.let { path ->
+            MediaScannerConnection.scanFile(this, arrayOf(path), null, null)
+        }
         isSavingPicture = false
         HintUtils.showToast(this, R.string.reader_picture_save_success)
     }
@@ -528,9 +541,13 @@ abstract class ReaderActivity : BaseActivity(), OnTapGestureListener,
         doClickEvent(getValue(x, y, true))
     }
 
+    protected fun windowSize(): Point {
+        val metrics = resources.displayMetrics
+        return Point(metrics.widthPixels, metrics.heightPixels)
+    }
+
     private fun getValue(x: Float, y: Float, isLong: Boolean): Int {
-        val point = Point()
-        windowManager.defaultDisplay.getSize(point)
+        val point = windowSize()
         var position = getCurPosition()
         if (position == -1) {
             position = mLayoutManager.findFirstVisibleItemPosition()

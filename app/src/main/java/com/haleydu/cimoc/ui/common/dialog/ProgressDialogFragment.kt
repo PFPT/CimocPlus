@@ -1,5 +1,4 @@
 package com.haleydu.cimoc.ui.common.dialog
-import android.graphics.PorterDuff
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -8,6 +7,8 @@ import android.view.Window
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.BlendModeColorFilterCompat
+import androidx.core.graphics.BlendModeCompat
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
 import com.haleydu.cimoc.R
@@ -31,9 +32,9 @@ class ProgressDialogFragment : DialogFragment() {
         dialog?.requestWindowFeature(Window.FEATURE_NO_TITLE)
         isCancelable = false
         val resId = ThemeUtils.getResourceId(activity, R.attr.colorAccent)
-        progressBar?.indeterminateDrawable?.setColorFilter(
+        progressBar?.indeterminateDrawable?.colorFilter = BlendModeColorFilterCompat.createBlendModeColorFilterCompat(
             ContextCompat.getColor(requireActivity(), resId),
-            PorterDuff.Mode.SRC_ATOP
+            BlendModeCompat.SRC_ATOP
         )
         collectJob = viewLifecycleOwner.lifecycleScope.launch {
             AppEventBus.observe(AppEvent.EVENT_DIALOG_PROGRESS).collect { event ->

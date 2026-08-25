@@ -1,6 +1,5 @@
 package com.haleydu.cimoc.ui.reader
 
-import android.graphics.Point
 import android.view.View
 import androidx.recyclerview.widget.RecyclerView
 import com.haleydu.cimoc.R
@@ -87,8 +86,7 @@ class StreamReaderActivity : ReaderActivity() {
     }
 
     override fun prevPage() {
-        val point = Point()
-        windowManager.defaultDisplay.getSize(point)
+        val point = windowSize()
         if (turn == PreferenceManager.READER_TURN_ATB) {
             mRecyclerView.smoothScrollBy(0, -point.y + point.y / 5)
         } else {
@@ -100,8 +98,7 @@ class StreamReaderActivity : ReaderActivity() {
     }
 
     override fun nextPage() {
-        val point = Point()
-        windowManager.defaultDisplay.getSize(point)
+        val point = windowSize()
         if (turn == PreferenceManager.READER_TURN_ATB) {
             mRecyclerView.smoothScrollBy(0, point.y - point.y / 5)
         } else {

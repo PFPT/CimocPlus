@@ -87,6 +87,7 @@ public class Chapter implements Parcelable {
 
     }
 
+    @Ignore
     public Chapter(Long id, @NonNull Long sourceComic, String title, String path, int count, boolean complete, boolean download, long tid, String sourceGroup) {
         this.id = id;
         this.sourceComic = sourceComic;

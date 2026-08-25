@@ -2,6 +2,7 @@ package com.haleydu.cimoc.ui.settings
 import com.haleydu.cimoc.ui.common.BackActivity
 import android.content.Intent
 import android.content.pm.PackageInfo
+import androidx.core.content.pm.PackageInfoCompat
 import android.net.Uri
 import android.view.View
 import androidx.compose.foundation.clickable
@@ -85,7 +86,7 @@ private fun AboutScreen(onOpenUrl: (Int) -> Unit, vm: AboutViewModel = viewModel
     LaunchedEffect(Unit) {
         try {
             val info: PackageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            vm.setVersion(StringUtils.format("Version  %s (%s)", info.versionName, info.versionCode))
+            vm.setVersion(StringUtils.format("Version  %s (%s)", info.versionName, PackageInfoCompat.getLongVersionCode(info)))
         } catch (e: Exception) {
             e.printStackTrace()
         }

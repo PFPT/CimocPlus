@@ -14,11 +14,13 @@ import com.haleydu.cimoc.ui.search.ResultFragment
 import android.util.Log
 import android.view.View
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.ColorRes
 import androidx.annotation.StyleRes
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.pm.PackageInfoCompat
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -61,6 +63,18 @@ class MainActivity : BaseActivity(), DialogCaller {
     private var updateUrl: String? = null
     private var md5: String? = null
     private var versionCode = 0
+
+    private val settingsLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode != RESULT_OK) return@registerForActivityResult
+        val data = result.data ?: return@registerForActivityResult
+        val extra = data.getIntArrayExtra(Extra.EXTRA_RESULT) ?: return@registerForActivityResult
+        if (extra[0] == 1) {
+            changeTheme(extra[1], extra[2], extra[3])
+        }
+        if (extra[4] == 1 && mNightMask != null) {
+            mNightMask!!.setBackgroundColor(extra[5] shl 24)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         currentNavId = savedInstanceState?.getInt(STATE_NAV, R.id.nav_library) ?: R.id.nav_library
@@ -171,19 +185,6 @@ class MainActivity : BaseActivity(), DialogCaller {
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode == RESULT_OK && requestCode == REQUEST_ACTIVITY_SETTINGS && data != null) {
-            val result = data.getIntArrayExtra(Extra.EXTRA_RESULT) ?: return
-            if (result[0] == 1) {
-                changeTheme(result[1], result[2], result[3])
-            }
-            if (result[4] == 1 && mNightMask != null) {
-                mNightMask!!.setBackgroundColor(result[5] shl 24)
-            }
-        }
-    }
-
     override fun onDialogResult(requestCode: Int, bundle: Bundle) {
         when (requestCode) {
             DIALOG_REQUEST_NOTICE -> mPreference.putBoolean(PreferenceManager.PREF_MAIN_NOTICE, true)
@@ -225,7 +226,7 @@ class MainActivity : BaseActivity(), DialogCaller {
     }
 
     fun openSettings() {
-        startActivityForResult(Intent(this, SettingsActivity::class.java), REQUEST_ACTIVITY_SETTINGS)
+        settingsLauncher.launch(Intent(this, SettingsActivity::class.java))
     }
 
     fun openSearch() {
@@ -493,7 +494,7 @@ class MainActivity : BaseActivity(), DialogCaller {
     private fun checkUpdate() {
         try {
             val info = packageManager.getPackageInfo(packageName, 0)
-            vm.checkGiteeUpdate(info.versionCode)
+            vm.checkGiteeUpdate(PackageInfoCompat.getLongVersionCode(info).toInt())
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -502,7 +503,6 @@ class MainActivity : BaseActivity(), DialogCaller {
     companion object {
         private const val DIALOG_REQUEST_NOTICE = 0
         private const val DIALOG_REQUEST_PERMISSION = 1
-        private const val REQUEST_ACTIVITY_SETTINGS = 0
         private const val STATE_NAV = "cimoc.state.NAV"
         private const val TAG_LIBRARY = "main_library"
         private const val TAG_DISCOVER = "main_discover"

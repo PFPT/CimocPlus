@@ -201,7 +201,7 @@ class JsMangaParser(
         override fun getFormat(vararg args: String): String {
             val array = JSONArray()
             for (arg in args) {
-                array.put(arg ?: "")
+                array.put(arg)
             }
             return array.toString()
         }

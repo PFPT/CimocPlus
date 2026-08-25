@@ -58,8 +58,10 @@ public class MessageDialogFragment extends DialogFragment implements DialogInter
     @Override
     public void onClick(DialogInterface dialogInterface, int which) {
         int requestCode = getArguments().getInt(DialogCaller.EXTRA_DIALOG_REQUEST_CODE);
-        DialogCaller target = (DialogCaller) (getTargetFragment() != null ? getTargetFragment() : getActivity());
-        target.onDialogResult(requestCode, null);
+        DialogCaller target = DialogCaller.from(this);
+        if (target != null) {
+            target.onDialogResult(requestCode, null);
+        }
     }
 
 }

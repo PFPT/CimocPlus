@@ -1,6 +1,5 @@
 package com.haleydu.cimoc.script
 
-import app.cash.quickjs.QuickJs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -8,10 +7,14 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
+import org.mozilla.javascript.BaseFunction
+import org.mozilla.javascript.Context
+import org.mozilla.javascript.Scriptable
+import org.mozilla.javascript.ScriptableObject
+import org.mozilla.javascript.Undefined
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,18 +25,6 @@ class ScriptRunner @Inject constructor(
     private val console: JsConsole
 ) {
 
-    fun interface Fn1 {
-        fun call(a: String): String
-    }
-
-    fun interface Fn2 {
-        fun call(a: String, b: String): String
-    }
-
-    fun interface Fn3 {
-        fun call(a: String, b: String, c: String): String
-    }
-
     suspend fun invoke(script: String, function: String, vararg args: Any?): String =
         withContext(Dispatchers.IO) {
             withTimeout(TIMEOUT_MS) {
@@ -42,189 +33,186 @@ class ScriptRunner @Inject constructor(
         }
 
     fun invokeBlocking(script: String, function: String, vararg args: Any?): String {
-        val engineRef = AtomicReference<QuickJs>()
         val future = executor.submit<String> {
-            val engine = QuickJs.create()
-            engineRef.set(engine)
-            try {
-                install(engine)
-                engine.evaluate(script)
+            withEngine { context, scope ->
+                context.evaluateString(scope, script, "script", 1, null)
                 val call = "$function(${args.joinToString(",") { jsLiteral(it) }})"
-                val result = engine.evaluate("String($call)")
-                result?.toString() ?: ""
-            } finally {
-                engine.close()
-                engineRef.set(null)
+                val result = context.evaluateString(scope, "String($call)", "call", 1, null)
+                Context.toString(result) ?: ""
             }
         }
         return try {
             future.get(TIMEOUT_MS, TimeUnit.MILLISECONDS) ?: ""
         } catch (e: Exception) {
             future.cancel(true)
-            try {
-                engineRef.get()?.close()
-            } catch (_: Exception) {
-            }
             throw e
         }
     }
 
     fun hasFunction(script: String, function: String): Boolean {
-        val engine = QuickJs.create()
         return try {
-            install(engine)
-            engine.evaluate(script)
-            val result = engine.evaluate("typeof $function === 'function'")
-            result == true
+            withEngine { context, scope ->
+                context.evaluateString(scope, script, "script", 1, null)
+                val result = context.evaluateString(
+                    scope,
+                    "typeof $function === 'function'",
+                    "check",
+                    1,
+                    null
+                )
+                Context.toBoolean(result)
+            }
         } catch (_: Exception) {
             false
-        } finally {
-            engine.close()
         }
     }
 
     fun extractMeta(script: String): ScriptMeta {
-        val engine = QuickJs.create()
-        return try {
-            install(engine)
-            engine.evaluate(script)
+        return withEngine { context, scope ->
+            context.evaluateString(scope, script, "script", 1, null)
             ScriptMeta(
-                intValue(engine, "TYPE") ?: intValue(engine, "type"),
-                stringValue(engine, "TITLE") ?: stringValue(engine, "title"),
-                stringValue(engine, "VERSION") ?: stringValue(engine, "version")
+                intValue(context, scope, "TYPE") ?: intValue(context, scope, "type"),
+                stringValue(context, scope, "TITLE") ?: stringValue(context, scope, "title"),
+                stringValue(context, scope, "VERSION") ?: stringValue(context, scope, "version")
             )
-        } finally {
-            engine.close()
         }
     }
 
-    private fun install(engine: QuickJs) {
+    private fun <T> withEngine(block: (Context, Scriptable) -> T): T {
+        val context = Context.enter()
+        try {
+            context.optimizationLevel = -1
+            val scope = context.initSafeStandardObjects()
+            install(scope)
+            return block(context, scope)
+        } finally {
+            Context.exit()
+        }
+    }
+
+    private fun install(scope: Scriptable) {
         val docs = HashMap<Int, org.jsoup.nodes.Document>()
         val elements = HashMap<Int, Element>()
         val nextId = AtomicInteger(1)
-        engine.set(
-            "__httpGet",
-            Fn2::class.java,
-            Fn2 { url, headers -> httpClient.get(url, headers.takeIf { it.isNotEmpty() }) }
-        )
-        engine.set(
-            "__httpPost",
-            Fn3::class.java,
-            Fn3 { url, body, headers ->
-                httpClient.post(url, body, headers.takeIf { it.isNotEmpty() })
-            }
-        )
-        engine.set(
-            "__consoleLog",
-            Fn1::class.java,
-            Fn1 { message ->
-                console.log(message)
-                ""
-            }
-        )
-        engine.set(
-            "__jsoupParse",
-            Fn1::class.java,
-            Fn1 { html ->
-                val id = nextId.getAndIncrement()
-                docs[id] = Jsoup.parse(html)
-                id.toString()
-            }
-        )
-        engine.set(
-            "__docSelect",
-            Fn2::class.java,
-            Fn2 { id, css ->
-                val doc = docs[id.toIntOrNull() ?: 0] ?: return@Fn2 "[]"
-                val array = JSONArray()
-                doc.select(css).forEach { element ->
-                    val eid = nextId.getAndIncrement()
-                    elements[eid] = element
-                    array.put(eid)
-                }
-                array.toString()
-            }
-        )
-        engine.set(
-            "__docSelectFirst",
-            Fn2::class.java,
-            Fn2 { id, css ->
-                val doc = docs[id.toIntOrNull() ?: 0] ?: return@Fn2 ""
-                val element = doc.selectFirst(css) ?: return@Fn2 ""
+        putFn(scope, "__httpGet") { args ->
+            httpClient.get(arg(args, 0), arg(args, 1).takeIf { it.isNotEmpty() })
+        }
+        putFn(scope, "__httpPost") { args ->
+            httpClient.post(
+                arg(args, 0),
+                arg(args, 1),
+                arg(args, 2).takeIf { it.isNotEmpty() }
+            )
+        }
+        putFn(scope, "__consoleLog") { args ->
+            console.log(arg(args, 0))
+            ""
+        }
+        putFn(scope, "__jsoupParse") { args ->
+            val id = nextId.getAndIncrement()
+            docs[id] = Jsoup.parse(arg(args, 0))
+            id.toString()
+        }
+        putFn(scope, "__docSelect") { args ->
+            val doc = docs[arg(args, 0).toIntOrNull() ?: 0] ?: return@putFn "[]"
+            val array = JSONArray()
+            doc.select(arg(args, 1)).forEach { element ->
                 val eid = nextId.getAndIncrement()
                 elements[eid] = element
-                eid.toString()
+                array.put(eid)
             }
-        )
-        engine.set(
-            "__docText",
-            Fn1::class.java,
-            Fn1 { id -> docs[id.toIntOrNull() ?: 0]?.text() ?: "" }
-        )
-        engine.set(
-            "__docHtml",
-            Fn1::class.java,
-            Fn1 { id -> docs[id.toIntOrNull() ?: 0]?.html() ?: "" }
-        )
-        engine.set(
-            "__docTitle",
-            Fn1::class.java,
-            Fn1 { id -> docs[id.toIntOrNull() ?: 0]?.title() ?: "" }
-        )
-        engine.set(
-            "__elSelect",
-            Fn2::class.java,
-            Fn2 { id, css ->
-                val el = elements[id.toIntOrNull() ?: 0] ?: return@Fn2 "[]"
-                val array = JSONArray()
-                el.select(css).forEach { child ->
-                    val eid = nextId.getAndIncrement()
-                    elements[eid] = child
-                    array.put(eid)
-                }
-                array.toString()
-            }
-        )
-        engine.set(
-            "__elSelectFirst",
-            Fn2::class.java,
-            Fn2 { id, css ->
-                val el = elements[id.toIntOrNull() ?: 0] ?: return@Fn2 ""
-                val child = el.selectFirst(css) ?: return@Fn2 ""
+            array.toString()
+        }
+        putFn(scope, "__docSelectFirst") { args ->
+            val doc = docs[arg(args, 0).toIntOrNull() ?: 0] ?: return@putFn ""
+            val element = doc.selectFirst(arg(args, 1)) ?: return@putFn ""
+            val eid = nextId.getAndIncrement()
+            elements[eid] = element
+            eid.toString()
+        }
+        putFn(scope, "__docText") { args ->
+            docs[arg(args, 0).toIntOrNull() ?: 0]?.text() ?: ""
+        }
+        putFn(scope, "__docHtml") { args ->
+            docs[arg(args, 0).toIntOrNull() ?: 0]?.html() ?: ""
+        }
+        putFn(scope, "__docTitle") { args ->
+            docs[arg(args, 0).toIntOrNull() ?: 0]?.title() ?: ""
+        }
+        putFn(scope, "__elSelect") { args ->
+            val el = elements[arg(args, 0).toIntOrNull() ?: 0] ?: return@putFn "[]"
+            val array = JSONArray()
+            el.select(arg(args, 1)).forEach { child ->
                 val eid = nextId.getAndIncrement()
                 elements[eid] = child
-                eid.toString()
+                array.put(eid)
             }
-        )
-        engine.set("__elText", Fn1::class.java, Fn1 { id -> elements[id.toIntOrNull() ?: 0]?.text() ?: "" })
-        engine.set("__elOwnText", Fn1::class.java, Fn1 { id -> elements[id.toIntOrNull() ?: 0]?.ownText() ?: "" })
-        engine.set("__elHtml", Fn1::class.java, Fn1 { id -> elements[id.toIntOrNull() ?: 0]?.html() ?: "" })
-        engine.set("__elOuterHtml", Fn1::class.java, Fn1 { id -> elements[id.toIntOrNull() ?: 0]?.outerHtml() ?: "" })
-        engine.set(
-            "__elAttr",
-            Fn2::class.java,
-            Fn2 { id, name -> elements[id.toIntOrNull() ?: 0]?.attr(name) ?: "" }
-        )
-        engine.evaluate(HOST_JS)
+            array.toString()
+        }
+        putFn(scope, "__elSelectFirst") { args ->
+            val el = elements[arg(args, 0).toIntOrNull() ?: 0] ?: return@putFn ""
+            val child = el.selectFirst(arg(args, 1)) ?: return@putFn ""
+            val eid = nextId.getAndIncrement()
+            elements[eid] = child
+            eid.toString()
+        }
+        putFn(scope, "__elText") { args ->
+            elements[arg(args, 0).toIntOrNull() ?: 0]?.text() ?: ""
+        }
+        putFn(scope, "__elOwnText") { args ->
+            elements[arg(args, 0).toIntOrNull() ?: 0]?.ownText() ?: ""
+        }
+        putFn(scope, "__elHtml") { args ->
+            elements[arg(args, 0).toIntOrNull() ?: 0]?.html() ?: ""
+        }
+        putFn(scope, "__elOuterHtml") { args ->
+            elements[arg(args, 0).toIntOrNull() ?: 0]?.outerHtml() ?: ""
+        }
+        putFn(scope, "__elAttr") { args ->
+            elements[arg(args, 0).toIntOrNull() ?: 0]?.attr(arg(args, 1)) ?: ""
+        }
+        Context.getCurrentContext().evaluateString(scope, HOST_JS, "host", 1, null)
     }
 
-    private fun intValue(engine: QuickJs, name: String): Int? {
+    private fun putFn(scope: Scriptable, name: String, impl: (Array<out Any?>) -> String) {
+        ScriptableObject.putProperty(scope, name, object : BaseFunction() {
+            override fun call(
+                cx: Context,
+                scope: Scriptable,
+                thisObj: Scriptable,
+                args: Array<out Any>
+            ): Any {
+                return impl(args)
+            }
+        })
+    }
+
+    private fun arg(args: Array<out Any?>, index: Int): String {
+        if (index >= args.size) return ""
+        val value = args[index] ?: return ""
+        if (Undefined.isUndefined(value)) return ""
+        return Context.toString(value)
+    }
+
+    private fun intValue(context: Context, scope: Scriptable, name: String): Int? {
         return try {
-            val value = engine.evaluate(name) ?: return null
+            val value = context.evaluateString(scope, name, name, 1, null) ?: return null
+            if (Undefined.isUndefined(value)) return null
             when (value) {
                 is Number -> value.toInt()
                 is String -> value.toIntOrNull()
-                else -> null
+                else -> Context.toString(value).toIntOrNull()
             }
         } catch (_: Exception) {
             null
         }
     }
 
-    private fun stringValue(engine: QuickJs, name: String): String? {
+    private fun stringValue(context: Context, scope: Scriptable, name: String): String? {
         return try {
-            val value = engine.evaluate(name) ?: return null
-            val text = value.toString()
+            val value = context.evaluateString(scope, name, name, 1, null) ?: return null
+            if (Undefined.isUndefined(value)) return null
+            val text = Context.toString(value)
             text.takeIf { it.isNotBlank() && it != "undefined" && it != "null" }
         } catch (_: Exception) {
             null
@@ -251,57 +239,57 @@ class ScriptRunner @Inject constructor(
         private const val HOST_JS = """
 var http = {
   get: function(url, headers) {
-    if (headers === undefined || headers === null) return __httpGet.call(url, '');
-    return __httpGet.call(url, typeof headers === 'string' ? headers : JSON.stringify(headers));
+    if (headers === undefined || headers === null) return __httpGet(url, '');
+    return __httpGet(url, typeof headers === 'string' ? headers : JSON.stringify(headers));
   },
   post: function(url, body, headers) {
-    if (headers === undefined || headers === null) return __httpPost.call(url, body, '');
-    return __httpPost.call(url, body, typeof headers === 'string' ? headers : JSON.stringify(headers));
+    if (headers === undefined || headers === null) return __httpPost(url, body, '');
+    return __httpPost(url, body, typeof headers === 'string' ? headers : JSON.stringify(headers));
   }
 };
 var console = {
   log: function() {
     var out = [];
     for (var i = 0; i < arguments.length; i++) out.push(String(arguments[i]));
-    __consoleLog.call(out.join(' '));
+    __consoleLog(out.join(' '));
   }
 };
 function JsDocument(id) {
   this.id = id;
   this.select = function(css) {
-    var ids = JSON.parse(__docSelect.call(String(this.id), css));
+    var ids = JSON.parse(__docSelect(String(this.id), css));
     var out = [];
     for (var i = 0; i < ids.length; i++) out.push(new JsElement(ids[i]));
     return out;
   };
   this.selectFirst = function(css) {
-    var id = __docSelectFirst.call(String(this.id), css);
+    var id = __docSelectFirst(String(this.id), css);
     return id ? new JsElement(id) : null;
   };
-  this.text = function() { return __docText.call(String(this.id)); };
-  this.html = function() { return __docHtml.call(String(this.id)); };
-  this.title = function() { return __docTitle.call(String(this.id)); };
+  this.text = function() { return __docText(String(this.id)); };
+  this.html = function() { return __docHtml(String(this.id)); };
+  this.title = function() { return __docTitle(String(this.id)); };
 }
 function JsElement(id) {
   this.id = id;
   this.select = function(css) {
-    var ids = JSON.parse(__elSelect.call(String(this.id), css));
+    var ids = JSON.parse(__elSelect(String(this.id), css));
     var out = [];
     for (var i = 0; i < ids.length; i++) out.push(new JsElement(ids[i]));
     return out;
   };
   this.selectFirst = function(css) {
-    var id = __elSelectFirst.call(String(this.id), css);
+    var id = __elSelectFirst(String(this.id), css);
     return id ? new JsElement(id) : null;
   };
-  this.text = function() { return __elText.call(String(this.id)); };
-  this.ownText = function() { return __elOwnText.call(String(this.id)); };
-  this.html = function() { return __elHtml.call(String(this.id)); };
-  this.outerHtml = function() { return __elOuterHtml.call(String(this.id)); };
-  this.attr = function(name) { return __elAttr.call(String(this.id), name); };
+  this.text = function() { return __elText(String(this.id)); };
+  this.ownText = function() { return __elOwnText(String(this.id)); };
+  this.html = function() { return __elHtml(String(this.id)); };
+  this.outerHtml = function() { return __elOuterHtml(String(this.id)); };
+  this.attr = function(name) { return __elAttr(String(this.id), name); };
 }
 var jsoup = {
-  parse: function(html) { return new JsDocument(__jsoupParse.call(html)); }
+  parse: function(html) { return new JsDocument(__jsoupParse(html)); }
 };
 """
     }

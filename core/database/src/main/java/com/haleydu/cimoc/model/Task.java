@@ -67,6 +67,7 @@ public class Task implements Parcelable {
         this.state = source.readInt();
     }
 
+    @Ignore
     public Task(Long id, long key, @NonNull String path, @NonNull String title, int progress,
                 int max) {
         this.id = id;

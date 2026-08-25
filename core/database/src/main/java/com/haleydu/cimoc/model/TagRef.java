@@ -2,6 +2,7 @@ package com.haleydu.cimoc.model;
 
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
 @Entity(tableName = "TAG_REF")
@@ -15,6 +16,7 @@ public class TagRef {
     @ColumnInfo(name = "CID")
     private long cid;
 
+    @Ignore
     public TagRef(Long id, long tid, long cid) {
         this.id = id;
         this.tid = tid;

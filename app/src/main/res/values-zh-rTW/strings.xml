@@ -124,6 +124,8 @@
     <string name="reader_load_error">載入錯誤</string>
     <string name="reader_load_success">載入成功</string>
     <string name="reader_picture_loading">正在載入中..</string>
+    <string name="reader_picture_load_fail">圖片載入失敗，點擊重試</string>
+    <string name="reader_tencent_preview">此話為騰訊付費預覽，只能看到標題頁。可換拷貝漫畫等來源，或在網頁登入後再看。</string>
     <string name="reader_picture_save_success">儲存成功</string>
     <string name="reader_picture_save_fail">儲存失敗</string>
     <string name="reader_menu_catalog">目錄</string>

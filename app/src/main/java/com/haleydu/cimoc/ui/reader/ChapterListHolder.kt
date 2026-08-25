@@ -26,7 +26,7 @@ object ChapterListHolder {
 
     @JvmStatic
     @Synchronized
-    fun get(id: Long): ArrayList<Chapter>? {
+    fun get(@Suppress("UNUSED_PARAMETER") id: Long): ArrayList<Chapter>? {
         val stored = chapters ?: return null
         return ArrayList(stored)
     }

@@ -52,8 +52,10 @@ public class EditorDialogFragment extends DialogFragment implements DialogInterf
         int requestCode = getArguments().getInt(DialogCaller.EXTRA_DIALOG_REQUEST_CODE);
         Bundle bundle = new Bundle();
         bundle.putString(DialogCaller.EXTRA_DIALOG_RESULT_VALUE, mEditText.getText().toString());
-        DialogCaller target = (DialogCaller) (getTargetFragment() != null ? getTargetFragment() : getActivity());
-        target.onDialogResult(requestCode, bundle);
+        DialogCaller target = DialogCaller.from(this);
+        if (target != null) {
+            target.onDialogResult(requestCode, bundle);
+        }
     }
 
 }

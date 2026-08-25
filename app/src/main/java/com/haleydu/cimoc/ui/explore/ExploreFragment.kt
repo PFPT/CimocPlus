@@ -2,9 +2,6 @@ package com.haleydu.cimoc.ui.explore
 import com.haleydu.cimoc.ui.common.BaseFragment
 import android.graphics.Rect
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
@@ -30,6 +27,7 @@ import com.haleydu.cimoc.ui.explore.CategoryAdapter
 import com.haleydu.cimoc.ui.explore.ExploreLoadAdapter
 import com.haleydu.cimoc.ui.common.GridAdapter
 import com.haleydu.cimoc.ui.explore.RecommendAdapter
+import com.haleydu.cimoc.ui.common.addMenu
 import com.haleydu.cimoc.ui.common.collectOnStart
 import com.haleydu.cimoc.utils.HintUtils
 import dagger.hilt.android.AndroidEntryPoint
@@ -67,7 +65,6 @@ class ExploreFragment : BaseFragment(), BaseAdapter.OnItemClickListener, ThemeRe
     }
 
     override fun initView() {
-        setHasOptionsMenu(true)
         val binding = binding ?: return
         filterGroups = listOf(
             binding.exploreSubject,
@@ -194,6 +191,14 @@ class ExploreFragment : BaseFragment(), BaseAdapter.OnItemClickListener, ThemeRe
     }
 
     override fun initData() {
+        addMenu(R.menu.menu_explore) { item ->
+            if (item.itemId == R.id.explore_search) {
+                openSearch()
+                true
+            } else {
+                false
+            }
+        }
         vm.sources.collectOnStart(viewLifecycleOwner) { bindSources(it) }
         vm.comics.collectOnStart(viewLifecycleOwner) { comics ->
             recommendAdapter.setComics(comics.mapNotNull { it as? MiniComic })
@@ -218,19 +223,6 @@ class ExploreFragment : BaseFragment(), BaseAdapter.OnItemClickListener, ThemeRe
         }
         val source = arguments?.getInt(Extra.EXTRA_SOURCE, -1) ?: -1
         vm.setup(source)
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        super.onCreateOptionsMenu(menu, inflater)
-        inflater.inflate(R.menu.menu_explore, menu)
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == R.id.explore_search) {
-            openSearch()
-            return true
-        }
-        return super.onOptionsItemSelected(item)
     }
 
     override fun onDestroyView() {

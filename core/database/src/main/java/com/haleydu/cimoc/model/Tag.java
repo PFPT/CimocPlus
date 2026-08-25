@@ -3,6 +3,7 @@ package com.haleydu.cimoc.model;
 import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
 @Entity(tableName = "TAG")
@@ -15,6 +16,7 @@ public class Tag {
     @ColumnInfo(name = "TITLE")
     private String title;
 
+    @Ignore
     public Tag(Long id, @NonNull String title) {
         this.id = id;
         this.title = title;

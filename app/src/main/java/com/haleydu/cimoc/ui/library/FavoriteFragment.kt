@@ -12,6 +12,7 @@ import com.haleydu.cimoc.model.MiniComic
 import com.haleydu.cimoc.event.AppEventBus
 import com.haleydu.cimoc.event.AppEvent
 import com.haleydu.cimoc.ui.common.dialog.MessageDialogFragment
+import com.haleydu.cimoc.ui.common.dialog.showForCaller
 import com.haleydu.cimoc.utils.HintUtils
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
@@ -88,8 +89,7 @@ class FavoriteFragment : GridFragment() {
                         true,
                         DIALOG_REQUEST_DELETE
                     )
-                    fragment.setTargetFragment(this, 0)
-                    fragment.show(requireActivity().supportFragmentManager, null)
+                    fragment.showForCaller(this)
                 }
             }
             DIALOG_REQUEST_UPDATE -> checkUpdate()
@@ -129,8 +129,7 @@ class FavoriteFragment : GridFragment() {
             true,
             DIALOG_REQUEST_UPDATE
         )
-        fragment.setTargetFragment(this, 0)
-        fragment.show(requireActivity().supportFragmentManager, null)
+        fragment.showForCaller(this)
     }
 
     private fun maybeAutoCheckUpdate() {
@@ -148,16 +147,16 @@ class FavoriteFragment : GridFragment() {
         }
     }
 
-    fun OnComicFavorite(comic: MiniComic) {
+    fun OnComicFavorite(@Suppress("UNUSED_PARAMETER") comic: MiniComic) {
     }
 
-    fun OnComicRestore(list: List<Any>) {
+    fun OnComicRestore(@Suppress("UNUSED_PARAMETER") list: List<Any>) {
     }
 
-    fun OnComicUnFavorite(id: Long) {
+    fun OnComicUnFavorite(@Suppress("UNUSED_PARAMETER") id: Long) {
     }
 
-    fun onComicCheckSuccess(comic: MiniComic?, progress: Int, max: Int) {
+    fun onComicCheckSuccess(@Suppress("UNUSED_PARAMETER") comic: MiniComic?, progress: Int, max: Int) {
         notification?.post(progress, max)
     }
 
@@ -172,10 +171,10 @@ class FavoriteFragment : GridFragment() {
         notification = null
     }
 
-    fun onHighlightCancel(comic: MiniComic) {
+    fun onHighlightCancel(@Suppress("UNUSED_PARAMETER") comic: MiniComic) {
     }
 
-    fun onComicRead(comic: MiniComic) {
+    fun onComicRead(@Suppress("UNUSED_PARAMETER") comic: MiniComic) {
     }
 
     override fun getActionButtonRes(): Int = R.drawable.ic_sync_white_24dp

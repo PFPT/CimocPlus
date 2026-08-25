@@ -22,6 +22,7 @@ import com.haleydu.cimoc.ui.common.BaseFragment
 import com.haleydu.cimoc.ui.common.collectOnStart
 import com.haleydu.cimoc.model.Comic
 import com.haleydu.cimoc.ui.common.dialog.ItemDialogFragment
+import com.haleydu.cimoc.ui.common.dialog.showForCaller
 import com.haleydu.cimoc.ui.detail.DetailActivity
 import com.haleydu.cimoc.ui.main.MainActivity
 import com.haleydu.cimoc.utils.HintUtils
@@ -81,9 +82,10 @@ class ResultFragment : BaseFragment(), BaseAdapter.OnItemClickListener, DialogCa
             }
         })
         bind.resultRecyclerView.adapter = adapter
-        bind.resultFilterChips.setOnCheckedChangeListener { _, checkedId ->
-            if (checkedId == View.NO_ID) return@setOnCheckedChangeListener
-            val chip = bind.resultFilterChips.findViewById<Chip>(checkedId) ?: return@setOnCheckedChangeListener
+        bind.resultFilterChips.setOnCheckedStateChangeListener { _, checkedIds ->
+            val checkedId = checkedIds.firstOrNull() ?: View.NO_ID
+            if (checkedId == View.NO_ID) return@setOnCheckedStateChangeListener
+            val chip = bind.resultFilterChips.findViewById<Chip>(checkedId) ?: return@setOnCheckedStateChangeListener
             val source = chip.tag as? Int ?: ResultViewModel.FILTER_ALL
             vm.setFilter(source)
         }
@@ -115,9 +117,8 @@ class ResultFragment : BaseFragment(), BaseAdapter.OnItemClickListener, DialogCa
         }
         pendingGroup = group
         val titles = Array(comics.size) { vm.titleGetter().getTitle(comics[it].source) }
-        val fragment = ItemDialogFragment.newInstance(R.string.result_source_pick, titles, DIALOG_SOURCE)
-        fragment.setTargetFragment(this, 0)
-        fragment.show(parentFragmentManager, null)
+        ItemDialogFragment.newInstance(R.string.result_source_pick, titles, DIALOG_SOURCE)
+            .showForCaller(this)
     }
 
     override fun onDialogResult(requestCode: Int, bundle: Bundle) {

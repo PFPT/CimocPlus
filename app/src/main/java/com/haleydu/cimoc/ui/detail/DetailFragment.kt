@@ -1,6 +1,5 @@
 package com.haleydu.cimoc.ui.detail
 
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -9,8 +8,10 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.IntentCompat
 import androidx.core.os.bundleOf
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
@@ -59,6 +60,17 @@ class DetailFragment : BaseFragment(), BaseAdapter.OnItemClickListener, BaseAdap
 
     @Inject
     lateinit var httpClient: OkHttpClient
+
+    private val downloadLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode != android.app.Activity.RESULT_OK) return@registerForActivityResult
+        showProgressDialog()
+        val list = ChapterListHolder.take()
+            ?: result.data?.let {
+                IntentCompat.getParcelableArrayListExtra(it, Extra.EXTRA_CHAPTER, Chapter::class.java)
+            }
+            ?: return@registerForActivityResult
+        vm.addTask(detailAdapter.dateSet, list)
+    }
 
     override fun getLayoutRes(): Int = R.layout.activity_detail
 
@@ -186,7 +198,7 @@ class DetailFragment : BaseFragment(), BaseAdapter.OnItemClickListener, BaseAdap
             R.id.detail_download -> {
                 if (detailAdapter.dateSet.isNotEmpty()) {
                     val intent = ChapterActivity.createIntent(requireActivity(), ArrayList(detailAdapter.dateSet))
-                    startActivityForResult(intent, DetailActivity.REQUEST_CODE_DOWNLOAD)
+                    downloadLauncher.launch(intent)
                 }
             }
             R.id.detail_tag -> {
@@ -209,17 +221,6 @@ class DetailFragment : BaseFragment(), BaseAdapter.OnItemClickListener, BaseAdap
             else -> return false
         }
         return true
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode == Activity.RESULT_OK && requestCode == DetailActivity.REQUEST_CODE_DOWNLOAD) {
-            showProgressDialog()
-            val list = ChapterListHolder.take()
-                ?: data?.getParcelableArrayListExtra<Chapter>(Extra.EXTRA_CHAPTER)
-                ?: return
-            vm.addTask(detailAdapter.dateSet, list)
-        }
     }
 
     private fun onReadClick() {
@@ -363,14 +364,12 @@ class DetailFragment : BaseFragment(), BaseAdapter.OnItemClickListener, BaseAdap
         }
 
         private fun Bundle?.intArg(key: String, fallbackKey: String): Int {
-            val raw = this?.let {
-                when {
-                    it.containsKey(key) -> it.get(key)
-                    it.containsKey(fallbackKey) -> it.get(fallbackKey)
-                    else -> null
-                }
+            this ?: return -1
+            return when {
+                containsKey(key) -> getInt(key, -1)
+                containsKey(fallbackKey) -> getInt(fallbackKey, -1)
+                else -> -1
             }
-            return raw as? Int ?: -1
         }
     }
 }

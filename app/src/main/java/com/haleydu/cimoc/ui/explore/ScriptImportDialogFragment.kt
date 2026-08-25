@@ -39,8 +39,7 @@ class ScriptImportDialogFragment : DialogFragment(), DialogInterface.OnClickList
         val requestCode = requireArguments().getInt(DialogCaller.EXTRA_DIALOG_REQUEST_CODE)
         val bundle = Bundle()
         bundle.putString(DialogCaller.EXTRA_DIALOG_RESULT_VALUE, editText.text.toString())
-        val target = (targetFragment ?: activity) as DialogCaller
-        target.onDialogResult(requestCode, bundle)
+        DialogCaller.from(this)?.onDialogResult(requestCode, bundle)
     }
 
     companion object {

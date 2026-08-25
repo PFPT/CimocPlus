@@ -10,7 +10,9 @@ import android.os.IBinder
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.core.content.IntentCompat
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -81,6 +83,23 @@ class TaskActivity : BackActivity(), DialogCaller {
     private var lastPath by mutableStateOf<String?>(null)
     private var showDetailFab by mutableStateOf(true)
     private var showPlayFab by mutableStateOf(true)
+
+    private val deleteLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
+        val list = ChapterListHolder.take()
+            ?: result.data?.let {
+                IntentCompat.getParcelableArrayListExtra(it, Extra.EXTRA_CHAPTER, Chapter::class.java)
+            }
+        if (list != null && list.isNotEmpty()) {
+            showProgressDialog()
+            for (chapter in list) {
+                binder?.service?.removeDownload(chapter.tid)
+            }
+            vm.deleteTask(list, tasks.size == list.size)
+        } else {
+            showSnackbar(R.string.task_empty)
+        }
+    }
 
     override fun inflateContentView(): View {
         binding = ActivityComposeBinding.inflate(layoutInflater)
@@ -173,7 +192,7 @@ class TaskActivity : BackActivity(), DialogCaller {
                         val id = (sourceComic.toString() + "000" + i).toLong()
                         list.add(Chapter(id, sourceComic, task.title, task.path, task.id))
                     }
-                    startActivityForResult(ChapterActivity.createIntent(this, list), REQUEST_CODE_DELETE)
+                    deleteLauncher.launch(ChapterActivity.createIntent(this, list))
                 }
                 R.id.detail_search_title -> {
                     if (!StringUtils.isEmpty(vm.comic?.title)) {
@@ -230,23 +249,6 @@ class TaskActivity : BackActivity(), DialogCaller {
                     }
                     vm.deleteTask(list, tasks.size == 1)
                 }
-            }
-        }
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode == Activity.RESULT_OK && requestCode == REQUEST_CODE_DELETE) {
-            val list = ChapterListHolder.take()
-                ?: data?.getParcelableArrayListExtra<Chapter>(Extra.EXTRA_CHAPTER)
-            if (list != null && list.isNotEmpty()) {
-                showProgressDialog()
-                for (chapter in list) {
-                    binder?.service?.removeDownload(chapter.tid)
-                }
-                vm.deleteTask(list, tasks.size == list.size)
-            } else {
-                showSnackbar(R.string.task_empty)
             }
         }
     }
@@ -400,7 +402,6 @@ class TaskActivity : BackActivity(), DialogCaller {
     override fun getLayoutRes(): Int = R.layout.activity_compose
 
     companion object {
-        private const val REQUEST_CODE_DELETE = 0
         private const val DIALOG_REQUEST_OPERATION = 1
         private const val OPERATION_READ = 0
         private const val OPERATION_DELETE = 1
