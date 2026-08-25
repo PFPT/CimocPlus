@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
+import android.os.Looper;
+import androidx.core.content.IntentCompat;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -41,7 +43,7 @@ public class ChapterActivity extends BackActivity implements BaseAdapter.OnItemC
     private ChapterAdapter mChapterAdapter;
     private boolean isAscendMode;
     private boolean isButtonMode;
-    private Handler mHandler = new Handler();
+    private Handler mHandler = new Handler(Looper.getMainLooper());
     private RecyclerView.OnItemTouchListener mListener = new CustomTouchListener();
     private RecyclerView.ItemDecoration mDecoration;
 
@@ -82,7 +84,7 @@ public class ChapterActivity extends BackActivity implements BaseAdapter.OnItemC
         isAscendMode = mPreference.getBoolean(PreferenceManager.PREF_CHAPTER_ASCEND_MODE, false);
         List<Chapter> list = ChapterListHolder.get();
         if (list == null) {
-            list = getIntent().getParcelableArrayListExtra(Extra.EXTRA_CHAPTER);
+            list = IntentCompat.getParcelableArrayListExtra(getIntent(), Extra.EXTRA_CHAPTER, Chapter.class);
         }
         if (list == null) {
             list = new ArrayList<>();

@@ -21,9 +21,6 @@ class DetailAdapter(
     list: MutableList<Chapter>
 ) : BaseAdapter<Chapter>(context, list) {
 
-    var reversed: Boolean = false
-        private set
-
     private var last: String? = null
     private val textPaint = TextPaint().apply {
         typeface = Typeface.DEFAULT_BOLD
@@ -81,11 +78,6 @@ class DetailAdapter(
                 }
             }
         }
-    }
-
-    override fun reverse() {
-        reversed = !reversed
-        super.reverse()
     }
 
     fun isFirst(position: Int): Boolean {

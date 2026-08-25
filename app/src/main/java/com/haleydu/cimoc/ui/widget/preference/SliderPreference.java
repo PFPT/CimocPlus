@@ -68,9 +68,10 @@ public class SliderPreference extends Option implements View.OnClickListener {
         if (mFragmentManager != null) {
             SliderDialogFragment fragment = SliderDialogFragment.newInstance(mTitle, mMin, mMax, mValue, mRequestCode);
             if (mTargetFragment != null) {
-                fragment.setTargetFragment(mTargetFragment, 0);
+                fragment.show(mTargetFragment.getChildFragmentManager(), null);
+            } else {
+                fragment.show(mFragmentManager, null);
             }
-            fragment.show(mFragmentManager, null);
         }
     }
 

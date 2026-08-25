@@ -2,12 +2,13 @@ package com.haleydu.cimoc.ui.widget;
 
 import android.content.Context;
 import android.os.Handler;
+import android.os.Looper;
 import android.widget.Toast;
 
 public class CustomToast {
 
     private static Toast mToast;
-    private static Handler mHandler = new Handler();
+    private static Handler mHandler = new Handler(Looper.getMainLooper());
     private static Runnable r = new Runnable() {
         public void run() {
             mToast.cancel();

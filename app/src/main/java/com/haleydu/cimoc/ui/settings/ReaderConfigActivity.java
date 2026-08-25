@@ -1,7 +1,8 @@
 package com.haleydu.cimoc.ui.settings;
 import android.os.Bundle;
 import com.google.android.material.tabs.TabLayout;
-import androidx.viewpager.widget.ViewPager;
+import com.google.android.material.tabs.TabLayoutMediator;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.haleydu.cimoc.R;
 import com.haleydu.cimoc.component.DialogCaller;
@@ -10,18 +11,11 @@ import com.haleydu.cimoc.global.ClickEvents;
 import com.haleydu.cimoc.ui.common.BackActivity;
 import com.haleydu.cimoc.ui.common.TabPagerAdapter;
 import com.haleydu.cimoc.ui.common.BaseFragment;
-import com.haleydu.cimoc.ui.settings.PageConfigFragment;
-import com.haleydu.cimoc.ui.settings.StreamConfigFragment;
-
-
-/**
- * Created by Hiroshi on 2016/10/14.
- */
 
 public class ReaderConfigActivity extends BackActivity implements DialogCaller {
 
     TabLayout mTabLayout;
-    ViewPager mViewPager;
+    ViewPager2 mViewPager;
     private ActivityReaderConfigBinding binding;
 
     private String[] mKeyArray;
@@ -29,41 +23,31 @@ public class ReaderConfigActivity extends BackActivity implements DialogCaller {
 
     @Override
     protected void initView() {
-        mTabLayout.addTab(mTabLayout.newTab().setText(R.string.reader_config_page));
-        mTabLayout.addTab(mTabLayout.newTab().setText(R.string.reader_config_stream));
-        TabPagerAdapter tabAdapter = new TabPagerAdapter(getSupportFragmentManager(),
+        TabPagerAdapter tabAdapter = new TabPagerAdapter(this,
                 new BaseFragment[]{new PageConfigFragment(), new StreamConfigFragment()},
                 new String[]{getString(R.string.reader_config_page), getString(R.string.reader_config_stream)});
         mViewPager.setOffscreenPageLimit(1);
         mViewPager.setAdapter(tabAdapter);
-        mTabLayout.setupWithViewPager(mViewPager);
-        boolean isStream = mViewPager.getCurrentItem() == 1;
+        new TabLayoutMediator(mTabLayout, mViewPager, (tab, position) ->
+                tab.setText(tabAdapter.getPageTitle(position))).attach();
+        updateClickEvents(mViewPager.getCurrentItem());
+        mViewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                updateClickEvents(position);
+            }
+        });
+    }
+
+    private void updateClickEvents(int position) {
+        boolean isStream = position == 1;
         if (isStream) {
-            mKeyArray =  ClickEvents.getStreamClickEvents();
+            mKeyArray = ClickEvents.getStreamClickEvents();
             mChoiceArray = ClickEvents.getStreamClickEventChoice(mPreference);
         } else {
             mKeyArray = ClickEvents.getPageClickEvents();
             mChoiceArray = ClickEvents.getPageClickEventChoice(mPreference);
         }
-        mViewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
-            @Override
-            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) { }
-
-            @Override
-            public void onPageSelected(int position) {
-                boolean isStream = position == 1;
-                if (isStream) {
-                    mKeyArray =  ClickEvents.getStreamClickEvents();
-                    mChoiceArray = ClickEvents.getStreamClickEventChoice(mPreference);
-                } else {
-                    mKeyArray = ClickEvents.getPageClickEvents();
-                    mChoiceArray = ClickEvents.getPageClickEventChoice(mPreference);
-                }
-            }
-
-            @Override
-            public void onPageScrollStateChanged(int state) { }
-        });
     }
 
     @Override

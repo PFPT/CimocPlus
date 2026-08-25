@@ -76,7 +76,6 @@ public class DecryptionUtils {
      * @param jsCode  js代码
      * @param varName 返回的变量
      */
-    @Deprecated
     public static String evalDecrypt(String jsCode, String varName) {
         Context rhino = Context.enter();
         try {

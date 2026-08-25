@@ -11,7 +11,6 @@ import androidx.multidex.MultiDex;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.util.DisplayMetrics;
-import android.view.WindowManager;
 
 import com.haleydu.cimoc.utils.FrescoUtils;
 import com.haleydu.cimoc.component.AppGetter;
@@ -173,8 +172,7 @@ public class App extends MultiDexApplication implements AppGetter, Thread.Uncaug
     }
 
     private void initPixels() {
-        DisplayMetrics metrics = new DisplayMetrics();
-        ((WindowManager) getSystemService(WINDOW_SERVICE)).getDefaultDisplay().getMetrics(metrics);
+        DisplayMetrics metrics = getResources().getDisplayMetrics();
         mWidthPixels = metrics.widthPixels;
         mHeightPixels = metrics.heightPixels;
         mCoverWidthPixels = mWidthPixels / 3;

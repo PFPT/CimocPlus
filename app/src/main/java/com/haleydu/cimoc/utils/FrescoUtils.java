@@ -16,7 +16,7 @@ import com.facebook.datasource.BaseDataSubscriber;
 import com.facebook.datasource.DataSource;
 import com.facebook.drawee.backends.pipeline.Fresco;
 import com.facebook.drawee.backends.pipeline.PipelineDraweeController;
-import com.facebook.drawee.controller.BaseControllerListener;
+import com.facebook.drawee.controller.ControllerListener;
 import com.facebook.drawee.generic.RoundingParams;
 import com.facebook.drawee.view.SimpleDraweeView;
 import com.facebook.imagepipeline.cache.CountingMemoryCache;
@@ -25,11 +25,13 @@ import com.facebook.imagepipeline.cache.ImageCacheStatsTracker;
 import com.facebook.imagepipeline.cache.MemoryCache;
 import com.facebook.imagepipeline.common.Priority;
 import com.facebook.imagepipeline.common.ResizeOptions;
+import com.facebook.imagepipeline.common.RotationOptions;
 import com.facebook.imagepipeline.core.ImagePipeline;
 import com.facebook.imagepipeline.core.ImagePipelineConfig;
 import com.facebook.imagepipeline.core.ImagePipelineFactory;
 import com.facebook.imagepipeline.datasource.BaseBitmapDataSubscriber;
 import com.facebook.imagepipeline.image.CloseableImage;
+import com.facebook.imagepipeline.image.ImageInfo;
 import com.facebook.imagepipeline.request.BasePostprocessor;
 import com.facebook.imagepipeline.request.ImageRequest;
 import com.facebook.imagepipeline.request.ImageRequestBuilder;
@@ -87,28 +89,28 @@ public class FrescoUtils {
      * @param listener
      */
     public static void loadUrl(String url, SimpleDraweeView draweeView,BasePostprocessor processor,int width,int height,
-                               BaseControllerListener listener){
+                               ControllerListener<? super ImageInfo> listener){
 
        load(Uri.parse(url),draweeView,processor,width,height,listener);
 
     }
 
     public static void loadFile(String file, SimpleDraweeView draweeView,BasePostprocessor processor,int width,int height,
-                               BaseControllerListener listener){
+                               ControllerListener<? super ImageInfo> listener){
 
         load(getFileUri(file),draweeView,processor,width,height,listener);
 
     }
 
     public static void loadFile(File file, SimpleDraweeView draweeView,BasePostprocessor processor,int width,int height,
-                                BaseControllerListener listener){
+                                ControllerListener<? super ImageInfo> listener){
 
         load(getFileUri(file),draweeView,processor,width,height,listener);
 
     }
 
     public static void loadRes(int resId, SimpleDraweeView draweeView,BasePostprocessor processor,int width,int height,
-                                BaseControllerListener listener){
+                                ControllerListener<? super ImageInfo> listener){
 
         load(getResUri(resId),draweeView,processor,width,height,listener);
 
@@ -116,7 +118,7 @@ public class FrescoUtils {
 
 
     public static void load(Uri uri,SimpleDraweeView draweeView,BasePostprocessor processor,int width,int height,
-                                BaseControllerListener listener){
+                                ControllerListener<? super ImageInfo> listener){
         ResizeOptions resizeOptions = null;
         if (width >0 && height > 0){
             resizeOptions = new ResizeOptions(width,height);
@@ -125,10 +127,8 @@ public class FrescoUtils {
                 ImageRequestBuilder.newBuilderWithSource(uri)
                         .setPostprocessor(processor)
                         .setResizeOptions(resizeOptions)
-                        //缩放,在解码前修改内存中的图片大小, 配合Downsampling可以处理所有图片,否则只能处理jpg,
-                        // 开启Downsampling:在初始化时设置.setDownsampleEnabled(true)
-                        .setProgressiveRenderingEnabled(true)//支持图片渐进式加载
-                        .setAutoRotateEnabled(true) //如果图片是侧着,可以自动旋转
+                        .setProgressiveRenderingEnabled(true)
+                        .setRotationOptions(RotationOptions.autoRotate())
                         .build();
 
         PipelineDraweeController controller =

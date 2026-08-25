@@ -1,9 +1,10 @@
 package com.haleydu.cimoc.ui.common;
-import android.graphics.PorterDuff;
 import android.os.Bundle;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.BlendModeColorFilterCompat;
+import androidx.core.graphics.BlendModeCompat;
 import androidx.fragment.app.Fragment;
 
 import androidx.annotation.NonNull;
@@ -58,7 +59,9 @@ public abstract class BaseFragment extends Fragment implements AppGetter {
     private void initProgressBar() {
         if (mProgressBar != null) {
             int resId = ThemeUtils.getResourceId(requireActivity(), R.attr.colorAccent);
-            mProgressBar.getIndeterminateDrawable().setColorFilter(ContextCompat.getColor(requireActivity(), resId), PorterDuff.Mode.SRC_ATOP);
+            mProgressBar.getIndeterminateDrawable().setColorFilter(
+                    BlendModeColorFilterCompat.createBlendModeColorFilterCompat(
+                            ContextCompat.getColor(requireActivity(), resId), BlendModeCompat.SRC_ATOP));
         }
     }
 

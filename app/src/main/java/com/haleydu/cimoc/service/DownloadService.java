@@ -11,7 +11,9 @@ import android.os.Build;
 import android.os.IBinder;
 import androidx.annotation.Nullable;
 import androidx.collection.LongSparseArray;
+import androidx.core.app.ServiceCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.IntentCompat;
 
 import android.util.Pair;
 
@@ -44,6 +46,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.inject.Inject;
 
@@ -65,6 +68,7 @@ import okhttp3.ResponseBody;
 public class DownloadService extends Service {
 
     private static final String NOTIFICATION_DOWNLOAD = "NOTIFICATION_DOWNLOAD";
+    private static final AtomicBoolean sRunning = new AtomicBoolean(false);
 
     private LongSparseArray<Pair<Worker, Future>> mWorkerArray;
     private ExecutorService mExecutorService;
@@ -95,6 +99,10 @@ public class DownloadService extends Service {
         ContextCompat.startForegroundService(context, intent);
     }
 
+    public static boolean isRunning() {
+        return sRunning.get();
+    }
+
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
@@ -104,6 +112,7 @@ public class DownloadService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        sRunning.set(true);
         PreferenceManager manager = EntryPointAccessors.fromApplication(
                 getApplicationContext(), AppEntryPoint.class).preferenceManager();
         int num = manager.getInt(PreferenceManager.PREF_DOWNLOAD_THREAD, 2);
@@ -122,11 +131,13 @@ public class DownloadService extends Service {
                 mNotification.post(getString(R.string.download_service_doing), true);
             }
             startAsForeground();
-            List<Task> list = intent.getParcelableArrayListExtra(Extra.EXTRA_TASK);
-            for (Task task : list) {
-                Worker worker = new Worker(task);
-                Future future = mExecutorService.submit(worker);
-                addWorker(task.getId(), worker, future);
+            List<Task> list = IntentCompat.getParcelableArrayListExtra(intent, Extra.EXTRA_TASK, Task.class);
+            if (list != null) {
+                for (Task task : list) {
+                    Worker worker = new Worker(task);
+                    Future future = mExecutorService.submit(worker);
+                    addWorker(task.getId(), worker, future);
+                }
             }
         }
         return START_NOT_STICKY;
@@ -144,6 +155,7 @@ public class DownloadService extends Service {
 
     @Override
     public void onDestroy() {
+        sRunning.set(false);
         super.onDestroy();
         if (mNotification != null) {
             mExecutorService.shutdownNow();
@@ -183,11 +195,7 @@ public class DownloadService extends Service {
             mNotification.cancel();
             mNotification = null;
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            stopForeground(STOP_FOREGROUND_REMOVE);
-        } else {
-            stopForeground(true);
-        }
+        ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE);
         mWorkerArray.clear();
         AppEventBus.post(new AppEvent(AppEvent.EVENT_DOWNLOAD_STOP));
     }

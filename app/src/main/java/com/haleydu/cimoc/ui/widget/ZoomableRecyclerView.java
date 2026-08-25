@@ -5,8 +5,6 @@ import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.RectF;
-import androidx.core.view.GestureDetectorCompat;
-import androidx.core.view.MotionEventCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
@@ -27,7 +25,7 @@ public class ZoomableRecyclerView extends RecyclerView implements OnScaleDragGes
     private final Rect mTempRect = new Rect();
 
     private ScaleDragDetector mScaleDragDetector;
-    private GestureDetectorCompat mGestureDetector;
+    private GestureDetector mGestureDetector;
     private OnTapGestureListener mTapGestureListener;
 
     private float mScaleFactor = 2.0f;
@@ -47,7 +45,7 @@ public class ZoomableRecyclerView extends RecyclerView implements OnScaleDragGes
     public ZoomableRecyclerView(Context context, AttributeSet attrs, final int defStyle) {
         super(context, attrs, defStyle);
         mScaleDragDetector = new ScaleDragDetector(context, this);
-        mGestureDetector = new GestureDetectorCompat(getContext(), new GestureDetector.SimpleOnGestureListener() {
+        mGestureDetector = new GestureDetector(getContext(), new GestureDetector.SimpleOnGestureListener() {
             @Override
             public void onLongPress(MotionEvent e) {
                 if (mTapGestureListener != null) {
@@ -60,7 +58,7 @@ public class ZoomableRecyclerView extends RecyclerView implements OnScaleDragGes
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        int action = MotionEventCompat.getActionMasked(event);
+        int action = event.getActionMasked();
         switch (action) {
             case MotionEvent.ACTION_DOWN:
                 cancelFling();

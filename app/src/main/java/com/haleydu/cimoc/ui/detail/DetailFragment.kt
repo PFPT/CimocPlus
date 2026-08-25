@@ -17,9 +17,10 @@ import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.GridLayoutManager
 import com.facebook.imagepipeline.core.ImagePipelineFactory
-import com.google.firebase.analytics.FirebaseAnalytics
 import com.haleydu.cimoc.R
 import com.haleydu.cimoc.databinding.ActivityDetailBinding
 import com.haleydu.cimoc.event.AppEvent
@@ -41,8 +42,8 @@ import com.haleydu.cimoc.ui.reader.ReaderActivity
 import com.haleydu.cimoc.ui.search.ResultActivity
 import com.haleydu.cimoc.utils.HintUtils
 import com.haleydu.cimoc.utils.StringUtils
-import com.haleydu.cimoc.utils.interpretationUtils
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import javax.inject.Inject
 
@@ -57,6 +58,8 @@ class DetailFragment : BaseFragment(), BaseAdapter.OnItemClickListener, BaseAdap
     private var backupCount = 0
     private var comicTitle = ""
     private var comicIntro = ""
+    private var boundChapters: List<Chapter>? = null
+    private var boundCover: String? = null
 
     @Inject
     lateinit var httpClient: OkHttpClient
@@ -144,11 +147,14 @@ class DetailFragment : BaseFragment(), BaseAdapter.OnItemClickListener, BaseAdap
             HintUtils.showSnackbar(binding?.detailLayout, getString(R.string.common_parse_error))
             return
         }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                vm.refreshFromUpdate()
+                vm.uiState.collect { onUiState(it) }
+            }
+        }
         vm.events.collectOnStart(viewLifecycleOwner) { event ->
             when (event) {
-                is DetailViewModel.Event.PreLoad -> onPreLoadSuccess(event.list, event.comic)
-                is DetailViewModel.Event.ComicLoaded -> onComicLoadSuccess(event.comic)
-                is DetailViewModel.Event.ChapterLoaded -> onChapterLoadSuccess(event.list)
                 is DetailViewModel.Event.ParseError -> {
                     hideProgressBar()
                     HintUtils.showSnackbar(binding?.detailLayout, getString(R.string.common_parse_error))
@@ -157,12 +163,12 @@ class DetailFragment : BaseFragment(), BaseAdapter.OnItemClickListener, BaseAdap
                     hideProgressBar()
                     HintUtils.showSnackbar(binding?.detailLayout, getString(R.string.common_network_error))
                 }
+                is DetailViewModel.Event.NetworkLoadSuccess -> hideProgressBar()
                 is DetailViewModel.Event.TaskAddSuccess -> onTaskAddSuccess(event.list)
                 is DetailViewModel.Event.TaskAddFail -> {
                     hideProgressDialog()
                     HintUtils.showSnackbar(binding?.detailLayout, getString(R.string.detail_download_queue_fail))
                 }
-                is DetailViewModel.Event.LastChange -> detailAdapter.setLast(event.last)
             }
         }
         AppEventBus.observe(AppEvent.EVENT_COMIC_UPDATE).collectOnStart(viewLifecycleOwner) { vm.refreshFromUpdate() }
@@ -181,6 +187,8 @@ class DetailFragment : BaseFragment(), BaseAdapter.OnItemClickListener, BaseAdap
 
     override fun onDestroyView() {
         imagePipelineFactory?.imagePipeline?.clearMemoryCaches()
+        boundChapters = null
+        boundCover = null
         binding = null
         super.onDestroyView()
     }
@@ -217,7 +225,7 @@ class DetailFragment : BaseFragment(), BaseAdapter.OnItemClickListener, BaseAdap
                 intent.putExtra(Intent.EXTRA_TEXT, url)
                 startActivity(Intent.createChooser(intent, url))
             }
-            R.id.detail_reverse_list -> detailAdapter.reverse()
+            R.id.detail_reverse_list -> vm.toggleReverse()
             else -> return false
         }
         return true
@@ -261,21 +269,16 @@ class DetailFragment : BaseFragment(), BaseAdapter.OnItemClickListener, BaseAdap
         hideProgressDialog()
     }
 
-    private fun onComicLoadSuccess(comic: Comic) {
-        bindComic(comic)
-    }
-
-    private fun onChapterLoadSuccess(list: List<Chapter>) {
-        hideProgressBar()
-        detailAdapter.clear()
-        detailAdapter.addAll(list)
-    }
-
-    private fun onPreLoadSuccess(list: List<Chapter>, comic: Comic) {
-        hideProgressBar()
-        val chapters = if (interpretationUtils.isReverseOrder(comic)) list.reversed() else list
-        detailAdapter.addAll(chapters)
-        bindComic(comic)
+    private fun onUiState(state: DetailViewModel.UiState) {
+        state.comic?.let { bindComic(it) }
+        if (boundChapters != state.chapters) {
+            boundChapters = state.chapters
+            detailAdapter.setData(state.chapters)
+        }
+        detailAdapter.setLast(state.last)
+        if (state.chaptersReady) {
+            hideProgressBar()
+        }
     }
 
     private fun bindComic(comic: Comic) {
@@ -294,11 +297,13 @@ class DetailFragment : BaseFragment(), BaseAdapter.OnItemClickListener, BaseAdap
         if (!comic.update.isNullOrEmpty()) {
             bind.detailUpdate.text = getString(R.string.detail_last_update, comic.update)
         }
-        detailAdapter.setLast(comic.last)
         if (comic.title != null && comic.cover != null) {
-            imagePipelineFactory = ImagePipelineFactoryBuilder.build(requireContext(), vm.parserHeader(), false, httpClient)
-            val supplier = ControllerBuilderSupplierFactory.get(requireContext(), imagePipelineFactory)
-            bind.detailCover.controller = supplier.get().setUri(comic.cover).build()
+            if (boundCover != comic.cover) {
+                boundCover = comic.cover
+                imagePipelineFactory = ImagePipelineFactoryBuilder.build(requireContext(), vm.parserHeader(), false, httpClient)
+                val supplier = ControllerBuilderSupplierFactory.get(requireContext(), imagePipelineFactory)
+                bind.detailCover.controller = supplier.get().setUri(comic.cover).build()
+            }
             bind.detailFabFavorite.setImageResource(
                 if (comic.favorite != null) R.drawable.ic_favorite_white_24dp else R.drawable.ic_favorite_border_white_24dp
             )

@@ -5,12 +5,10 @@ import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.RectF;
 import androidx.annotation.NonNull;
-import androidx.core.view.GestureDetectorCompat;
-import androidx.core.view.MotionEventCompat;
-import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ViewParent;
+import android.util.AttributeSet;
 
 import com.facebook.drawee.drawable.ScalingUtils;
 import com.facebook.drawee.generic.GenericDraweeHierarchy;
@@ -41,7 +39,7 @@ public class PhotoDraweeView extends RetryDraweeView implements OnScaleDragGestu
     private final RectF mDisplayRect = new RectF();
     private final Matrix mMatrix = new Matrix();
     private ScaleDragDetector mScaleDragDetector;
-    private GestureDetectorCompat mGestureDetector;
+    private GestureDetector mGestureDetector;
     private OnTapGestureListener mTapGestureListener;
     private boolean mBlockParentIntercept = false;
     private boolean mAlwaysBlockParent = false;
@@ -78,7 +76,7 @@ public class PhotoDraweeView extends RetryDraweeView implements OnScaleDragGestu
     protected void init() {
         getHierarchy().setActualImageScaleType(ScalingUtils.ScaleType.FIT_CENTER);
         mScaleDragDetector = new ScaleDragDetector(getContext(), this);
-        mGestureDetector = new GestureDetectorCompat(getContext(), new GestureDetector.SimpleOnGestureListener() {
+        mGestureDetector = new GestureDetector(getContext(), new GestureDetector.SimpleOnGestureListener() {
             @Override
             public void onLongPress(MotionEvent e) {
                 if (mTapGestureListener != null) {
@@ -91,7 +89,7 @@ public class PhotoDraweeView extends RetryDraweeView implements OnScaleDragGestu
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        int action = MotionEventCompat.getActionMasked(event);
+        int action = event.getActionMasked();
         ViewParent parent = getParent();
         switch (action) {
             case MotionEvent.ACTION_DOWN:

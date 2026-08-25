@@ -2,22 +2,18 @@ package com.haleydu.cimoc.ui.widget;
 
 import android.content.Context;
 import android.graphics.RectF;
-import androidx.core.widget.ScrollerCompat;
 import android.view.View;
-
-/**
- * Created by Hiroshi on 2017/5/27.
- */
+import android.widget.OverScroller;
 
 public class FlingRunnable implements Runnable {
 
     private final View mView;
     private final OnFlingRunningListener mListener;
-    private final ScrollerCompat mScroller;
+    private final OverScroller mScroller;
     private int mCurrentX, mCurrentY;
 
     public FlingRunnable(Context context, OnFlingRunningListener listener, View view) {
-        mScroller = ScrollerCompat.create(context);
+        mScroller = new OverScroller(context);
         mListener = listener;
         mView = view;
     }

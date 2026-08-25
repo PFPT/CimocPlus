@@ -18,11 +18,16 @@ import com.haleydu.cimoc.model.MiniComic
 import com.haleydu.cimoc.model.Task
 import com.haleydu.cimoc.event.AppEventBus
 import com.haleydu.cimoc.event.AppEvent
+import com.haleydu.cimoc.utils.interpretationUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Headers
@@ -43,19 +48,29 @@ class DetailViewModel @Inject constructor(
     var comic: Comic? = null
         private set
 
+    data class UiState(
+        val comic: Comic? = null,
+        val chapters: List<Chapter> = emptyList(),
+        val last: String? = null,
+        val chaptersReady: Boolean = false
+    )
+
     sealed class Event {
-        data class PreLoad(val list: List<Chapter>, val comic: Comic) : Event()
-        data class ComicLoaded(val comic: Comic) : Event()
-        data class ChapterLoaded(val list: List<Chapter>) : Event()
         object ParseError : Event()
         object NetworkError : Event()
+        object NetworkLoadSuccess : Event()
         data class TaskAddSuccess(val list: ArrayList<Task>) : Event()
         object TaskAddFail : Event()
-        data class LastChange(val last: String?) : Event()
     }
 
-    private val _events = MutableSharedFlow<Event>(replay = 2, extraBufferCapacity = 8)
+    private val _uiState = MutableStateFlow(UiState())
+    val uiState: StateFlow<UiState> = _uiState.asStateFlow()
+
+    private val _events = MutableSharedFlow<Event>(extraBufferCapacity = 8)
     val events: SharedFlow<Event> = _events
+
+    private var rawChapters: List<Chapter> = emptyList()
+    private var userReversed = false
 
     fun parserHeader(): Headers? {
         val current = comic ?: return null
@@ -90,10 +105,43 @@ class DetailViewModel @Inject constructor(
         if (!author.isNullOrEmpty() && current.author.isNullOrEmpty()) {
             current.author = author
         }
-        _events.tryEmit(Event.ComicLoaded(current))
+        publishComic(current)
         cancelHighlight()
         preLoad()
         loadChapters()
+    }
+
+    fun toggleReverse() {
+        userReversed = !userReversed
+        _uiState.update { it.copy(chapters = displayedChapters()) }
+    }
+
+    private fun displayedChapters(raw: List<Chapter> = rawChapters): List<Chapter> {
+        val current = comic ?: return raw
+        return if (interpretationUtils.isReverseOrder(current) xor userReversed) {
+            raw.reversed()
+        } else {
+            raw
+        }
+    }
+
+    private fun publishComic(current: Comic) {
+        _uiState.update {
+            it.copy(comic = current, last = current.last)
+        }
+    }
+
+    private fun publishChapters(raw: List<Chapter>, ready: Boolean = true) {
+        rawChapters = raw
+        val current = comic
+        _uiState.update {
+            it.copy(
+                comic = current,
+                chapters = displayedChapters(raw),
+                last = current?.last,
+                chaptersReady = ready || raw.isNotEmpty()
+            )
+        }
     }
 
     private fun updateChapterList(list: List<Chapter>) {
@@ -131,8 +179,8 @@ class DetailViewModel @Inject constructor(
                     }
                     chapters
                 }
-                if (list.isNotEmpty()) {
-                    _events.emit(Event.PreLoad(list, current))
+                if (list.isNotEmpty() && rawChapters.isEmpty()) {
+                    publishChapters(list)
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -158,19 +206,19 @@ class DetailViewModel @Inject constructor(
                     chapters
                 }
                 chapterManager.insertOrReplace(list)
-                _events.emit(Event.ComicLoaded(current))
-                _events.emit(Event.ChapterLoaded(list))
+                publishChapters(list)
+                _events.emit(Event.NetworkLoadSuccess)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Manga.NetworkErrorException) {
-                _events.emit(Event.ComicLoaded(current))
+                publishComic(current)
                 _events.emit(Event.NetworkError)
             } catch (e: Manga.ParseErrorException) {
-                _events.emit(Event.ComicLoaded(current))
+                publishComic(current)
                 _events.emit(Event.ParseError)
             } catch (e: Exception) {
                 e.printStackTrace()
-                _events.emit(Event.ComicLoaded(current))
+                publishComic(current)
             }
         }
     }
@@ -200,6 +248,7 @@ class DetailViewModel @Inject constructor(
         }
         comicManager.updateOrInsert(current)
         AppEventBus.post(AppEvent(AppEvent.EVENT_COMIC_READ, MiniComic(current)))
+        _uiState.update { it.copy(comic = current, last = current.last) }
         return current.id ?: -1
     }
 
@@ -220,6 +269,7 @@ class DetailViewModel @Inject constructor(
         val current = comic ?: return
         current.favorite = System.currentTimeMillis()
         comicManager.updateOrInsert(current)
+        publishComic(current)
         AppEventBus.post(AppEvent(AppEvent.EVENT_COMIC_FAVORITE, MiniComic(current)))
     }
 
@@ -229,6 +279,7 @@ class DetailViewModel @Inject constructor(
         current.favorite = null
         tagRefManager.deleteByComic(id)
         comicManager.updateOrDelete(current)
+        publishComic(current)
         AppEventBus.post(AppEvent(AppEvent.EVENT_COMIC_UNFAVORITE, id))
     }
 
@@ -278,11 +329,11 @@ class DetailViewModel @Inject constructor(
     fun refreshFromUpdate() {
         val current = comic ?: return
         if (current.id != null) {
-            val loaded = comicManager.load(current.id)
+            val loaded = comicManager.load(current.id) ?: return
             current.page = loaded.page
             current.last = loaded.last
             current.chapter = loaded.chapter
-            _events.tryEmit(Event.LastChange(current.last))
+            _uiState.update { it.copy(comic = current, last = current.last) }
         }
     }
 
@@ -290,6 +341,8 @@ class DetailViewModel @Inject constructor(
         if (comic?.id != null) {
             comicManager.insertOrReplace(incoming)
             comic = comicManager.load(incoming.id)
+            val current = comic ?: return
+            publishComic(current)
         }
     }
 }

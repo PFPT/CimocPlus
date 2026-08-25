@@ -1,11 +1,13 @@
 package com.haleydu.cimoc.ui.settings
 import com.haleydu.cimoc.ui.common.BackActivity
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.View
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -45,6 +47,7 @@ import com.haleydu.cimoc.ui.common.dialog.ChoiceDialogFragment
 import com.haleydu.cimoc.ui.common.dialog.MessageDialogFragment
 import com.haleydu.cimoc.ui.common.dialog.SliderDialogFragment
 import com.haleydu.cimoc.ui.common.dialog.StorageEditorDialogFragment
+import com.haleydu.cimoc.ui.library.DirPickerActivity
 import com.haleydu.cimoc.utils.ServiceUtils
 import com.haleydu.cimoc.utils.ThemeUtils
 import dagger.hilt.android.AndroidEntryPoint
@@ -52,7 +55,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 @AndroidEntryPoint
-class SettingsActivity : BackActivity(), DialogCaller {
+class SettingsActivity : BackActivity(), DialogCaller, StorageEditorDialogFragment.Host {
 
     private val vm: SettingsViewModel by viewModels()
     private lateinit var storagePath: String
@@ -60,6 +63,13 @@ class SettingsActivity : BackActivity(), DialogCaller {
     private val resultArray = IntArray(6)
     private val resultIntent = Intent()
     private lateinit var binding: ActivitySettingsBinding
+    private val storagePickerLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            handleStoragePickerResult(result.data)
+        }
+    }
 
     override fun inflateContentView(): View {
         binding = ActivitySettingsBinding.inflate(layoutInflater)
@@ -108,24 +118,33 @@ class SettingsActivity : BackActivity(), DialogCaller {
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode == Activity.RESULT_OK && requestCode == DIALOG_REQUEST_OTHER_STORAGE) {
-            showProgressDialog()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && data != null) {
-                val uri: Uri? = data.data
-                val flags = data.flags and (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                contentResolver.takePersistableUriPermission(uri!!, flags)
-                tempStorage = uri.toString()
-                vm.moveFiles(DocumentFile.fromTreeUri(this, uri))
+    override fun launchStoragePicker() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            try {
+                storagePickerLauncher.launch(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE))
+            } catch (_: ActivityNotFoundException) {
+                onDialogResult(DIALOG_REQUEST_OTHER_STORAGE, Bundle())
+            }
+        } else {
+            storagePickerLauncher.launch(Intent(this, DirPickerActivity::class.java))
+        }
+    }
+
+    private fun handleStoragePickerResult(data: Intent?) {
+        showProgressDialog()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && data != null) {
+            val uri: Uri? = data.data
+            val flags = data.flags and (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            contentResolver.takePersistableUriPermission(uri!!, flags)
+            tempStorage = uri.toString()
+            vm.moveFiles(DocumentFile.fromTreeUri(this, uri))
+        } else {
+            val path = data?.getStringExtra(Extra.EXTRA_PICKER_PATH)
+            if (path != null) {
+                val file = DocumentFile.fromFile(File(path))
+                vm.moveFiles(file)
             } else {
-                val path = data?.getStringExtra(Extra.EXTRA_PICKER_PATH)
-                if (path != null) {
-                    val file = DocumentFile.fromFile(File(path))
-                    vm.moveFiles(file)
-                } else {
-                    onExecuteFail()
-                }
+                onExecuteFail()
             }
         }
     }

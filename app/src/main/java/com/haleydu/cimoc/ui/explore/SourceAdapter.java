@@ -51,7 +51,7 @@ public class SourceAdapter extends BaseAdapter<Source> {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (mOnItemCheckedListener != null) {
-                    mOnItemCheckedListener.onItemCheckedListener(isChecked, viewHolder.getAdapterPosition());
+                    mOnItemCheckedListener.onItemCheckedListener(isChecked, viewHolder.getBindingAdapterPosition());
                 }
             }
         });

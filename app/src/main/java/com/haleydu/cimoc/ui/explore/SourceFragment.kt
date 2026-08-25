@@ -98,7 +98,7 @@ class SourceFragment : RecyclerViewFragment(), ThemeResponsive, SourceAdapter.On
             HintUtils.showToast(activity, R.string.source_import_success)
         }
         vm.importFail.collectOnStart(viewLifecycleOwner) {
-            HintUtils.showToast(activity, R.string.source_import_fail)
+            HintUtils.showToast(activity, it)
         }
         vm.load()
     }

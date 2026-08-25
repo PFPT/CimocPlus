@@ -22,9 +22,6 @@ public interface DialogCaller {
         if (fragment.getParentFragment() instanceof DialogCaller) {
             return (DialogCaller) fragment.getParentFragment();
         }
-        if (fragment.getTargetFragment() instanceof DialogCaller) {
-            return (DialogCaller) fragment.getTargetFragment();
-        }
         if (fragment.getActivity() instanceof DialogCaller) {
             return (DialogCaller) fragment.getActivity();
         }

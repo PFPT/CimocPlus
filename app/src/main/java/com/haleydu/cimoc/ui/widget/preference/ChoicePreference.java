@@ -56,9 +56,10 @@ public class ChoicePreference extends Option implements View.OnClickListener {
             ChoiceDialogFragment fragment = ChoiceDialogFragment.newInstance(R.string.dialog_choice,
                     mItems, mChoice, mRequestCode);
             if (mTargetFragment != null) {
-                fragment.setTargetFragment(mTargetFragment, 0);
+                fragment.show(mTargetFragment.getChildFragmentManager(), null);
+            } else {
+                fragment.show(mFragmentManager, null);
             }
-            fragment.show(mFragmentManager, null);
         }
     }
 

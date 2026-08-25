@@ -1,12 +1,10 @@
 package com.haleydu.cimoc.ui.widget;
 
 import android.content.Context;
+import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-/**
- * Created by Hiroshi on 2016/8/13.
- */
 public class PreCacheLayoutManager extends LinearLayoutManager {
 
     private int mExtraSpace = 0;
@@ -24,15 +22,15 @@ public class PreCacheLayoutManager extends LinearLayoutManager {
     }
 
     @Override
-    protected int getExtraLayoutSpace(RecyclerView.State state) {
+    protected void calculateExtraLayoutSpace(@NonNull RecyclerView.State state, @NonNull int[] extraLayoutSpace) {
+        int extra = 0;
         if (mExtraSpace > 0) {
-            if (getOrientation() == LinearLayoutManager.HORIZONTAL) {
-                return mExtraSpace * getWidth();
-            } else {
-                return mExtraSpace * getHeight();
-            }
+            extra = getOrientation() == LinearLayoutManager.HORIZONTAL
+                    ? mExtraSpace * getWidth()
+                    : mExtraSpace * getHeight();
         }
-        return 0;
+        extraLayoutSpace[0] = extra;
+        extraLayoutSpace[1] = extra;
     }
 
 }

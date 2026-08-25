@@ -1,5 +1,4 @@
 package com.haleydu.cimoc.ui.common;
-import android.os.Build;
 import android.os.Bundle;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -64,12 +63,6 @@ public abstract class BaseActivity extends AppCompatActivity implements AppGette
         int theme = mPreference.getInt(PreferenceManager.PREF_OTHER_THEME, ThemeUtils.THEME_BLUE);
         setTheme(ThemeUtils.getThemeById(theme));
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
-            if (isNavTranslation()) {
-                getWindow().setNavigationBarColor(android.graphics.Color.TRANSPARENT);
-            }
-        }
     }
 
     protected void applyNightMode() {

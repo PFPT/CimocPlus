@@ -1,36 +1,32 @@
 package com.haleydu.cimoc.ui.common;
+
+import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentPagerAdapter;
+import androidx.fragment.app.FragmentActivity;
+import androidx.viewpager2.adapter.FragmentStateAdapter;
 
-import com.haleydu.cimoc.ui.common.BaseFragment;
+public class TabPagerAdapter extends FragmentStateAdapter {
 
-/**
- * Created by Hiroshi on 2016/10/11.
- */
+    private final Fragment[] fragment;
+    private final String[] title;
 
-public class TabPagerAdapter extends FragmentPagerAdapter {
-
-    private BaseFragment[] fragment;
-    private String[] title;
-
-    public TabPagerAdapter(FragmentManager manager, BaseFragment[] fragment, String[] title) {
-        super(manager);
+    public TabPagerAdapter(FragmentActivity activity, BaseFragment[] fragment, String[] title) {
+        super(activity);
         this.fragment = fragment;
         this.title = title;
     }
 
+    @NonNull
     @Override
-    public Fragment getItem(int position) {
+    public Fragment createFragment(int position) {
         return fragment[position];
     }
 
     @Override
-    public int getCount() {
+    public int getItemCount() {
         return fragment.length;
     }
 
-    @Override
     public CharSequence getPageTitle(int position) {
         return title[position];
     }

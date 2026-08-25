@@ -14,6 +14,9 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.GridLayoutManager
 import com.facebook.imagepipeline.core.ImagePipelineFactory
 import com.google.firebase.analytics.FirebaseAnalytics
@@ -36,8 +39,8 @@ import com.haleydu.cimoc.ui.reader.ChapterListHolder
 import com.haleydu.cimoc.ui.reader.ReaderActivity
 import com.haleydu.cimoc.ui.search.ResultActivity
 import com.haleydu.cimoc.utils.StringUtils
-import com.haleydu.cimoc.utils.interpretationUtils
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import javax.inject.Inject
 
@@ -52,6 +55,9 @@ class DetailActivity : BackActivity(), BaseAdapter.OnItemClickListener, BaseAdap
     private var backupCount = 0
     private var comicTitle: String = ""
     private var comicIntro: String = ""
+    private var boundChapters: List<Chapter>? = null
+    private var boundCover: String? = null
+    private var loggedViewItem = false
 
     @Inject
     lateinit var httpClient: OkHttpClient
@@ -136,16 +142,19 @@ class DetailActivity : BackActivity(), BaseAdapter.OnItemClickListener, BaseAdap
         val title = intent.getStringExtra(Extra.EXTRA_TITLE)
         val cover = intent.getStringExtra(Extra.EXTRA_COVER)
         val author = intent.getStringExtra(Extra.EXTRA_AUTHOR)
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                vm.refreshFromUpdate()
+                vm.uiState.collect { onUiState(it) }
+            }
+        }
         vm.events.collectOnStart(this) { event ->
             when (event) {
-                is DetailViewModel.Event.PreLoad -> onPreLoadSuccess(event.list, event.comic)
-                is DetailViewModel.Event.ComicLoaded -> onComicLoadSuccess(event.comic)
-                is DetailViewModel.Event.ChapterLoaded -> onChapterLoadSuccess(event.list)
                 is DetailViewModel.Event.ParseError -> onParseError()
                 is DetailViewModel.Event.NetworkError -> onNetworkError()
+                is DetailViewModel.Event.NetworkLoadSuccess -> onNetworkLoadSuccess()
                 is DetailViewModel.Event.TaskAddSuccess -> onTaskAddSuccess(event.list)
                 is DetailViewModel.Event.TaskAddFail -> onTaskAddFail()
-                is DetailViewModel.Event.LastChange -> detailAdapter.setLast(event.last)
             }
         }
         AppEventBus.observe(AppEvent.EVENT_COMIC_UPDATE).collectOnStart(this) { vm.refreshFromUpdate() }
@@ -164,6 +173,8 @@ class DetailActivity : BackActivity(), BaseAdapter.OnItemClickListener, BaseAdap
 
     override fun onDestroy() {
         super.onDestroy()
+        boundChapters = null
+        boundCover = null
         imagePipelineFactory?.imagePipeline?.clearMemoryCaches()
     }
 
@@ -205,7 +216,7 @@ class DetailActivity : BackActivity(), BaseAdapter.OnItemClickListener, BaseAdap
                     FirebaseAnalytics.getInstance(this).logEvent(FirebaseAnalytics.Event.SHARE, bundle)
                 }
             }
-            R.id.detail_reverse_list -> detailAdapter.reverse()
+            R.id.detail_reverse_list -> vm.toggleReverse()
         }
         return super.onOptionsItemSelected(item)
     }
@@ -265,32 +276,35 @@ class DetailActivity : BackActivity(), BaseAdapter.OnItemClickListener, BaseAdap
         showSnackbar(R.string.detail_download_queue_fail)
     }
 
-    private fun onComicLoadSuccess(comic: Comic) {
-        bindComic(comic)
+    private fun onUiState(state: DetailViewModel.UiState) {
+        state.comic?.let { bindComic(it) }
+        if (boundChapters != state.chapters) {
+            boundChapters = state.chapters
+            detailAdapter.setData(state.chapters)
+        }
+        detailAdapter.setLast(state.last)
+        if (state.chaptersReady) {
+            hideProgressBar()
+        }
     }
 
-    private fun onChapterLoadSuccess(list: List<Chapter>) {
+    private fun onNetworkLoadSuccess() {
         hideProgressBar()
+        logViewItem(true)
+    }
+
+    private fun logViewItem(success: Boolean) {
+        if (loggedViewItem || !mPreference.getBoolean(PreferenceManager.PREF_OTHER_FIREBASE_EVENT, true)) {
+            return
+        }
+        loggedViewItem = true
         val comic = vm.comic
-        if (comic?.title != null && comic.cover != null) {
-            detailAdapter.clear()
-            detailAdapter.addAll(list)
-        }
-        if (mPreference.getBoolean(PreferenceManager.PREF_OTHER_FIREBASE_EVENT, true)) {
-            val bundle = Bundle()
-            bundle.putString(FirebaseAnalytics.Param.CONTENT, comic?.title)
-            bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "Title")
-            bundle.putInt(FirebaseAnalytics.Param.SOURCE, comic?.source ?: -1)
-            bundle.putBoolean(FirebaseAnalytics.Param.SUCCESS, true)
-            FirebaseAnalytics.getInstance(this).logEvent(FirebaseAnalytics.Event.VIEW_ITEM, bundle)
-        }
-    }
-
-    private fun onPreLoadSuccess(list: List<Chapter>, comic: Comic) {
-        hideProgressBar()
-        val chapters = if (interpretationUtils.isReverseOrder(comic)) list.reversed() else list
-        detailAdapter.addAll(chapters)
-        bindComic(comic)
+        val bundle = Bundle()
+        bundle.putString(FirebaseAnalytics.Param.CONTENT, comic?.title)
+        bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "Title")
+        bundle.putInt(FirebaseAnalytics.Param.SOURCE, comic?.source ?: -1)
+        bundle.putBoolean(FirebaseAnalytics.Param.SUCCESS, success)
+        FirebaseAnalytics.getInstance(this).logEvent(FirebaseAnalytics.Event.VIEW_ITEM, bundle)
     }
 
     private fun bindComic(comic: Comic) {
@@ -307,11 +321,13 @@ class DetailActivity : BackActivity(), BaseAdapter.OnItemClickListener, BaseAdap
         if (!comic.update.isNullOrEmpty()) {
             binding.detailUpdate.text = getString(R.string.detail_last_update, comic.update)
         }
-        detailAdapter.setLast(comic.last)
         if (comic.title != null && comic.cover != null) {
-            imagePipelineFactory = ImagePipelineFactoryBuilder.build(this, vm.parserHeader(), false, httpClient)
-            val supplier = ControllerBuilderSupplierFactory.get(this, imagePipelineFactory)
-            binding.detailCover.controller = supplier.get().setUri(comic.cover).build()
+            if (boundCover != comic.cover) {
+                boundCover = comic.cover
+                imagePipelineFactory = ImagePipelineFactoryBuilder.build(this, vm.parserHeader(), false, httpClient)
+                val supplier = ControllerBuilderSupplierFactory.get(this, imagePipelineFactory)
+                binding.detailCover.controller = supplier.get().setUri(comic.cover).build()
+            }
             val fav = if (comic.favorite != null) {
                 R.drawable.ic_favorite_white_24dp
             } else {
@@ -331,15 +347,7 @@ class DetailActivity : BackActivity(), BaseAdapter.OnItemClickListener, BaseAdap
     }
 
     private fun onParseError() {
-        if (mPreference.getBoolean(PreferenceManager.PREF_OTHER_FIREBASE_EVENT, true)) {
-            val comic = vm.comic
-            val bundle = Bundle()
-            bundle.putString(FirebaseAnalytics.Param.CONTENT, comic?.title)
-            bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "Title")
-            bundle.putInt(FirebaseAnalytics.Param.SOURCE, comic?.source ?: -1)
-            bundle.putBoolean(FirebaseAnalytics.Param.SUCCESS, false)
-            FirebaseAnalytics.getInstance(this).logEvent(FirebaseAnalytics.Event.VIEW_ITEM, bundle)
-        }
+        logViewItem(false)
         hideProgressBar()
         showSnackbar(R.string.common_parse_error)
     }

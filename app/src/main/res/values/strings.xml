@@ -165,10 +165,15 @@
     <string name="source_detail_type">图源 ID</string>
     <string name="source_detail_title">图源名称</string>
     <string name="source_detail_favorite">收藏统计</string>
-    <string name="source_import_script">导入脚本</string>
-    <string name="source_import_hint">粘贴 JS 或 GitHub Raw 地址</string>
+    <string name="source_import_script">导入图源</string>
+    <string name="source_import_hint">粘贴 sourceBaseUrl.json、JS 脚本或对应网址</string>
     <string name="source_import_success">导入成功</string>
     <string name="source_import_fail">导入失败</string>
+    <string name="source_import_fail_empty">内容为空</string>
+    <string name="source_import_fail_html">拿到的是网页不是配置</string>
+    <string name="source_import_fail_format">无法识别，请粘贴 JS 脚本或 sourceBaseUrl.json</string>
+    <string name="source_import_fail_http">下载失败：%1$s</string>
+    <string name="source_import_fail_detail">导入失败：%1$s</string>
     <string name="source_invalid">失效</string>
     <string name="source_script_log">脚本日志</string>
     <string name="source_script_log_empty">暂无日志</string>

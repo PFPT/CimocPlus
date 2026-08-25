@@ -1,7 +1,7 @@
 package com.haleydu.cimoc.ui.common;
-import android.graphics.PorterDuff;
-import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.BlendModeColorFilterCompat;
+import androidx.core.graphics.BlendModeCompat;
 import android.view.View;
 import android.widget.ProgressBar;
 
@@ -23,7 +23,7 @@ public abstract class BackActivity extends BaseActivity {
             mToolbar.setNavigationOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    onBackPressed();
+                    getOnBackPressedDispatcher().onBackPressed();
                 }
             });
         }
@@ -33,7 +33,9 @@ public abstract class BackActivity extends BaseActivity {
     protected void initView() {
         if (mProgressBar != null) {
             int resId = ThemeUtils.getResourceId(this, R.attr.colorAccent);
-            mProgressBar.getIndeterminateDrawable().setColorFilter(ContextCompat.getColor(this, resId), PorterDuff.Mode.SRC_ATOP);
+            mProgressBar.getIndeterminateDrawable().setColorFilter(
+                    BlendModeColorFilterCompat.createBlendModeColorFilterCompat(
+                            ContextCompat.getColor(this, resId), BlendModeCompat.SRC_ATOP));
         }
     }
 

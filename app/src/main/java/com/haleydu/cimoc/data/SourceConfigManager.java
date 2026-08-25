@@ -20,6 +20,7 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -213,6 +214,50 @@ public class SourceConfigManager {
 
     public synchronized String getField(String key, String field, String fallback) {
         return firstHttp(rawValue(key, field), fallback);
+    }
+
+    public boolean isSourceBaseUrlJson(String json) {
+        JSONObject object = parseObject(json);
+        if (object == null) {
+            return false;
+        }
+        if (object.has("CopyManHua") || object.has("BAOZIMH") || object.has("BaoziManHua")
+                || object.has("COPYMH") || object.has("COPYMHSERVER")) {
+            return true;
+        }
+        for (String key : GENERIC_ITEMS.keySet()) {
+            if (object.has(key)) {
+                return true;
+            }
+        }
+        if (object.has("YiManHua") || object.has("BaiManGu") || object.has("PuFeiManHua")
+                || object.has("BoLeFu") || object.has("DuManHua")) {
+            return true;
+        }
+        Iterator<String> keys = object.keys();
+        while (keys.hasNext()) {
+            JSONObject item = object.optJSONObject(keys.next());
+            if (item != null && item.has("baseUrl")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public synchronized boolean importJson(String json) {
+        if (!isSourceBaseUrlJson(json)) {
+            return false;
+        }
+        if (!parse(json)) {
+            String previous = preferenceManager.getString(PREF_SOURCE_BASE_URL_JSON, "");
+            if (!parse(previous)) {
+                parse(readAssetJson());
+            }
+            return false;
+        }
+        preferenceManager.putString(PREF_SOURCE_BASE_URL_JSON, json);
+        applyToDatabase();
+        return true;
     }
 
     private synchronized boolean parse(String json) {

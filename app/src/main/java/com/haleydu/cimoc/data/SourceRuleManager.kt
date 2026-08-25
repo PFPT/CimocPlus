@@ -22,6 +22,10 @@ class SourceRuleManager @Inject constructor(
         if (text.isEmpty()) throw IllegalArgumentException("empty")
         val remote = isRemoteUrl(text)
         val script = if (remote) httpClient.get(text) else text
+        return importScript(script, if (remote) text else null)
+    }
+
+    fun importScript(script: String, remoteUrl: String? = null): Int {
         if (script.isBlank()) throw IllegalArgumentException("empty")
         val meta = scriptRunner.extractMeta(script)
         val type = if (meta.type != null && meta.type >= 0) meta.type else nextType()
@@ -32,7 +36,7 @@ class SourceRuleManager @Inject constructor(
         rule.type = type
         rule.scriptContent = script
         rule.version = version
-        rule.remoteUrl = if (remote) text else existing?.remoteUrl
+        rule.remoteUrl = remoteUrl ?: existing?.remoteUrl
         rule.updatedAt = System.currentTimeMillis()
         sourceRuleDao.insertOrReplace(rule)
         var source = sourceDao.load(type)

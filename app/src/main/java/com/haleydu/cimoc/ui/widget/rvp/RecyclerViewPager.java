@@ -2,7 +2,6 @@ package com.haleydu.cimoc.ui.widget.rvp;
 
 import android.content.Context;
 import android.graphics.PointF;
-import android.os.Build;
 import android.os.Parcelable;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -415,11 +414,7 @@ public class RecyclerViewPager extends RecyclerView {
     private class GlobalLayoutListener implements ViewTreeObserver.OnGlobalLayoutListener {
         @Override
         public void onGlobalLayout() {
-            if (Build.VERSION.SDK_INT < 16) {
-                getViewTreeObserver().removeGlobalOnLayoutListener(this);
-            } else {
-                getViewTreeObserver().removeOnGlobalLayoutListener(this);
-            }
+            getViewTreeObserver().removeOnGlobalLayoutListener(this);
 
             if (mSmoothScrollTargetPosition >= 0 && mSmoothScrollTargetPosition < getItemCount()) {
                 if (mOnPageChangedListener != null) {
