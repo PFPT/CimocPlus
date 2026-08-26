@@ -51,24 +51,31 @@ class StreamReaderActivity : ReaderActivity() {
             }
 
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                val count = mReaderAdapter.itemCount
                 val target = mLayoutManager.findFirstVisibleItemPosition()
+                if (target == RecyclerView.NO_POSITION || target < 0 || target >= count) {
+                    return
+                }
                 if (target != mLastPosition) {
+                    val last = mLastPosition
                     val newImage = mReaderAdapter.getItem(target)
-                    val oldImage = mReaderAdapter.getItem(mLastPosition)
-                    if (oldImage.chapter != newImage.chapter) {
-                        when (turn) {
-                            PreferenceManager.READER_TURN_ATB -> {
-                                if (dy > 0) vm.toNextChapter() else if (dy < 0) vm.toPrevChapter()
-                            }
-                            PreferenceManager.READER_TURN_LTR -> {
-                                if (dx > 0) vm.toNextChapter() else if (dx < 0) vm.toPrevChapter()
-                            }
-                            PreferenceManager.READER_TURN_RTL -> {
-                                if (dx > 0) vm.toPrevChapter() else if (dx < 0) vm.toNextChapter()
+                    if (last in 0 until count) {
+                        val oldImage = mReaderAdapter.getItem(last)
+                        if (oldImage.chapter != newImage.chapter) {
+                            when (turn) {
+                                PreferenceManager.READER_TURN_ATB -> {
+                                    if (dy > 0) vm.toNextChapter() else if (dy < 0) vm.toPrevChapter()
+                                }
+                                PreferenceManager.READER_TURN_LTR -> {
+                                    if (dx > 0) vm.toNextChapter() else if (dx < 0) vm.toPrevChapter()
+                                }
+                                PreferenceManager.READER_TURN_RTL -> {
+                                    if (dx > 0) vm.toPrevChapter() else if (dx < 0) vm.toNextChapter()
+                                }
                             }
                         }
                     }
-                    pageProgress = mReaderAdapter.getItem(target).num
+                    pageProgress = newImage.num
                     mLastPosition = target
                     updateProgress()
                     prefetchAround(target)

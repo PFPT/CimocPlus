@@ -51,9 +51,12 @@ class MangaTransformation(
                 posX = 0
                 posY = (index - 1) * MangaPostprocessor.STREAM_TILE_HEIGHT
                 if (posY >= sourceH) {
-                    posY = max(0, sourceH - MangaPostprocessor.STREAM_TILE_HEIGHT)
+                    return if (jmttDone) working else input
                 }
                 height = min(MangaPostprocessor.STREAM_TILE_HEIGHT, sourceH - posY)
+                if (height <= 0) {
+                    return if (jmttDone) working else input
+                }
                 done = true
             }
         } else if (paging && !jmttDone) {
@@ -99,7 +102,15 @@ class MangaTransformation(
         if (!done) {
             return input
         }
-        return crop(working, posX, posY, width, height)
+        if (posX >= working.width || posY >= working.height) {
+            return if (jmttDone) working else input
+        }
+        val cropW = min(width, working.width - posX)
+        val cropH = min(height, working.height - posY)
+        if (cropW <= 0 || cropH <= 0) {
+            return if (jmttDone) working else input
+        }
+        return crop(working, posX, posY, cropW, cropH)
     }
 
     private fun crop(src: Bitmap, x: Int, y: Int, width: Int, height: Int): Bitmap {

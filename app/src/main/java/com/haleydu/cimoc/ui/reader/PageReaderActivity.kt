@@ -48,6 +48,10 @@ class PageReaderActivity : ReaderActivity(), OnPageChangedListener {
         if (oldPosition < 0 || newPosition < 0) {
             return
         }
+        val count = mReaderAdapter.itemCount
+        if (oldPosition >= count || newPosition >= count) {
+            return
+        }
         if (mLoadPrev && newPosition == 0) {
             vm.loadPrev()
         }

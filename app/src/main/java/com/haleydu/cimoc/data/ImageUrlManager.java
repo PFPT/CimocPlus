@@ -33,19 +33,22 @@ public class ImageUrlManager {
     }
 
     public void updateOrInsert(List<ImageUrl> imageUrlList) {
-        for (ImageUrl imageurl : imageUrlList) {
-            if (imageurl.getId() == null) {
-                insert(imageurl);
-            } else {
-                update(imageurl);
-            }
-        }
+        insertOrReplace(imageUrlList);
     }
 
     public void insertOrReplace(List<ImageUrl> imageUrlList) {
+        if (imageUrlList == null || imageUrlList.isEmpty()) {
+            return;
+        }
         for (ImageUrl imageurl : imageUrlList) {
-            if (imageurl.getId() != null) {
-                mImageUrlDao.insertOrReplace(imageurl);
+            try {
+                database.runInTransaction(() -> {
+                    long id = mImageUrlDao.insertOrReplace(imageurl);
+                    if (imageurl.getId() == null) {
+                        imageurl.setId(id);
+                    }
+                });
+            } catch (Exception ignored) {
             }
         }
     }

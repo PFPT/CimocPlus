@@ -16,6 +16,7 @@ import coil.annotation.ExperimentalCoilApi
 import coil.dispose
 import coil.request.Disposable
 import coil.request.ImageRequest
+import coil.size.Size
 import com.davemorrissey.labs.subscaleview.ImageSource
 import com.haleydu.cimoc.R
 import com.haleydu.cimoc.model.ImageUrl
@@ -134,6 +135,7 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
         } else {
             val imageView = holder.imageView as? ImageView ?: return
             bindStreamTap(imageView)
+            requestBuilder.size(Size.ORIGINAL)
             val request = requestBuilder
                 .target(
                     onSuccess = { result ->
@@ -142,12 +144,7 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
                         imageView.setImageDrawable(result)
                         val bitmap = drawableToBitmap(result)
                         if (bitmap != null && bitmap.height > 0) {
-                            if (isVertical) {
-                                imageView.layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT
-                            } else {
-                                imageView.layoutParams.width = ViewGroup.LayoutParams.WRAP_CONTENT
-                            }
-                            imageView.adjustViewBounds = true
+                            applyStreamWrapContent(holder, imageView)
                         }
                     },
                     onError = {
@@ -167,6 +164,29 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
                 }
             }
         }
+    }
+
+    private fun applyStreamWrapContent(holder: ImageHolder, imageView: ImageView) {
+        val imageLp = imageView.layoutParams ?: return
+        val itemLp = holder.itemView.layoutParams
+        if (isVertical) {
+            imageLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            if (itemLp != null) {
+                itemLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            }
+        } else {
+            imageLp.width = ViewGroup.LayoutParams.WRAP_CONTENT
+            if (itemLp != null) {
+                itemLp.width = ViewGroup.LayoutParams.WRAP_CONTENT
+            }
+        }
+        imageView.layoutParams = imageLp
+        if (itemLp != null) {
+            holder.itemView.layoutParams = itemLp
+        }
+        imageView.adjustViewBounds = true
+        imageView.requestLayout()
+        holder.itemView.requestLayout()
     }
 
     private fun normalizeUrl(url: String): String {

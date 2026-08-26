@@ -362,20 +362,25 @@ abstract class ReaderActivity : BaseActivity(), OnTapGestureListener,
     }
 
     fun onPicturePaging(image: ImageUrl, tiles: Int) {
-        val pos = mReaderAdapter.getPositionById(image.id)
+        val baseId = image.id ?: return
+        val pos = mReaderAdapter.getPositionById(baseId)
         if (pos < 0) {
             return
         }
         val count = tiles.coerceAtLeast(2)
-        val firstExtraId = image.id + 900L
+        val firstExtraId = tileImageId(baseId, 2)
         if (mReaderAdapter.getPositionById(firstExtraId) >= 0) {
             return
         }
         for (i in 2..count) {
+            val extraId = tileImageId(baseId, i)
+            if (mReaderAdapter.getPositionById(extraId) >= 0) {
+                continue
+            }
             mReaderAdapter.add(
                 pos + i - 1,
                 ImageUrl(
-                    image.id + 900L * (i - 1),
+                    extraId,
                     image.comicChapter,
                     image.num,
                     image.urls,
@@ -548,10 +553,7 @@ abstract class ReaderActivity : BaseActivity(), OnTapGestureListener,
 
     private fun getValue(x: Float, y: Float, isLong: Boolean): Int {
         val point = windowSize()
-        var position = getCurPosition()
-        if (position == -1) {
-            position = mLayoutManager.findFirstVisibleItemPosition()
-        }
+        val position = currentAdapterPosition() ?: return 0
         val holder = mRecyclerView.findViewHolderForAdapterPosition(position)
             as? ReaderAdapter.ImageHolder ?: return 0
         val limitX = point.x / 3.0f
@@ -586,6 +588,17 @@ abstract class ReaderActivity : BaseActivity(), OnTapGestureListener,
 
     protected abstract fun getCurPosition(): Int
 
+    private fun currentAdapterPosition(): Int? {
+        var position = getCurPosition()
+        if (position == RecyclerView.NO_POSITION || position < 0) {
+            position = mLayoutManager.findFirstVisibleItemPosition()
+        }
+        if (position == RecyclerView.NO_POSITION || position < 0 || position >= mReaderAdapter.itemCount) {
+            return null
+        }
+        return position
+    }
+
     protected abstract fun prevPage()
 
     protected abstract fun nextPage()
@@ -596,10 +609,7 @@ abstract class ReaderActivity : BaseActivity(), OnTapGestureListener,
     }
 
     protected fun reloadImage() {
-        var position = getCurPosition()
-        if (position == -1) {
-            position = mLayoutManager.findFirstVisibleItemPosition()
-        }
+        val position = currentAdapterPosition() ?: return
         val image = mReaderAdapter.getItem(position)
         mReaderAdapter.evict(image.url)
         mReaderAdapter.notifyItemChanged(position)
@@ -611,9 +621,10 @@ abstract class ReaderActivity : BaseActivity(), OnTapGestureListener,
             return
         }
         isSavingPicture = true
-        var position = getCurPosition()
-        if (position == -1) {
-            position = mLayoutManager.findFirstVisibleItemPosition()
+        val position = currentAdapterPosition()
+        if (position == null) {
+            isSavingPicture = false
+            return
         }
         val imageUrl = mReaderAdapter.getItem(position)
         val urls = imageUrl.urls
@@ -965,6 +976,8 @@ abstract class ReaderActivity : BaseActivity(), OnTapGestureListener,
     }
 
     companion object {
+        private const val TILE_ID_STRIDE = 1L shl 20
+
         @JvmStatic
         fun createIntent(context: Context, id: Long, list: List<Chapter>, mode: Int): Intent {
             ChapterListHolder.put(id, list)
@@ -972,6 +985,10 @@ abstract class ReaderActivity : BaseActivity(), OnTapGestureListener,
             intent.putExtra(Extra.EXTRA_ID, id)
             intent.putExtra(Extra.EXTRA_MODE, mode)
             return intent
+        }
+
+        private fun tileImageId(baseId: Long, tileIndex: Int): Long {
+            return baseId + TILE_ID_STRIDE * (tileIndex - 1)
         }
 
         private fun readerIntent(context: Context, mode: Int): Intent {
