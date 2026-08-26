@@ -28,7 +28,7 @@ class SourceRuleManager @Inject constructor(
     fun importScript(script: String, remoteUrl: String? = null): Int {
         if (script.isBlank()) throw IllegalArgumentException("empty")
         val meta = scriptRunner.extractMeta(script)
-        val type = if (meta.type != null && meta.type >= 0) meta.type else nextType()
+        val type = if (meta.type != null && meta.type >= TYPE_JS_START) meta.type else nextType()
         val title = meta.title?.takeIf { it.isNotBlank() } ?: "JS $type"
         val version = meta.version ?: ""
         val existing = sourceRuleDao.load(type)

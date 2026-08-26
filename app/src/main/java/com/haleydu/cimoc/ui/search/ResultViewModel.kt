@@ -87,6 +87,14 @@ class ResultViewModel @Inject constructor(
     fun headerGetter(): SourceManager.HeaderGetter = sourceManager.HeaderGetter()
 
     fun setup(source: IntArray?, keyword: String?, strictSearch: Boolean) {
+        searchJob?.cancel()
+        searchJob = null
+        groups.clear()
+        sourceTypes.clear()
+        filter = FILTER_ALL
+        error = 0
+        _items.value = emptyList()
+        _filterSources.value = emptyList()
         this.keyword = keyword ?: ""
         this.strictSearch = strictSearch
         if (source == null || source.isEmpty()) {
@@ -178,6 +186,9 @@ class ResultViewModel @Inject constructor(
     }
 
     fun loadSearch() {
+        if (searchJob?.isActive == true) {
+            return
+        }
         if (stateArray.isEmpty()) {
             _searchError.tryEmit(Unit)
             return
@@ -185,7 +196,6 @@ class ResultViewModel @Inject constructor(
         val pending = stateArray.filter { it.state == STATE_NULL }
         if (pending.isEmpty()) return
         pending.forEach { it.state = STATE_DOING }
-        searchJob?.cancel()
         searchJob = viewModelScope.launch {
             try {
                 pending.map { obj ->
@@ -194,21 +204,23 @@ class ResultViewModel @Inject constructor(
                         val start = android.os.SystemClock.elapsedRealtime()
                         var emitted = false
                         try {
+                            val page = obj.page + 1
                             withTimeout(SOURCE_TIMEOUT_MS) {
-                                mangaService.getSearchResult(parser, keyword, ++obj.page, strictSearch)
+                                mangaService.getSearchResult(parser, keyword, page, strictSearch)
                                     .collect { comic ->
                                         emitted = true
                                         emit(comic)
                                     }
                             }
+                            obj.page = page
                             sourceHealthManager.recordSuccess(
                                 obj.source,
                                 android.os.SystemClock.elapsedRealtime() - start
                             )
-                            obj.state = if (obj.page == 1 && !emitted) STATE_DONE else STATE_NULL
+                            obj.state = if (page == 1 && !emitted) STATE_DONE else STATE_NULL
                         } catch (e: TimeoutCancellationException) {
                             sourceHealthManager.recordFailure(obj.source, SourceHealthManager.KIND_NETWORK)
-                            if (obj.page == 1) {
+                            if (obj.page == 0) {
                                 obj.state = STATE_DONE
                                 error++
                             }
@@ -217,14 +229,14 @@ class ResultViewModel @Inject constructor(
                         } catch (e: Manga.NetworkErrorException) {
                             e.printStackTrace()
                             sourceHealthManager.recordFailure(obj.source, SourceHealthManager.KIND_NETWORK)
-                            if (obj.page == 1) {
+                            if (obj.page == 0) {
                                 obj.state = STATE_DONE
                                 error++
                             }
                         } catch (e: Exception) {
                             e.printStackTrace()
                             sourceHealthManager.recordFailure(obj.source, SourceHealthManager.KIND_PARSE)
-                            if (obj.page == 1) {
+                            if (obj.page == 0) {
                                 obj.state = STATE_DONE
                                 error++
                             }

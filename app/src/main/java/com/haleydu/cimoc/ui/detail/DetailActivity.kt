@@ -232,7 +232,10 @@ class DetailActivity : BackActivity(), BaseAdapter.OnItemClickListener, BaseAdap
 
     private fun onReadClick() {
         if (detailAdapter.dateSet.isEmpty()) return
-        val path = vm.comic?.last ?: detailAdapter.getItem(detailAdapter.dateSet.size - 1).path
+        val path = vm.comic?.last ?: run {
+            val index = if (vm.isAscend) 0 else detailAdapter.dateSet.size - 1
+            detailAdapter.getItem(index).path
+        }
         startReader(path)
     }
 

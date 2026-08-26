@@ -10,6 +10,7 @@ public class SourceConfig {
     public final String baseUrl;
     public final String serverUrl;
     public final String search;
+    public final String searchKey;
     public final String searchInfoList;
     public final String searchInfoCid;
     public final String searchInfoTitle;
@@ -47,6 +48,7 @@ public class SourceConfig {
         this.baseUrl = trimSlash(opt(object, "baseUrl"));
         this.serverUrl = opt(object, "serverUrl");
         this.search = opt(object, "search");
+        this.searchKey = opt(object, "searchKey");
         this.searchInfoList = opt(object, "searchInfoList");
         this.searchInfoCid = opt(object, "searchInfoCid");
         this.searchInfoTitle = opt(object, "searchInfoTitle");
@@ -84,7 +86,7 @@ public class SourceConfig {
 
     public boolean isComplete() {
         return !baseUrl.isEmpty()
-                && !search.isEmpty()
+                && (!search.isEmpty() || !searchKey.isEmpty())
                 && !searchInfoList.isEmpty()
                 && !parseChapterList1.isEmpty();
     }

@@ -66,7 +66,8 @@ public class SourceManager {
         Parser parser = mParserArray.get(type);
         if (parser == null) {
             SourceRule rule = sourceRuleDao.load(type);
-            if (rule != null && rule.getScriptContent() != null && !rule.getScriptContent().isEmpty()) {
+            if (type >= SourceRuleManager.TYPE_JS_START
+                    && rule != null && rule.getScriptContent() != null && !rule.getScriptContent().isEmpty()) {
                 Source source = load(type);
                 if (source == null) {
                     source = new Source(null, "JS " + type, type, true);

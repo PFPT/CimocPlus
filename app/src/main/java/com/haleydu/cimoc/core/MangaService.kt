@@ -47,7 +47,7 @@ class MangaService @Inject constructor(
             }
             return@flow
         }
-        val request = parser.getSearchRequest(keyword, page) ?: return@flow
+        val request = Manga.applyHeaders(parser.getSearchRequest(keyword, page), parser.getHeader()) ?: return@flow
         val random = Random()
         val html = Manga.getResponseBody(httpClient, request)
         val iterator = parser.getSearchIterator(html, page)
@@ -79,14 +79,14 @@ class MangaService @Inject constructor(
             return list
         }
         comic.url = parser.getUrl(comic.cid)
-        var request = parser.getInfoRequest(comic.cid)
+        var request = Manga.applyHeaders(parser.getInfoRequest(comic.cid), parser.getHeader())
         if (request == null) {
             throw Manga.ParseErrorException()
         }
         var html = Manga.getResponseBody(httpClient, request)
         val newComic = parser.parseInfo(html, comic)
         AppEventBus.post(AppEvent(AppEvent.EVENT_COMIC_UPDATE_INFO, newComic))
-        request = parser.getChapterRequest(html, comic.cid)
+        request = Manga.applyHeaders(parser.getChapterRequest(html, comic.cid), parser.getHeader())
         if (request != null) {
             html = Manga.getResponseBody(httpClient, request)
         }
@@ -102,7 +102,7 @@ class MangaService @Inject constructor(
         if (parser is JsMangaParser) {
             return parser.category(format, page)
         }
-        val request = parser.getCategoryRequest(format, page)
+        val request = Manga.applyHeaders(parser.getCategoryRequest(format, page), parser.getHeader())
         val html = Manga.getResponseBody(httpClient, request)
         return parser.parseCategory(html, page) ?: emptyList()
     }
@@ -119,7 +119,7 @@ class MangaService @Inject constructor(
                 }
                 return@withContext jsList
             }
-            val request = parser.getImagesRequest(cid, path)
+            val request = Manga.applyHeaders(parser.getImagesRequest(cid, path), parser.getHeader())
             val html = Manga.getResponseBody(httpClient, request)
             var list = parser.parseImages(html, chapter)
             if (list == null || list.isEmpty()) {
@@ -135,7 +135,7 @@ class MangaService @Inject constructor(
         }
 
     suspend fun loadLazyUrl(parser: Parser, url: String): String? = withContext(Dispatchers.IO) {
-        val request = parser.getLazyRequest(url)
+        val request = Manga.applyHeaders(parser.getLazyRequest(url), parser.getHeader())
         try {
             parser.parseLazy(Manga.getResponseBody(httpClient, request), url)
         } catch (e: Exception) {
@@ -169,7 +169,7 @@ class MangaService @Inject constructor(
                 val update = if (parser is JsMangaParser) {
                     parser.checkUpdate(comic.cid)
                 } else {
-                    val request = parser.getCheckRequest(comic.cid)
+                    val request = Manga.applyHeaders(parser.getCheckRequest(comic.cid), parser.getHeader())
                     parser.parseCheck(Manga.getResponseBody(client, request))
                 }
                 if (comic.update != null && update != null && comic.update != update) {

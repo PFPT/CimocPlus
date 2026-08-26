@@ -27,7 +27,6 @@ import com.haleydu.cimoc.ui.widget.ViewUtils;
 import com.haleydu.cimoc.utils.PermissionUtils;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 
@@ -92,9 +91,6 @@ public class ChapterActivity extends BackActivity implements BaseAdapter.OnItemC
         List<Switcher<Chapter>> result = new ArrayList<>(list.size());
         for (int i = 0; i < list.size(); ++i) {
             result.add(new Switcher<>(list.get(i), list.get(i).isDownload()));
-        }
-        if (isAscendMode) {
-            Collections.reverse(result);
         }
         return result;
     }

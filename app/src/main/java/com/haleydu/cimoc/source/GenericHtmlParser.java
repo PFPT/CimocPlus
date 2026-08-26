@@ -26,10 +26,14 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import okhttp3.FormBody;
 import okhttp3.Headers;
 import okhttp3.Request;
 
 public class GenericHtmlParser extends MangaParser {
+
+    private static final String USER_AGENT =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
     private final SourceConfig mConfig;
     private final int mType;
@@ -55,7 +59,14 @@ public class GenericHtmlParser extends MangaParser {
     @Override
     public Request getSearchRequest(String keyword, int page) throws Exception {
         String encoded = URLEncoder.encode(keyword, "UTF-8");
-        String path = mConfig.search;
+        String path = mConfig.search == null ? "" : mConfig.search;
+        if (mConfig.searchKey != null && !mConfig.searchKey.isEmpty()) {
+            if (page != 1) {
+                return null;
+            }
+            FormBody body = new FormBody.Builder().add(mConfig.searchKey, keyword).build();
+            return requestBuilder(absUrl(path)).post(body).build();
+        }
         String url;
         if (path.contains("%s") && path.contains("%d")) {
             url = mConfig.baseUrl + StringUtils.format(path, encoded, page);
@@ -70,7 +81,7 @@ public class GenericHtmlParser extends MangaParser {
             }
             url = mConfig.baseUrl + path + encoded;
         }
-        return new Request.Builder().url(url).build();
+        return requestBuilder(url).build();
     }
 
     @Override
@@ -107,7 +118,7 @@ public class GenericHtmlParser extends MangaParser {
 
     @Override
     public Request getInfoRequest(String cid) {
-        return new Request.Builder().url(absUrl(cid)).build();
+        return requestBuilder(absUrl(cid)).build();
     }
 
     @Override
@@ -138,7 +149,7 @@ public class GenericHtmlParser extends MangaParser {
 
     @Override
     public Request getImagesRequest(String cid, String path) {
-        return new Request.Builder().url(absUrl(path)).build();
+        return requestBuilder(absUrl(path)).build();
     }
 
     @Override
@@ -164,7 +175,25 @@ public class GenericHtmlParser extends MangaParser {
 
     @Override
     public Headers getHeader() {
-        return Headers.of("Referer", mConfig.baseUrl + "/");
+        return Headers.of(
+                "Referer", mConfig.baseUrl + "/",
+                "User-Agent", USER_AGENT
+        );
+    }
+
+    private Request.Builder requestBuilder(String url) {
+        Request.Builder builder = new Request.Builder().url(url);
+        Headers headers = getHeader();
+        for (int i = 0; i < headers.size(); i++) {
+            builder.header(headers.name(i), headers.value(i));
+        }
+        return builder;
+    }
+
+    @Override
+    public Request getCategoryRequest(String format, int page) {
+        String url = StringUtils.format(format, page);
+        return requestBuilder(url).build();
     }
 
     @Override

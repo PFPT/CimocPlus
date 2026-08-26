@@ -41,6 +41,11 @@ class SourceHealthManager @Inject constructor(
             .toSet()
     }
 
+    @Synchronized
+    fun resetAll() {
+        sourceHealthDao.deleteAll()
+    }
+
     fun sortTypes(types: Collection<Int>): List<Int> {
         val map = sourceHealthDao.list().associateBy { it.type }
         return types.sortedWith(healthComparator(map))

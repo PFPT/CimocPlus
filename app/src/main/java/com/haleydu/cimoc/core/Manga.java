@@ -3,11 +3,26 @@ package com.haleydu.cimoc.core;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import okhttp3.Headers;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
 public class Manga {
+
+    public static Request applyHeaders(Request request, Headers headers) {
+        if (request == null || headers == null || headers.size() == 0) {
+            return request;
+        }
+        Request.Builder builder = request.newBuilder();
+        for (int i = 0; i < headers.size(); i++) {
+            String name = headers.name(i);
+            if (request.header(name) == null) {
+                builder.header(name, headers.value(i));
+            }
+        }
+        return builder.build();
+    }
 
     public static String getResponseBody(OkHttpClient client, Request request) throws NetworkErrorException {
         return getResponseBody(client, request, true);

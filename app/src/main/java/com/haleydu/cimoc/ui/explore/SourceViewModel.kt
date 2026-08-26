@@ -97,6 +97,7 @@ class SourceViewModel @Inject constructor(
             text
         }
         if (sourceConfigManager.importJson(content)) {
+            sourceHealthManager.resetAll()
             sourceManager.clearParserCache()
             return
         }
@@ -104,6 +105,7 @@ class SourceViewModel @Inject constructor(
             throw IllegalArgumentException(context.getString(R.string.source_import_fail_format))
         }
         sourceRuleManager.importScript(content, remoteUrl)
+        sourceHealthManager.resetAll()
     }
 
     private fun failMessage(e: Exception): String {

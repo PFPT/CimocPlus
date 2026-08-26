@@ -9,6 +9,7 @@ import com.haleydu.cimoc.core.Manga
 import com.haleydu.cimoc.core.MangaService
 import com.haleydu.cimoc.data.ChapterManager
 import com.haleydu.cimoc.data.ComicManager
+import com.haleydu.cimoc.data.PreferenceManager
 import com.haleydu.cimoc.data.SourceManager
 import com.haleydu.cimoc.data.TagRefManager
 import com.haleydu.cimoc.data.TaskManager
@@ -41,7 +42,8 @@ class DetailViewModel @Inject constructor(
     private val taskManager: TaskManager,
     private val tagRefManager: TagRefManager,
     private val sourceManager: SourceManager,
-    private val mangaService: MangaService
+    private val mangaService: MangaService,
+    private val preferenceManager: PreferenceManager
 ) : ViewModel() {
 
     private val app = context.applicationContext as App
@@ -71,6 +73,9 @@ class DetailViewModel @Inject constructor(
 
     private var rawChapters: List<Chapter> = emptyList()
     private var userReversed = false
+
+    val isAscend: Boolean
+        get() = userReversed
 
     fun parserHeader(): Headers? {
         val current = comic ?: return null
@@ -105,6 +110,7 @@ class DetailViewModel @Inject constructor(
         if (!author.isNullOrEmpty() && current.author.isNullOrEmpty()) {
             current.author = author
         }
+        userReversed = preferenceManager.getBoolean(PreferenceManager.PREF_CHAPTER_ASCEND_MODE, false)
         publishComic(current)
         cancelHighlight()
         preLoad()
@@ -113,16 +119,28 @@ class DetailViewModel @Inject constructor(
 
     fun toggleReverse() {
         userReversed = !userReversed
+        preferenceManager.putBoolean(PreferenceManager.PREF_CHAPTER_ASCEND_MODE, userReversed)
         _uiState.update { it.copy(chapters = displayedChapters()) }
     }
 
     private fun displayedChapters(raw: List<Chapter> = rawChapters): List<Chapter> {
-        val current = comic ?: return raw
-        return if (interpretationUtils.isReverseOrder(current) xor userReversed) {
-            raw.reversed()
-        } else {
-            raw
+        if (raw.size < 2) return raw
+        return if (isAscending(raw) == userReversed) raw else raw.reversed()
+    }
+
+    private fun isAscending(list: List<Chapter>): Boolean {
+        val first = chapterNumber(list.first().title)
+        val last = chapterNumber(list.last().title)
+        if (first != null && last != null && first != last) {
+            return first < last
         }
+        val current = comic ?: return false
+        return interpretationUtils.isReverseOrder(current)
+    }
+
+    private fun chapterNumber(title: String?): Int? {
+        if (title.isNullOrEmpty()) return null
+        return Regex("""(\d+)""").find(title)?.groupValues?.get(1)?.toIntOrNull()
     }
 
     private fun publishComic(current: Comic) {
@@ -132,12 +150,12 @@ class DetailViewModel @Inject constructor(
     }
 
     private fun publishChapters(raw: List<Chapter>, ready: Boolean = true) {
-        rawChapters = raw
+        rawChapters = raw.toList()
         val current = comic
         _uiState.update {
             it.copy(
                 comic = current,
-                chapters = displayedChapters(raw),
+                chapters = displayedChapters(rawChapters),
                 last = current?.last,
                 chaptersReady = ready || raw.isNotEmpty()
             )
@@ -327,6 +345,7 @@ class DetailViewModel @Inject constructor(
     }
 
     fun refreshFromUpdate() {
+        syncOrderFromPref()
         val current = comic ?: return
         if (current.id != null) {
             val loaded = comicManager.load(current.id) ?: return
@@ -334,6 +353,15 @@ class DetailViewModel @Inject constructor(
             current.last = loaded.last
             current.chapter = loaded.chapter
             _uiState.update { it.copy(comic = current, last = current.last) }
+        }
+    }
+
+    private fun syncOrderFromPref() {
+        val ascend = preferenceManager.getBoolean(PreferenceManager.PREF_CHAPTER_ASCEND_MODE, false)
+        if (userReversed == ascend) return
+        userReversed = ascend
+        if (rawChapters.isNotEmpty()) {
+            _uiState.update { it.copy(chapters = displayedChapters()) }
         }
     }
 

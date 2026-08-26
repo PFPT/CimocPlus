@@ -84,6 +84,8 @@ public class SourceConfigManager {
         GENERIC_ITEMS.put("BODONGMH", new Item(215, "波动漫画"));
         GENERIC_ITEMS.put("IQIYI", new Item(216, "爱奇艺漫画"));
         GENERIC_ITEMS.put("BOLEFU", new Item(217, "博乐福"));
+        GENERIC_ITEMS.put("QIXIMH", new Item(218, "七夕漫画"));
+        GENERIC_ITEMS.put("ZERO", new Item(219, "Zero"));
     }
 
     private final PreferenceManager preferenceManager;
@@ -287,6 +289,7 @@ public class SourceConfigManager {
                 mConfigByType.put(meta.type, config);
             }
         }
+        addExtraConfigs(object);
         parseCopyHosts(object.optJSONObject("CopyManHua"));
         addHost(mCopyWebHosts, object.optString("COPYMH"));
         addHost(mCopyApiHosts, object.optString("COPYMHSERVER"));
@@ -299,6 +302,50 @@ public class SourceConfigManager {
             preferenceManager.putString(PreferenceManager.PREF_HHAAZZ_SW, sw);
         }
         return mConfigByType.size() > 0 || object.has("CopyManHua") || object.has("BAOZIMH");
+    }
+
+    private void addExtraConfigs(JSONObject object) {
+        Iterator<String> keys = object.keys();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            if (GENERIC_ITEMS.containsKey(key) || skipExtraKey(key)) {
+                continue;
+            }
+            JSONObject item = object.optJSONObject(key);
+            if (item == null) {
+                continue;
+            }
+            String title = item.optString("title", "").trim();
+            if (title.isEmpty()) {
+                title = key;
+            }
+            int type = extraTypeOf(key);
+            while (mConfigByType.get(type) != null) {
+                type++;
+            }
+            SourceConfig config = new SourceConfig(key, type, title, item);
+            if (config.isComplete()) {
+                mConfigByType.put(type, config);
+            }
+        }
+    }
+
+    private static boolean skipExtraKey(String key) {
+        return "BaoziManHua".equals(key)
+                || "CopyManHua".equals(key)
+                || "YiManHua".equals(key)
+                || "BaiManGu".equals(key)
+                || "PuFeiManHua".equals(key)
+                || "BoLeFu".equals(key)
+                || "DuManHua".equals(key)
+                || "MH50".equals(key)
+                || "CoCoManHua".equals(key)
+                || "ManHuaCat".equals(key);
+    }
+
+    private static int extraTypeOf(String key) {
+        int hash = key.hashCode() & 0x7fffffff;
+        return 300 + (hash % 9000);
     }
 
     private JSONObject aliasOf(JSONObject object, String key) {
@@ -399,8 +446,18 @@ public class SourceConfigManager {
         Source existing = dao.load(source.getType());
         if (existing == null) {
             dao.insert(source);
-        } else if (!source.getTitle().equals(existing.getTitle())) {
+            return;
+        }
+        boolean changed = false;
+        if (!source.getTitle().equals(existing.getTitle())) {
             existing.setTitle(source.getTitle());
+            changed = true;
+        }
+        if (!existing.getEnable()) {
+            existing.setEnable(true);
+            changed = true;
+        }
+        if (changed) {
             dao.update(existing);
         }
     }
