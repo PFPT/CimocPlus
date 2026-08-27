@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
-    <!--<item android:id="@+id/detail_history"-->
-    <!--android:title="@string/detail_history"-->
-    <!--android:icon="@drawable/ic_history_white_24dp"-->
-    <!--app:showAsAction="never" />-->
+    <item
+        android:id="@+id/detail_favorite"
+        android:icon="@drawable/ic_favorite_border_white_24dp"
+        android:title="@string/comic_tab_favorite"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/detail_read"
+        android:icon="@drawable/ic_play_arrow_white_24dp"
+        android:title="@string/detail_start_read"
+        app:showAsAction="always" />
     <item
         android:id="@+id/detail_download"
         android:icon="@drawable/ic_file_download_white_24dp"
@@ -28,10 +34,6 @@
         android:icon="@drawable/ic_swap_vert_white_24dp"
         android:title="@string/detail_reverse_list"
         app:showAsAction="always" />
-    <!--<item android:id="@+id/detail_disqus"-->
-    <!--android:title="@string/detail_disqus"-->
-    <!--android:icon="@drawable/ic_chat_bubble_white_24dp"-->
-    <!--app:showAsAction="always"/>-->
     <item
         android:id="@+id/detail_share_url"
         android:icon="@drawable/ic_share_white_24dp"

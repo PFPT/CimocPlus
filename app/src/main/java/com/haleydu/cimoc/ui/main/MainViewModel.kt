@@ -3,9 +3,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.haleydu.cimoc.core.Update
 import com.haleydu.cimoc.data.ComicManager
-import com.haleydu.cimoc.data.SourceConfigManager
+import com.haleydu.cimoc.data.SourceCatalogRefresher
 import com.haleydu.cimoc.data.SourceManager
-import com.haleydu.cimoc.data.SourceRuleManager
 import com.haleydu.cimoc.model.MiniComic
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -21,8 +20,7 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     private val comicManager: ComicManager,
     private val sourceManager: SourceManager,
-    private val sourceConfigManager: SourceConfigManager,
-    private val sourceRuleManager: SourceRuleManager,
+    private val sourceCatalogRefresher: SourceCatalogRefresher,
     private val httpClient: OkHttpClient
 ) : ViewModel() {
 
@@ -107,13 +105,7 @@ class MainViewModel @Inject constructor(
 
     fun getSourceBaseUrl() {
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                sourceConfigManager.fetchRemote()
-                sourceConfigManager.applyToDatabase()
-                sourceRuleManager.refreshRemote()
-                sourceManager.clearParserCache()
-            } catch (_: Exception) {
-            }
+            sourceCatalogRefresher.refreshIfNeeded()
         }
     }
 

@@ -17,6 +17,9 @@ interface SourceHealthDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertOrReplace(health: SourceHealth)
 
+    @Query("DELETE FROM SOURCE_HEALTH WHERE TYPE = :type")
+    fun delete(type: Int)
+
     @Query("DELETE FROM SOURCE_HEALTH")
     fun deleteAll()
 }

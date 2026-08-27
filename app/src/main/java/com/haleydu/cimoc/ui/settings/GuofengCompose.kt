@@ -79,10 +79,10 @@ fun GuofengLargeTitle(text: String, modifier: Modifier = Modifier) {
         text = text,
         modifier = modifier.padding(bottom = 8.dp),
         color = MaterialTheme.colors.onSurface,
-        fontSize = 32.sp,
+        fontSize = 28.sp,
         fontWeight = FontWeight.Bold,
-        fontFamily = FontFamily.Serif,
-        letterSpacing = 0.5.sp
+        fontFamily = FontFamily.SansSerif,
+        letterSpacing = (-0.3).sp
     )
 }
 
@@ -183,7 +183,9 @@ fun SwitchPref(
             },
             colors = SwitchDefaults.colors(
                 checkedThumbColor = MaterialTheme.colors.primary,
-                checkedTrackColor = MaterialTheme.colors.primary.copy(alpha = 0.45f)
+                checkedTrackColor = MaterialTheme.colors.primary.copy(alpha = 0.35f),
+                uncheckedThumbColor = MaterialTheme.colors.onSurface.copy(alpha = 0.35f),
+                uncheckedTrackColor = MaterialTheme.colors.onSurface.copy(alpha = 0.12f)
             )
         )
     }

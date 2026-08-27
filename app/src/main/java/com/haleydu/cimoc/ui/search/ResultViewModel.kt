@@ -3,6 +3,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.haleydu.cimoc.core.Manga
 import com.haleydu.cimoc.core.MangaService
+import com.haleydu.cimoc.data.SourceCatalogRefresher
 import com.haleydu.cimoc.data.SourceHealthManager
 import com.haleydu.cimoc.data.SourceManager
 import com.haleydu.cimoc.model.Comic
@@ -26,7 +27,8 @@ import javax.inject.Inject
 class ResultViewModel @Inject constructor(
     private val sourceManager: SourceManager,
     private val mangaService: MangaService,
-    private val sourceHealthManager: SourceHealthManager
+    private val sourceHealthManager: SourceHealthManager,
+    private val sourceCatalogRefresher: SourceCatalogRefresher
 ) : ViewModel() {
 
     data class SearchGroup(
@@ -154,7 +156,7 @@ class ResultViewModel @Inject constructor(
                 }
                 if (list.isEmpty()) {
                     if (first.page == 1) {
-                        sourceHealthManager.recordFailure(first.source, SourceHealthManager.KIND_EMPTY)
+                        noteFailure(first.source, SourceHealthManager.KIND_EMPTY)
                         _loadEmpty.emit(Unit)
                     }
                 } else {
@@ -169,14 +171,14 @@ class ResultViewModel @Inject constructor(
                 throw e
             } catch (e: Manga.NetworkErrorException) {
                 e.printStackTrace()
-                sourceHealthManager.recordFailure(first.source, SourceHealthManager.KIND_NETWORK)
+                noteFailure(first.source, SourceHealthManager.KIND_NETWORK)
                 if (first.page == 1) {
                     _loadNetworkError.emit(Unit)
                 }
                 first.state = STATE_NULL
             } catch (e: Exception) {
                 e.printStackTrace()
-                sourceHealthManager.recordFailure(first.source, SourceHealthManager.KIND_PARSE)
+                noteFailure(first.source, SourceHealthManager.KIND_PARSE)
                 if (first.page == 1) {
                     _loadFail.emit(Unit)
                 }
@@ -219,7 +221,7 @@ class ResultViewModel @Inject constructor(
                             )
                             obj.state = if (page == 1 && !emitted) STATE_DONE else STATE_NULL
                         } catch (e: TimeoutCancellationException) {
-                            sourceHealthManager.recordFailure(obj.source, SourceHealthManager.KIND_NETWORK)
+                            noteFailure(obj.source, SourceHealthManager.KIND_NETWORK)
                             if (obj.page == 0) {
                                 obj.state = STATE_DONE
                                 error++
@@ -228,14 +230,14 @@ class ResultViewModel @Inject constructor(
                             throw e
                         } catch (e: Manga.NetworkErrorException) {
                             e.printStackTrace()
-                            sourceHealthManager.recordFailure(obj.source, SourceHealthManager.KIND_NETWORK)
+                            noteFailure(obj.source, SourceHealthManager.KIND_NETWORK)
                             if (obj.page == 0) {
                                 obj.state = STATE_DONE
                                 error++
                             }
                         } catch (e: Exception) {
                             e.printStackTrace()
-                            sourceHealthManager.recordFailure(obj.source, SourceHealthManager.KIND_PARSE)
+                            noteFailure(obj.source, SourceHealthManager.KIND_PARSE)
                             if (obj.page == 0) {
                                 obj.state = STATE_DONE
                                 error++
@@ -257,6 +259,13 @@ class ResultViewModel @Inject constructor(
                 }
                 throw e
             }
+        }
+    }
+
+    private fun noteFailure(type: Int, kind: String) {
+        sourceHealthManager.recordFailure(type, kind)
+        viewModelScope.launch(Dispatchers.IO) {
+            sourceCatalogRefresher.refreshAfterFailure(type)
         }
     }
 

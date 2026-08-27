@@ -271,19 +271,26 @@ public class GenericHtmlParser extends MangaParser {
         } catch (Exception e) {
             return;
         }
+        Long comicChapter = chapter == null ? null : chapter.getId();
+        if (comicChapter == null) {
+            return;
+        }
         for (Node node : nodes) {
             String url = imageAttr(node, mConfig.parseImageUrl);
             url = absImage(url);
             if (url == null || isFault(url)) {
                 continue;
             }
-            Long comicChapter = chapter.getId();
             Long id = Long.parseLong(comicChapter + "000" + i);
             list.add(new ImageUrl(id, comicChapter, ++i, url, false));
         }
     }
 
     private void parseRegexImages(String html, Chapter chapter, List<ImageUrl> list) {
+        Long comicChapter = chapter == null ? null : chapter.getId();
+        if (comicChapter == null) {
+            return;
+        }
         Matcher matcher = Pattern.compile(mConfig.parseImageList).matcher(html);
         int i = 0;
         while (matcher.find()) {
@@ -300,7 +307,6 @@ public class GenericHtmlParser extends MangaParser {
                         if (url == null || isFault(url)) {
                             continue;
                         }
-                        Long comicChapter = chapter.getId();
                         Long id = Long.parseLong(comicChapter + "000" + i);
                         list.add(new ImageUrl(id, comicChapter, ++i, url, false));
                     }
@@ -314,7 +320,6 @@ public class GenericHtmlParser extends MangaParser {
                 if (url == null || isFault(url)) {
                     continue;
                 }
-                Long comicChapter = chapter.getId();
                 Long id = Long.parseLong(comicChapter + "000" + i);
                 list.add(new ImageUrl(id, comicChapter, ++i, url, false));
             }

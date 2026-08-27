@@ -179,9 +179,10 @@ class ResultActivity : BackActivity(), BaseAdapter.OnItemClickListener, DialogCa
             this,
             null,
             0,
-            R.style.Widget_Material3_Chip_Filter
+            R.style.Guofeng_PillChip_Filter
         )
         chip.setChipDrawable(drawable)
+        chip.elevation = 0f
         chip.layoutParams = ViewGroup.MarginLayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,
             ViewGroup.LayoutParams.WRAP_CONTENT

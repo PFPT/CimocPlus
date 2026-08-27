@@ -4,8 +4,8 @@
     android:id="@+id/custom_toolbar"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?attr/colorSurface"
-    android:theme="@style/ThemeOverlay.Material3.ActionBar"
+    android:background="@drawable/bg_guofeng_toolbar"
     app:navigationIconTint="?attr/colorOnSurface"
     app:popupTheme="@style/ThemeOverlay.Material3"
+    app:titleTextAppearance="@style/TextAppearance.Guofeng.Headline"
     app:titleTextColor="?attr/colorOnSurface" />

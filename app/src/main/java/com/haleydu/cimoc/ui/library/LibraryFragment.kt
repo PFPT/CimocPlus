@@ -53,9 +53,8 @@ class LibraryFragment : BaseFragment(), DialogCaller, ThemeResponsive {
     override fun initView() {
         val binding = binding ?: return
         ensureChildren()
-        binding.libraryChipGroup.setOnCheckedStateChangeListener { _, checkedIds ->
-            val checkedId = checkedIds.firstOrNull() ?: View.NO_ID
-            if (checkedId == View.NO_ID) return@setOnCheckedStateChangeListener
+        binding.libraryChipGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
             val tag = when (checkedId) {
                 R.id.library_chip_history -> TAG_HISTORY
                 R.id.library_chip_local -> TAG_LOCAL

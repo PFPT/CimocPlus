@@ -70,8 +70,10 @@ public class SourceAdapter extends BaseAdapter<Source> {
         return new RecyclerView.ItemDecoration() {
             @Override
             public void getItemOffsets(Rect outRect, View view, RecyclerView parent, RecyclerView.State state) {
-                int offset = parent.getWidth() / 90;
-                outRect.set(offset, 0, offset, (int) (offset * 1.5));
+                float density = parent.getResources().getDisplayMetrics().density;
+                int h = (int) (16 * density);
+                int v = (int) (6 * density);
+                outRect.set(h, v, h, v);
             }
         };
     }

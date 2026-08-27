@@ -1,62 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:fresco="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="120dp"
-    android:background="@color/white"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_guofeng_card"
     android:clickable="true"
     android:foreground="?android:attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
     android:padding="10dp">
 
     <com.facebook.drawee.view.SimpleDraweeView
         android:id="@+id/result_comic_image"
-        android:layout_width="80dp"
-        android:layout_height="match_parent"
-        android:layout_marginRight="10dp"
-        fresco:actualImageScaleType="centerCrop" />
+        android:layout_width="72dp"
+        android:layout_height="96dp"
+        fresco:actualImageScaleType="centerCrop"
+        fresco:roundedCornerRadius="8dp" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="12dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/result_comic_title"
+            style="@style/TextAppearance.Guofeng.Headline"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="2" />
+
+        <TextView
+            android:id="@+id/result_comic_author"
+            style="@style/TextAppearance.Guofeng.Footnote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
+            android:maxLines="1" />
+
+        <TextView
+            android:id="@+id/result_comic_update"
+            style="@style/TextAppearance.Guofeng.Footnote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
+            android:maxLines="1" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/result_comic_source"
+        style="@style/TextAppearance.Guofeng.Footnote"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentRight="true"
+        android:layout_gravity="top"
+        android:layout_marginLeft="8dp"
         android:ellipsize="end"
-        android:gravity="end"
-        android:maxWidth="140dp"
-        android:maxLines="2"
-        android:textSize="14sp" />
-
-    <TextView
-        android:id="@+id/result_comic_update"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentBottom="true"
-        android:textSize="14sp" />
-
-    <TextView
-        android:id="@+id/result_comic_title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_toLeftOf="@id/result_comic_source"
-        android:layout_toRightOf="@id/result_comic_image"
-        android:ellipsize="end"
-        android:maxLines="2"
-        android:paddingRight="4dp"
-        android:textColor="?android:attr/textColorPrimary"
-        android:textSize="16sp" />
-
-    <TextView
-        android:id="@+id/result_comic_author"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/result_comic_title"
-        android:layout_alignLeft="@id/result_comic_title"
-        android:layout_marginTop="6dp"
-        android:layout_toLeftOf="@id/result_comic_source"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:textSize="16sp" />
-</RelativeLayout>
+        android:maxWidth="88dp"
+        android:maxLines="2" />
+</LinearLayout>

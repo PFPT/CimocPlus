@@ -3,21 +3,34 @@
     android:id="@+id/explore_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?android:attr/colorBackground">
+    android:background="@android:color/transparent">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
 
+        <TextView
+            style="@style/TextAppearance.Guofeng.LargeTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="20dp"
+            android:paddingTop="4dp"
+            android:paddingRight="20dp"
+            android:paddingBottom="4dp"
+            android:text="@string/nav_discover" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginLeft="16dp"
+            android:layout_marginRight="16dp"
+            android:background="@drawable/bg_guofeng_card"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingLeft="10dp"
+            android:paddingLeft="12dp"
             android:paddingTop="4dp"
-            android:paddingRight="10dp"
+            android:paddingRight="8dp"
             android:paddingBottom="4dp">
 
             <TextView
@@ -26,8 +39,7 @@
                 android:layout_marginLeft="6dp"
                 android:layout_marginRight="10dp"
                 android:text="@string/explore_source"
-                android:textColor="?attr/colorOnSurface"
-                android:textSize="16sp" />
+                android:textAppearance="@style/TextAppearance.Guofeng.Footnote" />
 
             <androidx.appcompat.widget.AppCompatSpinner
                 android:id="@+id/explore_source_spinner"
@@ -48,30 +60,37 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:paddingLeft="6dp"
-                android:paddingRight="6dp">
+                android:paddingLeft="12dp"
+                android:paddingTop="8dp"
+                android:paddingRight="12dp"
+                android:paddingBottom="4dp">
 
                 <LinearLayout
                     android:id="@+id/explore_subject"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginRight="8dp"
+                    android:background="@drawable/bg_guofeng_card"
                     android:gravity="center_vertical"
                     android:minWidth="96dp"
                     android:orientation="vertical"
-                    android:padding="4dp"
+                    android:paddingLeft="12dp"
+                    android:paddingTop="4dp"
+                    android:paddingRight="4dp"
+                    android:paddingBottom="4dp"
                     android:visibility="gone">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/category_subject"
-                        android:textColor="?attr/colorOnSurface"
-                        android:textSize="12sp" />
+                        android:textAppearance="@style/TextAppearance.Guofeng.Footnote" />
 
                     <androidx.appcompat.widget.AppCompatSpinner
                         android:id="@+id/explore_spinner_subject"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:background="@android:color/transparent"
                         android:dropDownWidth="200dp" />
                 </LinearLayout>
 
@@ -79,23 +98,28 @@
                     android:id="@+id/explore_area"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginRight="8dp"
+                    android:background="@drawable/bg_guofeng_card"
                     android:gravity="center_vertical"
                     android:minWidth="96dp"
                     android:orientation="vertical"
-                    android:padding="4dp"
+                    android:paddingLeft="12dp"
+                    android:paddingTop="4dp"
+                    android:paddingRight="4dp"
+                    android:paddingBottom="4dp"
                     android:visibility="gone">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/category_area"
-                        android:textColor="?attr/colorOnSurface"
-                        android:textSize="12sp" />
+                        android:textAppearance="@style/TextAppearance.Guofeng.Footnote" />
 
                     <androidx.appcompat.widget.AppCompatSpinner
                         android:id="@+id/explore_spinner_area"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:background="@android:color/transparent"
                         android:dropDownWidth="200dp" />
                 </LinearLayout>
 
@@ -103,23 +127,28 @@
                     android:id="@+id/explore_reader"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginRight="8dp"
+                    android:background="@drawable/bg_guofeng_card"
                     android:gravity="center_vertical"
                     android:minWidth="96dp"
                     android:orientation="vertical"
-                    android:padding="4dp"
+                    android:paddingLeft="12dp"
+                    android:paddingTop="4dp"
+                    android:paddingRight="4dp"
+                    android:paddingBottom="4dp"
                     android:visibility="gone">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/category_reader"
-                        android:textColor="?attr/colorOnSurface"
-                        android:textSize="12sp" />
+                        android:textAppearance="@style/TextAppearance.Guofeng.Footnote" />
 
                     <androidx.appcompat.widget.AppCompatSpinner
                         android:id="@+id/explore_spinner_reader"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:background="@android:color/transparent"
                         android:dropDownWidth="200dp" />
                 </LinearLayout>
 
@@ -127,23 +156,28 @@
                     android:id="@+id/explore_year"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginRight="8dp"
+                    android:background="@drawable/bg_guofeng_card"
                     android:gravity="center_vertical"
                     android:minWidth="96dp"
                     android:orientation="vertical"
-                    android:padding="4dp"
+                    android:paddingLeft="12dp"
+                    android:paddingTop="4dp"
+                    android:paddingRight="4dp"
+                    android:paddingBottom="4dp"
                     android:visibility="gone">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/category_year"
-                        android:textColor="?attr/colorOnSurface"
-                        android:textSize="12sp" />
+                        android:textAppearance="@style/TextAppearance.Guofeng.Footnote" />
 
                     <androidx.appcompat.widget.AppCompatSpinner
                         android:id="@+id/explore_spinner_year"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:background="@android:color/transparent"
                         android:dropDownWidth="200dp" />
                 </LinearLayout>
 
@@ -151,23 +185,28 @@
                     android:id="@+id/explore_progress"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginRight="8dp"
+                    android:background="@drawable/bg_guofeng_card"
                     android:gravity="center_vertical"
                     android:minWidth="96dp"
                     android:orientation="vertical"
-                    android:padding="4dp"
+                    android:paddingLeft="12dp"
+                    android:paddingTop="4dp"
+                    android:paddingRight="4dp"
+                    android:paddingBottom="4dp"
                     android:visibility="gone">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/category_progress"
-                        android:textColor="?attr/colorOnSurface"
-                        android:textSize="12sp" />
+                        android:textAppearance="@style/TextAppearance.Guofeng.Footnote" />
 
                     <androidx.appcompat.widget.AppCompatSpinner
                         android:id="@+id/explore_spinner_progress"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:background="@android:color/transparent"
                         android:dropDownWidth="200dp" />
                 </LinearLayout>
 
@@ -175,23 +214,27 @@
                     android:id="@+id/explore_order"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:background="@drawable/bg_guofeng_card"
                     android:gravity="center_vertical"
                     android:minWidth="96dp"
                     android:orientation="vertical"
-                    android:padding="4dp"
+                    android:paddingLeft="12dp"
+                    android:paddingTop="4dp"
+                    android:paddingRight="4dp"
+                    android:paddingBottom="4dp"
                     android:visibility="gone">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/category_order"
-                        android:textColor="?attr/colorOnSurface"
-                        android:textSize="12sp" />
+                        android:textAppearance="@style/TextAppearance.Guofeng.Footnote" />
 
                     <androidx.appcompat.widget.AppCompatSpinner
                         android:id="@+id/explore_spinner_order"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:background="@android:color/transparent"
                         android:dropDownWidth="200dp" />
                 </LinearLayout>
             </LinearLayout>

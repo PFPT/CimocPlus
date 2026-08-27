@@ -5,24 +5,37 @@
     android:id="@+id/search_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?android:attr/colorBackground"
+    android:background="@android:color/transparent"
     android:orientation="vertical">
+
+    <TextView
+        style="@style/TextAppearance.Guofeng.LargeTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingLeft="20dp"
+        android:paddingTop="4dp"
+        android:paddingRight="20dp"
+        android:paddingBottom="4dp"
+        android:text="@string/comic_search" />
 
     <include layout="@layout/custom_progress_bar" />
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/search_text_layout"
-        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        style="@style/Widget.Material3.TextInputLayout.FilledBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginLeft="16dp"
         android:layout_marginTop="8dp"
         android:layout_marginRight="16dp"
         android:hint="@string/search_keyword_input"
-        app:boxCornerRadiusBottomEnd="28dp"
-        app:boxCornerRadiusBottomStart="28dp"
-        app:boxCornerRadiusTopEnd="28dp"
-        app:boxCornerRadiusTopStart="28dp"
+        app:boxBackgroundColor="@color/colorSurface"
+        app:boxCornerRadiusBottomEnd="12dp"
+        app:boxCornerRadiusBottomStart="12dp"
+        app:boxCornerRadiusTopEnd="12dp"
+        app:boxCornerRadiusTopStart="12dp"
+        app:boxStrokeWidth="0dp"
+        app:boxStrokeWidthFocused="0dp"
         app:startIconDrawable="@drawable/ic_search_24">
 
         <androidx.appcompat.widget.AppCompatAutoCompleteTextView
@@ -65,9 +78,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/search_history"
-                    android:textColor="?attr/colorOnSurface"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
+                    android:textAppearance="@style/TextAppearance.Guofeng.Footnote" />
 
                 <TextView
                     android:id="@+id/search_history_clear"
@@ -93,9 +104,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:text="@string/search_genre"
-                android:textColor="?attr/colorOnSurface"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+                android:textAppearance="@style/TextAppearance.Guofeng.Footnote" />
 
             <com.google.android.material.chip.ChipGroup
                 android:id="@+id/search_genre_group"

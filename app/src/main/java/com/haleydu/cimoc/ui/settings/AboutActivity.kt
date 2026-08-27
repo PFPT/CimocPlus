@@ -5,10 +5,8 @@ import android.content.pm.PackageInfo
 import androidx.core.content.pm.PackageInfoCompat
 import android.net.Uri
 import android.view.View
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -52,7 +50,7 @@ class AboutActivity : BackActivity() {
     override fun initView() {
         super.initView()
         binding.aboutCompose.setContent {
-            MaterialTheme {
+            GuofengComposeTheme {
                 AboutScreen(onOpenUrl = { urlRes -> openUrl(getString(urlRes)) })
             }
         }
@@ -95,28 +93,22 @@ private fun AboutScreen(onOpenUrl: (Int) -> Unit, vm: AboutViewModel = viewModel
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp)
+            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 32.dp)
     ) {
-        Text(text = stringResource(R.string.app_name), fontSize = 40.sp, color = MaterialTheme.colors.primary)
-        Text(text = version, modifier = Modifier.padding(top = 8.dp, bottom = 24.dp))
-        AboutItem(R.string.about_update, R.string.about_update_summary) {
-            onOpenUrl(R.string.about_update_url)
+        GuofengLargeTitle(text = stringResource(R.string.app_name))
+        Text(
+            text = version,
+            modifier = Modifier.padding(bottom = 16.dp),
+            color = MaterialTheme.colors.onSurface.copy(alpha = 0.55f),
+            fontSize = 13.sp
+        )
+        PrefGroup {
+            ActionPref(R.string.about_update, summary = R.string.about_update_summary) {
+                onOpenUrl(R.string.about_update_url)
+            }
+            ActionPref(R.string.about_support, summary = R.string.about_support_url, showDivider = false) {
+                onOpenUrl(R.string.about_support_url)
+            }
         }
-        AboutItem(R.string.about_support, R.string.about_support_url) {
-            onOpenUrl(R.string.about_support_url)
-        }
-    }
-}
-
-@Composable
-private fun AboutItem(title: Int, summary: Int, onClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 16.dp)
-    ) {
-        Text(text = stringResource(title), fontSize = 16.sp)
-        Text(text = stringResource(summary), fontSize = 14.sp, modifier = Modifier.padding(top = 2.dp))
     }
 }

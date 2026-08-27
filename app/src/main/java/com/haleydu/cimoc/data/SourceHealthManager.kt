@@ -42,6 +42,11 @@ class SourceHealthManager @Inject constructor(
     }
 
     @Synchronized
+    fun reset(type: Int) {
+        sourceHealthDao.delete(type)
+    }
+
+    @Synchronized
     fun resetAll() {
         sourceHealthDao.deleteAll()
     }

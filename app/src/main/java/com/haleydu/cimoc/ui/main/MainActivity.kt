@@ -16,10 +16,7 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.annotation.ColorRes
-import androidx.annotation.StyleRes
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.core.content.pm.PackageInfoCompat
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
@@ -30,7 +27,6 @@ import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings
 import com.haleydu.cimoc.App
 import com.haleydu.cimoc.R
 import com.haleydu.cimoc.component.DialogCaller
-import com.haleydu.cimoc.component.ThemeResponsive
 import com.haleydu.cimoc.core.Update
 import com.haleydu.cimoc.databinding.ActivityMainBinding
 import com.haleydu.cimoc.event.AppEvent
@@ -64,13 +60,13 @@ class MainActivity : BaseActivity(), DialogCaller {
     private var md5: String? = null
     private var versionCode = 0
 
+    private var navOverlayPad = 0
+    private var statusPad = 0
+
     private val settingsLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode != RESULT_OK) return@registerForActivityResult
         val data = result.data ?: return@registerForActivityResult
         val extra = data.getIntArrayExtra(Extra.EXTRA_RESULT) ?: return@registerForActivityResult
-        if (extra[0] == 1) {
-            changeTheme(extra[1], extra[2], extra[3])
-        }
         if (extra[4] == 1 && mNightMask != null) {
             mNightMask!!.setBackgroundColor(extra[5] shl 24)
         }
@@ -93,40 +89,45 @@ class MainActivity : BaseActivity(), DialogCaller {
     }
 
     override fun applyWindowInsets() {
-        val toolbar = mToolbar
-        if (toolbar != null) {
-            ViewCompat.setOnApplyWindowInsetsListener(toolbar) { v, insets ->
-                val bars: Insets = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-                v.setPadding(v.paddingLeft, bars.top, v.paddingRight, v.paddingBottom)
-                insets
-            }
-        }
         ViewCompat.setOnApplyWindowInsetsListener(binding.mainBottomNav) { v, insets ->
             val bars: Insets = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val density = resources.displayMetrics.density
             v.setPadding(v.paddingLeft, v.paddingTop, v.paddingRight, bars.bottom)
+            val navHeight = if (v.height > 0) v.height else (56 * density).toInt()
+            navOverlayPad = navHeight + bars.bottom
+            applyFragmentBottomPad(0)
             insets
         }
         ViewCompat.setOnApplyWindowInsetsListener(binding.mainFragmentContainer) { v, insets ->
+            val bars: Insets = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             val ime: Insets = insets.getInsets(WindowInsetsCompat.Type.ime())
             val nav: Insets = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
-            v.setPadding(
-                v.paddingLeft,
-                v.paddingTop,
-                v.paddingRight,
-                (ime.bottom - nav.bottom).coerceAtLeast(0)
-            )
+            statusPad = bars.top
+            applyFragmentBottomPad((ime.bottom - nav.bottom).coerceAtLeast(0))
             insets
         }
+    }
+
+    private fun applyFragmentBottomPad(imeExtra: Int) {
+        binding.mainFragmentContainer.setPadding(
+            binding.mainFragmentContainer.paddingLeft,
+            statusPad,
+            binding.mainFragmentContainer.paddingRight,
+            navOverlayPad + imeExtra
+        )
     }
 
     override fun initView() {
         initFragments()
         binding.mainBottomNav.selectedItemId = currentNavId
-        mToolbar?.title = titleFor(currentNavId)
+        mToolbar?.title = ""
+        mToolbar?.visibility = View.GONE
         binding.mainBottomNav.setOnItemSelectedListener { item ->
             switchTab(item.itemId)
+            animateBottomNav(item.itemId)
             true
         }
+        animateBottomNav(currentNavId)
     }
 
     override fun initData() {
@@ -301,13 +302,13 @@ class MainActivity : BaseActivity(), DialogCaller {
         binding.mainNavHost.visibility = View.GONE
         binding.mainFragmentContainer.visibility = View.VISIBLE
         binding.mainBottomNav.visibility = View.VISIBLE
-        mToolbar?.visibility = View.VISIBLE
-        mToolbar?.title = titleFor(currentNavId)
+        mToolbar?.visibility = View.GONE
+        mToolbar?.title = ""
         supportActionBar?.setDisplayHomeAsUpEnabled(false)
     }
 
     override fun getDefaultTitle(): String {
-        return getString(R.string.nav_library)
+        return ""
     }
 
     override fun getLayoutRes(): Int {
@@ -364,32 +365,26 @@ class MainActivity : BaseActivity(), DialogCaller {
         val next = fragmentMap[itemId] ?: return
         if (currentFragment !== next) {
             val tx = supportFragmentManager.beginTransaction()
+                .setCustomAnimations(R.anim.guofeng_fade_in, R.anim.guofeng_fade_out)
             currentFragment?.let { tx.hide(it) }
             tx.show(next)
             tx.commit()
             currentFragment = next
         }
         currentNavId = itemId
-        mToolbar?.title = titleFor(itemId)
+        mToolbar?.title = ""
         invalidateOptionsMenu()
     }
 
-    private fun titleFor(itemId: Int): String {
-        return when (itemId) {
-            R.id.nav_discover -> getString(R.string.nav_discover)
-            R.id.nav_search -> getString(R.string.comic_search)
-            R.id.nav_profile -> getString(R.string.nav_profile)
-            else -> getString(R.string.nav_library)
-        }
-    }
-
-    private fun changeTheme(@StyleRes theme: Int, @ColorRes primary: Int, @ColorRes accent: Int) {
-        setTheme(theme)
-        val primaryColor = ContextCompat.getColor(this, primary)
-        mToolbar?.setBackgroundColor(primaryColor)
-        binding.mainBottomNav.setBackgroundColor(primaryColor)
-        fragmentMap.values.forEach { fragment ->
-            (fragment as? ThemeResponsive)?.onThemeChange(primary, accent)
+    private fun animateBottomNav(selectedId: Int) {
+        val menuView = binding.mainBottomNav.getChildAt(0) as? android.view.ViewGroup ?: return
+        val menu = binding.mainBottomNav.menu
+        for (i in 0 until menuView.childCount) {
+            if (i >= menu.size()) break
+            val child = menuView.getChildAt(i)
+            val selected = menu.getItem(i).itemId == selectedId
+            val scale = if (selected) 1.08f else 1f
+            child.animate().scaleX(scale).scaleY(scale).setDuration(180).start()
         }
     }
 

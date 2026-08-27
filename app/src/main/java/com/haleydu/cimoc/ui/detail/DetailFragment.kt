@@ -102,6 +102,15 @@ class DetailFragment : BaseFragment(), BaseAdapter.OnItemClickListener, BaseAdap
         host.addMenuProvider(object : MenuProvider {
             override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
                 menuInflater.inflate(R.menu.menu_detail, menu)
+                val comic = vm.comic
+                menu.findItem(R.id.detail_favorite)?.setIcon(
+                    if (comic?.favorite != null) R.drawable.ic_favorite_white_24dp
+                    else R.drawable.ic_favorite_border_white_24dp
+                )
+                val hasHistory = !comic?.last.isNullOrEmpty()
+                menu.findItem(R.id.detail_read)?.setIcon(
+                    if (hasHistory) R.drawable.ic_history_white_24dp else R.drawable.ic_play_arrow_white_24dp
+                )
             }
 
             override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
@@ -120,8 +129,6 @@ class DetailFragment : BaseFragment(), BaseAdapter.OnItemClickListener, BaseAdap
         bind.detailRecyclerView.itemAnimator = null
         bind.detailRecyclerView.addItemDecoration(detailAdapter.itemDecoration)
         bind.detailRecyclerView.adapter = detailAdapter
-        bind.detailFabRead.setOnClickListener { onReadClick() }
-        bind.detailFabFavorite.setOnClickListener { onFavoriteClick() }
         bind.detailCover.transitionName = "comic_cover"
         bind.detailCover.setOnLongClickListener {
             showIntro()
@@ -226,6 +233,8 @@ class DetailFragment : BaseFragment(), BaseAdapter.OnItemClickListener, BaseAdap
                 startActivity(Intent.createChooser(intent, url))
             }
             R.id.detail_reverse_list -> vm.toggleReverse()
+            R.id.detail_favorite -> onFavoriteClick()
+            R.id.detail_read -> onReadClick()
             else -> return false
         }
         return true
@@ -242,15 +251,14 @@ class DetailFragment : BaseFragment(), BaseAdapter.OnItemClickListener, BaseAdap
 
     private fun onFavoriteClick() {
         val comic = vm.comic ?: return
-        val bind = binding ?: return
         if (comic.favorite != null) {
             vm.unfavoriteComic()
-            bind.detailFabFavorite.setImageResource(R.drawable.ic_favorite_border_white_24dp)
-            HintUtils.showSnackbar(bind.detailLayout, getString(R.string.detail_unfavorite))
+            requireActivity().invalidateOptionsMenu()
+            HintUtils.showSnackbar(binding?.detailLayout, getString(R.string.detail_unfavorite))
         } else {
             vm.favoriteComic()
-            bind.detailFabFavorite.setImageResource(R.drawable.ic_favorite_white_24dp)
-            HintUtils.showSnackbar(bind.detailLayout, getString(R.string.detail_favorite))
+            requireActivity().invalidateOptionsMenu()
+            HintUtils.showSnackbar(binding?.detailLayout, getString(R.string.detail_favorite))
         }
     }
 
@@ -307,15 +315,7 @@ class DetailFragment : BaseFragment(), BaseAdapter.OnItemClickListener, BaseAdap
                 val supplier = ControllerBuilderSupplierFactory.get(requireContext(), imagePipelineFactory)
                 bind.detailCover.controller = supplier.get().setUri(comic.cover).build()
             }
-            bind.detailFabFavorite.setImageResource(
-                if (comic.favorite != null) R.drawable.ic_favorite_white_24dp else R.drawable.ic_favorite_border_white_24dp
-            )
-            bind.detailFabFavorite.visibility = View.VISIBLE
-            val hasHistory = !comic.last.isNullOrEmpty()
-            bind.detailFabRead.setImageResource(
-                if (hasHistory) R.drawable.ic_history_white_24dp else R.drawable.ic_play_arrow_white_24dp
-            )
-            bind.detailFabRead.visibility = View.VISIBLE
+            requireActivity().invalidateOptionsMenu()
         }
     }
 

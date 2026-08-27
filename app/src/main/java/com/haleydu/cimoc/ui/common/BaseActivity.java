@@ -9,6 +9,11 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.widget.RelativeLayout;
+
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
 
 import com.haleydu.cimoc.App;
 import com.haleydu.cimoc.di.AppEntryPoint;
@@ -17,6 +22,7 @@ import com.haleydu.cimoc.R;
 import com.haleydu.cimoc.component.AppGetter;
 import com.haleydu.cimoc.data.PreferenceManager;
 import com.haleydu.cimoc.ui.common.dialog.ProgressDialogFragment;
+import com.haleydu.cimoc.ui.widget.GuofengAtmosphereView;
 import com.haleydu.cimoc.utils.HintUtils;
 import com.haleydu.cimoc.utils.ThemeUtils;
 
@@ -39,6 +45,7 @@ public abstract class BaseActivity extends AppCompatActivity implements AppGette
         mContentRoot = inflateContentView();
         setContentView(mContentRoot);
         bindViews();
+        initAtmosphere();
         applyWindowInsets();
         initNight();
         initToolbar();
@@ -60,7 +67,7 @@ public abstract class BaseActivity extends AppCompatActivity implements AppGette
 
     protected void initTheme() {
         applyNightMode();
-        int theme = mPreference.getInt(PreferenceManager.PREF_OTHER_THEME, ThemeUtils.THEME_BLUE);
+        int theme = mPreference.getInt(PreferenceManager.PREF_OTHER_THEME, ThemeUtils.THEME_GUOFENG);
         setTheme(ThemeUtils.getThemeById(theme));
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
     }
@@ -75,6 +82,32 @@ public abstract class BaseActivity extends AppCompatActivity implements AppGette
 
     protected boolean useNightMask() {
         return true;
+    }
+
+    protected boolean useGuofengAtmosphere() {
+        return true;
+    }
+
+    protected void initAtmosphere() {
+        if (!useGuofengAtmosphere() || mContentRoot == null) {
+            return;
+        }
+        if (!(mContentRoot instanceof ViewGroup)) {
+            mContentRoot.setBackgroundResource(R.drawable.bg_guofeng_paper);
+            return;
+        }
+        ViewGroup root = (ViewGroup) mContentRoot;
+        GuofengAtmosphereView atmosphere = new GuofengAtmosphereView(this);
+        ViewGroup.LayoutParams lp = new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT);
+        if (root instanceof FrameLayout
+                || root instanceof RelativeLayout
+                || root instanceof CoordinatorLayout) {
+            root.addView(atmosphere, 0, lp);
+        } else {
+            mContentRoot.setBackgroundResource(R.drawable.bg_guofeng_paper);
+        }
     }
 
     protected void initNight() {

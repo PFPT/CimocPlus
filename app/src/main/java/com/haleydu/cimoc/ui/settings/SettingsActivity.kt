@@ -9,28 +9,15 @@ import android.os.Bundle
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Switch
-import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -49,7 +36,6 @@ import com.haleydu.cimoc.ui.common.dialog.SliderDialogFragment
 import com.haleydu.cimoc.ui.common.dialog.StorageEditorDialogFragment
 import com.haleydu.cimoc.ui.library.DirPickerActivity
 import com.haleydu.cimoc.utils.ServiceUtils
-import com.haleydu.cimoc.utils.ThemeUtils
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.io.File
@@ -91,7 +77,7 @@ class SettingsActivity : BackActivity(), DialogCaller, StorageEditorDialogFragme
             }
         }
         binding.settingsCompose.setContent {
-            MaterialTheme {
+            GuofengComposeTheme {
                 SettingsScreen(
                     preference = mPreference,
                     onReaderConfig = {
@@ -156,19 +142,6 @@ class SettingsActivity : BackActivity(), DialogCaller, StorageEditorDialogFragme
                 vm.scanTask()
             }
             DIALOG_REQUEST_OTHER_STORAGE -> showSnackbar(R.string.settings_other_storage_not_found)
-            DIALOG_REQUEST_OTHER_THEME -> {
-                val index = bundle.getInt(DialogCaller.EXTRA_DIALOG_RESULT_INDEX)
-                mPreference.putInt(PreferenceManager.PREF_OTHER_THEME, index)
-                val theme = ThemeUtils.getThemeById(index)
-                setTheme(theme)
-                resultArray[0] = 1
-                resultArray[1] = theme
-                resultArray[2] = ThemeUtils.getResourceId(this, R.attr.colorPrimary)
-                resultArray[3] = ThemeUtils.getResourceId(this, R.attr.colorAccent)
-                resultIntent.putExtra(Extra.EXTRA_RESULT, resultArray)
-                setResult(Activity.RESULT_OK, resultIntent)
-                recreate()
-            }
             DIALOG_REQUEST_OTHER_NIGHT_ALPHA -> {
                 val alpha = bundle.getInt(DialogCaller.EXTRA_DIALOG_RESULT_VALUE)
                 mPreference.putInt(PreferenceManager.PREF_OTHER_NIGHT_ALPHA, alpha)
@@ -239,7 +212,6 @@ class SettingsActivity : BackActivity(), DialogCaller, StorageEditorDialogFragme
     companion object {
         private const val DIALOG_REQUEST_OTHER_LAUNCH = 0
         private const val DIALOG_REQUEST_READER_MODE = 1
-        private const val DIALOG_REQUEST_OTHER_THEME = 2
         private const val DIALOG_REQUEST_OTHER_STORAGE = 3
         private const val DIALOG_REQUEST_DOWNLOAD_THREAD = 4
         private const val DIALOG_REQUEST_DOWNLOAD_SCAN = 6
@@ -260,146 +232,105 @@ private fun SettingsScreen(
     onSlider: (Int, Int, Int, Int, Int) -> Unit
 ) {
     val context = LocalContext.current
+    val readerItems = context.resources.getStringArray(R.array.reader_mode_items)
+    val launchItems = context.resources.getStringArray(R.array.launch_items)
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp)
+            .padding(start = 16.dp, end = 16.dp, bottom = 32.dp)
     ) {
-        SectionTitle(R.string.settings_reader)
-        val readerItems = context.resources.getStringArray(R.array.reader_mode_items)
-        ActionPref(R.string.settings_reader_mode) {
-            onChoice(
-                R.string.settings_reader_mode,
-                readerItems,
-                preference.getInt(PreferenceManager.PREF_READER_MODE, PreferenceManager.READER_MODE_PAGE),
-                1
-            )
-        }
-        ActionPref(R.string.settings_reader_config, onReaderConfig)
-        SwitchPref(R.string.settings_reader_keep_bright, PreferenceManager.PREF_READER_KEEP_BRIGHT, false, preference)
-        SwitchPref(R.string.settings_reader_show_topbar, PreferenceManager.PREF_OTHER_SHOW_TOPBAR, false, preference)
-        SwitchPref(R.string.settings_reader_hide_info, PreferenceManager.PREF_READER_HIDE_INFO, false, preference)
-        SwitchPref(R.string.settings_reader_info_bottom, PreferenceManager.PREF_READER_INFO_BOTTOM, false, preference)
-        SwitchPref(R.string.settings_reader_hide_load_toast, PreferenceManager.PREF_READER_HIDE_LOAD_TOAST, false, preference)
-        SwitchPref(R.string.settings_reader_hide_nav, PreferenceManager.PREF_READER_HIDE_NAV, false, preference)
-        SwitchPref(R.string.settings_reader_ban_double_click, PreferenceManager.PREF_READER_BAN_DOUBLE_CLICK, false, preference)
-        SwitchPref(R.string.settings_reader_paging, PreferenceManager.PREF_READER_PAGING, false, preference)
-        SwitchPref(R.string.settings_reader_closeautoresizeimage, PreferenceManager.PREF_READER_CLOSEAUTORESIZEIMAGE, false, preference)
-        SwitchPref(R.string.settings_reader_paging_reverse, PreferenceManager.PREF_READER_PAGING_REVERSE, false, preference)
-        SwitchPref(R.string.settings_reader_white_edge, PreferenceManager.PREF_READER_WHITE_EDGE, false, preference)
-        SwitchPref(R.string.settings_reader_white_background, PreferenceManager.PREF_READER_WHITE_BACKGROUND, false, preference)
-        SwitchPref(R.string.settings_reader_volume_key_controls, PreferenceManager.PREF_READER_VOLUME_KEY_CONTROLS_PAGE_TURNING, false, preference)
-        ActionPref(R.string.settings_reader_scale_factor) {
-            onSlider(
-                R.string.settings_reader_scale_factor,
-                100,
-                300,
-                preference.getInt(PreferenceManager.PREF_READER_SCALE_FACTOR, 200),
-                8
-            )
-        }
-        ActionPref(R.string.settings_reader_controller_trig_threshold) {
-            onSlider(
-                R.string.settings_reader_controller_trig_threshold,
-                1,
-                100,
-                preference.getInt(PreferenceManager.PREF_READER_CONTROLLER_TRIG_THRESHOLD, 30),
-                9
-            )
-        }
-
-        SectionTitle(R.string.settings_download)
-        ActionPref(R.string.settings_download_thread) {
-            onSlider(
-                R.string.settings_download_thread,
-                1,
-                10,
-                preference.getInt(PreferenceManager.PREF_DOWNLOAD_THREAD, 2),
-                4
-            )
-        }
-        ActionPref(R.string.settings_download_scan, onScan)
-
-        SectionTitle(R.string.settings_search)
-        SwitchPref(R.string.settings_search_auto_complete, PreferenceManager.PREF_SEARCH_AUTO_COMPLETE, false, preference)
-
-        SectionTitle(R.string.settings_other)
-        SwitchPref(R.string.settings_other_connect_only_wifi, PreferenceManager.PREF_OTHER_CONNECT_ONLY_WIFI, false, preference)
-        SwitchPref(R.string.settings_other_loadcover_only_wifi, PreferenceManager.PREF_OTHER_LOADCOVER_ONLY_WIFI, false, preference)
-        SwitchPref(R.string.settings_other_check_update, PreferenceManager.PREF_OTHER_CHECK_UPDATE, false, preference)
-        SwitchPref(R.string.settings_check_update, PreferenceManager.PREF_OTHER_CHECK_SOFTWARE_UPDATE, true, preference)
-        SwitchPref(R.string.settings_other_firebase_event, PreferenceManager.PREF_OTHER_FIREBASE_EVENT, true, preference)
-        val launchItems = context.resources.getStringArray(R.array.launch_items)
-        val themeItems = context.resources.getStringArray(R.array.theme_items)
-        ActionPref(R.string.settings_other_launch) {
-            onChoice(
-                R.string.settings_other_launch,
-                launchItems,
-                preference.getInt(PreferenceManager.PREF_OTHER_LAUNCH, PreferenceManager.HOME_EXPLORE),
-                0
-            )
-        }
-        ActionPref(R.string.settings_other_theme) {
-            onChoice(
-                R.string.settings_other_theme,
-                themeItems,
-                preference.getInt(PreferenceManager.PREF_OTHER_THEME, ThemeUtils.THEME_BLUE),
-                2
-            )
-        }
-        ActionPref(R.string.settings_other_night_alpha) {
-            onSlider(
-                R.string.settings_other_night_alpha,
-                100,
-                200,
-                preference.getInt(PreferenceManager.PREF_OTHER_NIGHT_ALPHA, 0xB0),
-                7
-            )
-        }
-        ActionPref(R.string.settings_other_storage, onStorage)
-        ActionPref(R.string.settings_other_clear_cache, onClearCache)
-    }
-}
-
-@Composable
-private fun SectionTitle(title: Int) {
-    Text(
-        text = stringResource(title),
-        fontSize = 14.sp,
-        color = MaterialTheme.colors.primary,
-        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-    )
-}
-
-@Composable
-private fun ActionPref(title: Int, onClick: () -> Unit) {
-    Text(
-        text = stringResource(title),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp)
-    )
-}
-
-@Composable
-private fun SwitchPref(title: Int, key: String, def: Boolean, preference: PreferenceManager) {
-    var checked by remember { mutableStateOf(preference.getBoolean(key, def)) }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable {
-                checked = !checked
-                preference.putBoolean(key, checked)
+        PrefGroup(R.string.settings_reader) {
+            ActionPref(R.string.settings_reader_mode) {
+                onChoice(
+                    R.string.settings_reader_mode,
+                    readerItems,
+                    preference.getInt(PreferenceManager.PREF_READER_MODE, PreferenceManager.READER_MODE_PAGE),
+                    1
+                )
             }
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(text = stringResource(title), modifier = Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = {
-            checked = it
-            preference.putBoolean(key, it)
-        })
+            ActionPref(R.string.settings_reader_config, onClick = onReaderConfig)
+            SwitchPref(R.string.settings_reader_keep_bright, PreferenceManager.PREF_READER_KEEP_BRIGHT, false, preference)
+            SwitchPref(R.string.settings_reader_show_topbar, PreferenceManager.PREF_OTHER_SHOW_TOPBAR, false, preference)
+            SwitchPref(R.string.settings_reader_hide_info, PreferenceManager.PREF_READER_HIDE_INFO, false, preference)
+            SwitchPref(R.string.settings_reader_info_bottom, PreferenceManager.PREF_READER_INFO_BOTTOM, false, preference)
+            SwitchPref(R.string.settings_reader_hide_load_toast, PreferenceManager.PREF_READER_HIDE_LOAD_TOAST, false, preference)
+            SwitchPref(R.string.settings_reader_hide_nav, PreferenceManager.PREF_READER_HIDE_NAV, false, preference)
+            SwitchPref(R.string.settings_reader_ban_double_click, PreferenceManager.PREF_READER_BAN_DOUBLE_CLICK, false, preference)
+            SwitchPref(R.string.settings_reader_paging, PreferenceManager.PREF_READER_PAGING, false, preference)
+            SwitchPref(R.string.settings_reader_closeautoresizeimage, PreferenceManager.PREF_READER_CLOSEAUTORESIZEIMAGE, false, preference)
+            SwitchPref(R.string.settings_reader_paging_reverse, PreferenceManager.PREF_READER_PAGING_REVERSE, false, preference)
+            SwitchPref(R.string.settings_reader_white_edge, PreferenceManager.PREF_READER_WHITE_EDGE, false, preference)
+            SwitchPref(R.string.settings_reader_white_background, PreferenceManager.PREF_READER_WHITE_BACKGROUND, false, preference)
+            SwitchPref(R.string.settings_reader_volume_key_controls, PreferenceManager.PREF_READER_VOLUME_KEY_CONTROLS_PAGE_TURNING, false, preference)
+            ActionPref(R.string.settings_reader_scale_factor) {
+                onSlider(
+                    R.string.settings_reader_scale_factor,
+                    100,
+                    300,
+                    preference.getInt(PreferenceManager.PREF_READER_SCALE_FACTOR, 200),
+                    8
+                )
+            }
+            ActionPref(R.string.settings_reader_controller_trig_threshold, showDivider = false) {
+                onSlider(
+                    R.string.settings_reader_controller_trig_threshold,
+                    1,
+                    100,
+                    preference.getInt(PreferenceManager.PREF_READER_CONTROLLER_TRIG_THRESHOLD, 30),
+                    9
+                )
+            }
+        }
+
+        PrefGroup(R.string.settings_download) {
+            ActionPref(R.string.settings_download_thread) {
+                onSlider(
+                    R.string.settings_download_thread,
+                    1,
+                    10,
+                    preference.getInt(PreferenceManager.PREF_DOWNLOAD_THREAD, 2),
+                    4
+                )
+            }
+            ActionPref(R.string.settings_download_scan, showDivider = false, onClick = onScan)
+        }
+
+        PrefGroup(R.string.settings_search) {
+            SwitchPref(
+                R.string.settings_search_auto_complete,
+                PreferenceManager.PREF_SEARCH_AUTO_COMPLETE,
+                false,
+                preference,
+                showDivider = false
+            )
+        }
+
+        PrefGroup(R.string.settings_other) {
+            SwitchPref(R.string.settings_other_connect_only_wifi, PreferenceManager.PREF_OTHER_CONNECT_ONLY_WIFI, false, preference)
+            SwitchPref(R.string.settings_other_loadcover_only_wifi, PreferenceManager.PREF_OTHER_LOADCOVER_ONLY_WIFI, false, preference)
+            SwitchPref(R.string.settings_other_check_update, PreferenceManager.PREF_OTHER_CHECK_UPDATE, false, preference)
+            SwitchPref(R.string.settings_check_update, PreferenceManager.PREF_OTHER_CHECK_SOFTWARE_UPDATE, true, preference)
+            SwitchPref(R.string.settings_other_firebase_event, PreferenceManager.PREF_OTHER_FIREBASE_EVENT, true, preference)
+            ActionPref(R.string.settings_other_launch) {
+                onChoice(
+                    R.string.settings_other_launch,
+                    launchItems,
+                    preference.getInt(PreferenceManager.PREF_OTHER_LAUNCH, PreferenceManager.HOME_EXPLORE),
+                    0
+                )
+            }
+            ActionPref(R.string.settings_other_night_alpha) {
+                onSlider(
+                    R.string.settings_other_night_alpha,
+                    100,
+                    200,
+                    preference.getInt(PreferenceManager.PREF_OTHER_NIGHT_ALPHA, 0xB0),
+                    7
+                )
+            }
+            ActionPref(R.string.settings_other_storage, onClick = onStorage)
+            ActionPref(R.string.settings_other_clear_cache, showDivider = false, onClick = onClearCache)
+        }
     }
 }

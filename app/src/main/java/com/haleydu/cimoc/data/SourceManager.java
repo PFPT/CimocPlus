@@ -211,6 +211,12 @@ public class SourceManager {
                 case DmzjFix.TYPE:
                     parser = new DmzjFix(source);
                     break;
+                case BaoZiMH.TYPE:
+                    SourceConfig baoziConfig = sourceConfigManager.getConfig(BaoZiMH.TYPE);
+                    parser = baoziConfig != null
+                            ? new BaoZiMH(source, baoziConfig, sourceConfigManager)
+                            : new Null();
+                    break;
                 default:
                     SourceConfig config = sourceConfigManager.getConfig(type);
                     if (config != null) {

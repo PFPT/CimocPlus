@@ -62,8 +62,10 @@ class ResultAdapter(
                 parent: RecyclerView,
                 state: RecyclerView.State
             ) {
-                val offset = parent.width / 90
-                outRect.set(0, 0, 0, offset)
+                val density = parent.resources.displayMetrics.density
+                val h = (16 * density).toInt()
+                val v = (6 * density).toInt()
+                outRect.set(h, v, h, v)
             }
         }
     }

@@ -1,11 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
 
+    <style name="WindowAnimationGuofeng">
+        <item name="android:activityOpenEnterAnimation">@anim/guofeng_activity_enter</item>
+        <item name="android:activityOpenExitAnimation">@anim/guofeng_activity_exit</item>
+        <item name="android:activityCloseEnterAnimation">@anim/guofeng_activity_pop_enter</item>
+        <item name="android:activityCloseExitAnimation">@anim/guofeng_activity_pop_exit</item>
+    </style>
+
+    <style name="TextAppearance.Guofeng" parent="@android:style/TextAppearance" />
+
+    <style name="TextAppearance.Guofeng.LargeTitle" parent="TextAppearance.Guofeng">
+        <item name="android:textSize">28sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+        <item name="android:letterSpacing">-0.02</item>
+    </style>
+
+    <style name="TextAppearance.Guofeng.Headline" parent="TextAppearance.Guofeng">
+        <item name="android:textSize">17sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
+    <style name="TextAppearance.Guofeng.Body" parent="TextAppearance.Guofeng">
+        <item name="android:textSize">17sp</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
+    <style name="TextAppearance.Guofeng.Footnote" parent="TextAppearance.Guofeng">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+    </style>
+
     <style name="AppTheme" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/colorPrimaryBlue</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryBlueDark</item>
-        <item name="colorAccent">@color/colorPrimaryBlueDark</item>
-        <item name="colorSecondary">@color/colorPrimaryBlueDark</item>
+        <item name="colorPrimary">@color/colorPrimaryVermillion</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryVermillionDark</item>
+        <item name="colorAccent">@color/colorPrimaryVermillionDark</item>
+        <item name="colorSecondary">@color/colorPrimaryVermillion</item>
         <item name="android:colorBackground">@color/colorBackground</item>
         <item name="colorSurface">@color/colorSurface</item>
         <item name="colorOnSurface">@color/colorOnSurface</item>
@@ -13,91 +46,27 @@
         <item name="colorOnPrimary">@color/white</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">@bool/guofeng_light_status</item>
+        <item name="android:windowAnimationStyle">@style/WindowAnimationGuofeng</item>
+        <item name="android:textAppearanceLarge">@style/TextAppearance.Guofeng.LargeTitle</item>
+        <item name="textAppearanceHeadlineMedium">@style/TextAppearance.Guofeng.Headline</item>
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.Guofeng.Body</item>
+        <item name="textAppearanceBodySmall">@style/TextAppearance.Guofeng.Footnote</item>
+        <item name="alertDialogTheme">@style/DialogThemeGuofeng</item>
     </style>
 
     <style name="AppThemeNoDark" parent="Theme.Material3.Light.NoActionBar">
         <item name="android:forceDarkAllowed" tools:targetApi="q">false</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowAnimationStyle">@null</item>
     </style>
 
-    <style name="AppThemeBlue" parent="AppTheme">
-        <item name="colorPrimary">@color/colorPrimaryBlue</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryBlueDark</item>
-        <item name="colorAccent">@color/colorPrimaryBlueDark</item>
-        <item name="colorSecondary">@color/colorPrimaryBlueDark</item>
-        <item name="alertDialogTheme">@style/DialogThemeBlue</item>
-    </style>
+    <style name="AppThemeGuofeng" parent="AppTheme" />
 
-    <style name="DialogThemeBlue" parent="Theme.Material3.DayNight.Dialog.Alert">
-        <item name="colorAccent">@color/colorPrimaryBlueDark</item>
-        <item name="colorPrimary">@color/colorPrimaryBlue</item>
-    </style>
-
-    <style name="AppThemeGrey" parent="AppTheme">
-        <item name="colorPrimary">@color/colorPrimaryGrey</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryGreyDark</item>
-        <item name="colorAccent">@color/colorPrimaryGreyDark</item>
-        <item name="colorSecondary">@color/colorPrimaryGreyDark</item>
-        <item name="alertDialogTheme">@style/DialogThemeGrey</item>
-    </style>
-
-    <style name="DialogThemeGrey" parent="Theme.Material3.DayNight.Dialog.Alert">
-        <item name="colorAccent">@color/colorPrimaryGreyDark</item>
-        <item name="colorPrimary">@color/colorPrimaryGrey</item>
-    </style>
-
-    <style name="AppThemeTeal" parent="AppTheme">
-        <item name="colorPrimary">@color/colorPrimaryTeal</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryTealDark</item>
-        <item name="colorAccent">@color/colorPrimaryTealDark</item>
-        <item name="colorSecondary">@color/colorPrimaryTealDark</item>
-        <item name="alertDialogTheme">@style/DialogThemeTeal</item>
-    </style>
-
-    <style name="DialogThemeTeal" parent="Theme.Material3.DayNight.Dialog.Alert">
-        <item name="colorAccent">@color/colorPrimaryTealDark</item>
-        <item name="colorPrimary">@color/colorPrimaryTeal</item>
-    </style>
-
-    <style name="AppThemePurple" parent="AppTheme">
-        <item name="colorPrimary">@color/colorPrimaryPurple</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryPurpleDark</item>
-        <item name="colorAccent">@color/colorPrimaryPurpleDark</item>
-        <item name="colorSecondary">@color/colorPrimaryPurpleDark</item>
-        <item name="alertDialogTheme">@style/DialogThemePurple</item>
-    </style>
-
-    <style name="DialogThemePurple" parent="Theme.Material3.DayNight.Dialog.Alert">
-        <item name="colorAccent">@color/colorPrimaryPurpleDark</item>
-        <item name="colorPrimary">@color/colorPrimaryPurple</item>
-    </style>
-
-    <style name="AppThemePink" parent="AppTheme">
-        <item name="colorPrimary">@color/colorPrimaryPink</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryPinkDark</item>
-        <item name="colorAccent">@color/colorPrimaryPinkDark</item>
-        <item name="colorSecondary">@color/colorPrimaryPinkDark</item>
-        <item name="alertDialogTheme">@style/DialogThemePink</item>
-    </style>
-
-    <style name="DialogThemePink" parent="Theme.Material3.DayNight.Dialog.Alert">
-        <item name="colorAccent">@color/colorPrimaryPinkDark</item>
-        <item name="colorPrimary">@color/colorPrimaryPink</item>
-    </style>
-
-    <style name="AppThemeBrown" parent="AppTheme">
-        <item name="colorPrimary">@color/colorPrimaryBrown</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryBrownDark</item>
-        <item name="colorAccent">@color/colorPrimaryBrownDark</item>
-        <item name="colorSecondary">@color/colorPrimaryBrownDark</item>
-        <item name="alertDialogTheme">@style/DialogThemeBrown</item>
-    </style>
-
-    <style name="DialogThemeBrown" parent="Theme.Material3.DayNight.Dialog.Alert">
-        <item name="colorAccent">@color/colorPrimaryBrownDark</item>
-        <item name="colorPrimary">@color/colorPrimaryBrown</item>
+    <style name="DialogThemeGuofeng" parent="Theme.Material3.DayNight.Dialog.Alert">
+        <item name="colorAccent">@color/colorPrimaryVermillionDark</item>
+        <item name="colorPrimary">@color/colorPrimaryVermillion</item>
     </style>
 
     <style name="TextInputTheme">
@@ -108,5 +77,44 @@
     <style name="ReaderBottomSheetDialog" parent="Theme.Material3.DayNight.BottomSheetDialog">
         <item name="colorPrimary">?attr/colorPrimary</item>
         <item name="colorAccent">?attr/colorAccent</item>
+    </style>
+
+    <style name="Guofeng.SegmentButton" parent="Widget.Material3.Button.TextButton">
+        <item name="android:textSize">13sp</item>
+        <item name="android:minHeight">36dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingLeft">14dp</item>
+        <item name="android:paddingRight">14dp</item>
+        <item name="cornerRadius">18dp</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="android:textColor">@color/segment_text</item>
+        <item name="backgroundTint">@color/segment_bg</item>
+        <item name="rippleColor">@color/colorGuofengRipple</item>
+    </style>
+
+    <style name="Guofeng.PillChip" parent="Widget.Material3.Chip.Assist">
+        <item name="chipCornerRadius">16dp</item>
+        <item name="chipStrokeWidth">0.5dp</item>
+        <item name="chipStrokeColor">@color/colorSeparator</item>
+        <item name="chipBackgroundColor">@color/colorSurface</item>
+        <item name="chipMinHeight">32dp</item>
+        <item name="rippleColor">@color/colorGuofengRipple</item>
+        <item name="chipSurfaceColor">@android:color/transparent</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+        <item name="android:elevation">0dp</item>
+    </style>
+
+    <style name="Guofeng.PillChip.Filter" parent="Widget.Material3.Chip.Filter">
+        <item name="chipCornerRadius">16dp</item>
+        <item name="chipStrokeWidth">0dp</item>
+        <item name="chipStrokeColor">@android:color/transparent</item>
+        <item name="chipBackgroundColor">@color/segment_bg</item>
+        <item name="chipMinHeight">32dp</item>
+        <item name="rippleColor">@color/colorGuofengRipple</item>
+        <item name="chipSurfaceColor">@android:color/transparent</item>
+        <item name="android:textColor">@color/segment_text</item>
+        <item name="android:elevation">0dp</item>
+        <item name="checkedIconVisible">false</item>
     </style>
 </resources>

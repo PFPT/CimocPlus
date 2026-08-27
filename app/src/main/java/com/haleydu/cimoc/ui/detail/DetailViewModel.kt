@@ -10,6 +10,8 @@ import com.haleydu.cimoc.core.MangaService
 import com.haleydu.cimoc.data.ChapterManager
 import com.haleydu.cimoc.data.ComicManager
 import com.haleydu.cimoc.data.PreferenceManager
+import com.haleydu.cimoc.data.SourceCatalogRefresher
+import com.haleydu.cimoc.data.SourceHealthManager
 import com.haleydu.cimoc.data.SourceManager
 import com.haleydu.cimoc.data.TagRefManager
 import com.haleydu.cimoc.data.TaskManager
@@ -43,7 +45,9 @@ class DetailViewModel @Inject constructor(
     private val tagRefManager: TagRefManager,
     private val sourceManager: SourceManager,
     private val mangaService: MangaService,
-    private val preferenceManager: PreferenceManager
+    private val preferenceManager: PreferenceManager,
+    private val sourceHealthManager: SourceHealthManager,
+    private val sourceCatalogRefresher: SourceCatalogRefresher
 ) : ViewModel() {
 
     private val app = context.applicationContext as App
@@ -211,6 +215,7 @@ class DetailViewModel @Inject constructor(
     private fun loadChapters() {
         val current = comic ?: return
         viewModelScope.launch {
+            val start = android.os.SystemClock.elapsedRealtime()
             try {
                 val list = withContext(Dispatchers.IO) {
                     if (current.id == null || current.id == 0L) {
@@ -223,21 +228,35 @@ class DetailViewModel @Inject constructor(
                     }
                     chapters
                 }
+                sourceHealthManager.recordSuccess(
+                    current.source,
+                    android.os.SystemClock.elapsedRealtime() - start
+                )
                 chapterManager.insertOrReplace(list)
                 publishChapters(list)
                 _events.emit(Event.NetworkLoadSuccess)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Manga.NetworkErrorException) {
+                noteFailure(current.source, SourceHealthManager.KIND_NETWORK)
                 publishComic(current)
                 _events.emit(Event.NetworkError)
             } catch (e: Manga.ParseErrorException) {
+                noteFailure(current.source, SourceHealthManager.KIND_PARSE)
                 publishComic(current)
                 _events.emit(Event.ParseError)
             } catch (e: Exception) {
                 e.printStackTrace()
+                noteFailure(current.source, SourceHealthManager.KIND_PARSE)
                 publishComic(current)
             }
+        }
+    }
+
+    private fun noteFailure(type: Int, kind: String) {
+        sourceHealthManager.recordFailure(type, kind)
+        viewModelScope.launch(Dispatchers.IO) {
+            sourceCatalogRefresher.refreshAfterFailure(type)
         }
     }
 

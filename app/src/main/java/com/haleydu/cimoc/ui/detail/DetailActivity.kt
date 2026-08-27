@@ -119,8 +119,6 @@ class DetailActivity : BackActivity(), BaseAdapter.OnItemClickListener, BaseAdap
         binding.detailRecyclerView.itemAnimator = null
         binding.detailRecyclerView.addItemDecoration(detailAdapter.itemDecoration)
         binding.detailRecyclerView.adapter = detailAdapter
-        binding.detailFabRead.setOnClickListener { onReadClick() }
-        binding.detailFabFavorite.setOnClickListener { onFavoriteClick() }
         binding.detailCover.setOnLongClickListener {
             showIntro()
             true
@@ -180,6 +178,15 @@ class DetailActivity : BackActivity(), BaseAdapter.OnItemClickListener, BaseAdap
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_detail, menu)
+        val comic = vm.comic
+        menu.findItem(R.id.detail_favorite)?.setIcon(
+            if (comic?.favorite != null) R.drawable.ic_favorite_white_24dp
+            else R.drawable.ic_favorite_border_white_24dp
+        )
+        val hasHistory = !comic?.last.isNullOrEmpty()
+        menu.findItem(R.id.detail_read)?.setIcon(
+            if (hasHistory) R.drawable.ic_history_white_24dp else R.drawable.ic_play_arrow_white_24dp
+        )
         return super.onCreateOptionsMenu(menu)
     }
 
@@ -217,6 +224,8 @@ class DetailActivity : BackActivity(), BaseAdapter.OnItemClickListener, BaseAdap
                 }
             }
             R.id.detail_reverse_list -> vm.toggleReverse()
+            R.id.detail_favorite -> onFavoriteClick()
+            R.id.detail_read -> onReadClick()
         }
         return super.onOptionsItemSelected(item)
     }
@@ -244,12 +253,12 @@ class DetailActivity : BackActivity(), BaseAdapter.OnItemClickListener, BaseAdap
         if (comic.favorite != null) {
             vm.unfavoriteComic()
             increment()
-            binding.detailFabFavorite.setImageResource(R.drawable.ic_favorite_border_white_24dp)
+            invalidateOptionsMenu()
             showSnackbar(R.string.detail_unfavorite)
         } else {
             vm.favoriteComic()
             increment()
-            binding.detailFabFavorite.setImageResource(R.drawable.ic_favorite_white_24dp)
+            invalidateOptionsMenu()
             showSnackbar(R.string.detail_favorite)
         }
     }
@@ -331,21 +340,7 @@ class DetailActivity : BackActivity(), BaseAdapter.OnItemClickListener, BaseAdap
                 val supplier = ControllerBuilderSupplierFactory.get(this, imagePipelineFactory)
                 binding.detailCover.controller = supplier.get().setUri(comic.cover).build()
             }
-            val fav = if (comic.favorite != null) {
-                R.drawable.ic_favorite_white_24dp
-            } else {
-                R.drawable.ic_favorite_border_white_24dp
-            }
-            binding.detailFabFavorite.setImageResource(fav)
-            binding.detailFabFavorite.visibility = View.VISIBLE
-            val hasHistory = !comic.last.isNullOrEmpty()
-            binding.detailFabRead.setImageResource(
-                if (hasHistory) R.drawable.ic_history_white_24dp else R.drawable.ic_play_arrow_white_24dp
-            )
-            binding.detailFabRead.contentDescription = getString(
-                if (hasHistory) R.string.detail_history else R.string.detail_start_read
-            )
-            binding.detailFabRead.visibility = View.VISIBLE
+            invalidateOptionsMenu()
         }
     }
 

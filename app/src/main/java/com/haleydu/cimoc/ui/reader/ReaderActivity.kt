@@ -119,6 +119,8 @@ abstract class ReaderActivity : BaseActivity(), OnTapGestureListener,
     override fun applyWindowInsets() {
     }
 
+    override fun useGuofengAtmosphere(): Boolean = false
+
     override fun initView() {
         mHideInfo = mPreference.getBoolean(PreferenceManager.PREF_READER_HIDE_INFO, false)
         mControllerTrigThreshold =

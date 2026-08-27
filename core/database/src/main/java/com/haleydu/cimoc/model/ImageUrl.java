@@ -97,6 +97,9 @@ public class ImageUrl {
     }
 
     public String getUrl() {
+        if (urls == null || urls.length == 0) {
+            return "";
+        }
         return urls[0];
     }
 

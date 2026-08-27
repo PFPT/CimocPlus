@@ -1,52 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:fresco="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:clickable="true"
-    android:foreground="?android:attr/selectableItemBackground">
+    android:foreground="?android:attr/selectableItemBackground"
+    android:orientation="vertical"
+    android:paddingLeft="4dp"
+    android:paddingTop="4dp"
+    android:paddingRight="4dp"
+    android:paddingBottom="8dp">
 
-    <com.facebook.drawee.view.SimpleDraweeView
-        android:id="@+id/item_grid_image"
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <com.facebook.drawee.view.SimpleDraweeView
+            android:id="@+id/item_grid_image"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            fresco:actualImageScaleType="centerCrop"
+            fresco:roundedCornerRadius="8dp"
+            fresco:viewAspectRatio="0.75" />
+
+        <View
+            android:id="@+id/item_grid_symbol"
+            android:layout_width="6dp"
+            android:layout_height="6dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="6dp"
+            android:background="@drawable/bg_guofeng_unread"
+            android:visibility="invisible" />
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/item_grid_title"
+        style="@style/TextAppearance.Guofeng.Headline"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        fresco:actualImageScaleType="centerCrop"
-        fresco:viewAspectRatio="0.75" />
+        android:layout_marginTop="6dp"
+        android:ellipsize="end"
+        android:gravity="start"
+        android:maxLines="1"
+        android:textSize="13sp" />
 
-    <View
-        android:id="@+id/item_grid_symbol"
-        android:layout_width="14dp"
-        android:layout_height="14dp"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentRight="true"
-        android:background="?attr/colorAccent"
-        android:visibility="invisible" />
-
-    <LinearLayout
+    <TextView
+        android:id="@+id/item_grid_subtitle"
+        style="@style/TextAppearance.Guofeng.Footnote"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:background="@color/colorBackgroundTrans"
-        android:orientation="vertical"
-        android:padding="6dp">
-
-        <TextView
-            android:id="@+id/item_grid_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:textColor="?android:attr/textColorPrimary"
-            android:textSize="12sp" />
-
-        <TextView
-            android:id="@+id/item_grid_subtitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="2dp"
-            android:maxLines="1"
-            android:textSize="12sp" />
-    </LinearLayout>
-</RelativeLayout>
+        android:layout_marginTop="2dp"
+        android:ellipsize="end"
+        android:gravity="start"
+        android:maxLines="1" />
+</LinearLayout>

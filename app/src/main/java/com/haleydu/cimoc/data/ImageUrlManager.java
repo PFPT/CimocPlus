@@ -3,6 +3,7 @@ import com.haleydu.cimoc.db.CimocDatabase;
 import com.haleydu.cimoc.db.ImageUrlDao;
 import com.haleydu.cimoc.model.ImageUrl;
 
+import java.util.Collections;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -25,6 +26,9 @@ public class ImageUrlManager {
     }
 
     public List<ImageUrl> getListImageUrl(Long comicChapter) {
+        if (comicChapter == null) {
+            return Collections.emptyList();
+        }
         return mImageUrlDao.getListImageUrl(comicChapter);
     }
 
@@ -40,16 +44,19 @@ public class ImageUrlManager {
         if (imageUrlList == null || imageUrlList.isEmpty()) {
             return;
         }
-        for (ImageUrl imageurl : imageUrlList) {
-            try {
-                database.runInTransaction(() -> {
+        try {
+            database.runInTransaction(() -> {
+                for (ImageUrl imageurl : imageUrlList) {
+                    if (imageurl == null) {
+                        continue;
+                    }
                     long id = mImageUrlDao.insertOrReplace(imageurl);
                     if (imageurl.getId() == null) {
                         imageurl.setId(id);
                     }
-                });
-            } catch (Exception ignored) {
-            }
+                }
+            });
+        } catch (Exception ignored) {
         }
     }
 
@@ -62,8 +69,10 @@ public class ImageUrlManager {
     }
 
     public void insert(ImageUrl imageurl) {
-        long id = mImageUrlDao.insert(imageurl);
-        imageurl.setId(id);
+        long id = mImageUrlDao.insertOrReplace(imageurl);
+        if (imageurl.getId() == null) {
+            imageurl.setId(id);
+        }
     }
 
 }

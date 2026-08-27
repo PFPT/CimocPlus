@@ -1,7 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorBackground">#121212</color>
-    <color name="colorSurface">#1E1E1E</color>
-    <color name="colorOnSurface">#DEFFFFFF</color>
-    <color name="colorOnSurfaceVariant">#99FFFFFF</color>
+    <color name="colorPrimaryVermillion">#7DB8AC</color>
+    <color name="colorPrimaryVermillionDark">#5A9489</color>
+    <color name="colorGuofengGold">#8A9A95</color>
+    <color name="colorGuofengInk">#E8E4DC</color>
+    <color name="colorGuofengRipple">#337DB8AC</color>
+    <color name="colorGuofengCloud">#22E8E4DC</color>
+    <color name="colorGuofengHairline">#22E8E4DC</color>
+    <color name="colorSurfaceTranslucent">#F21A1C1B</color>
+    <color name="colorSeparator">#22E8E4DC</color>
+
+    <color name="colorBackground">#111211</color>
+    <color name="colorSurface">#1A1C1B</color>
+    <color name="colorOnSurface">#DEE8E4DC</color>
+    <color name="colorOnSurfaceVariant">#99E8E4DC</color>
+    <color name="colorNeutralBackground">#111211</color>
+    <color name="colorNeutralSurface">#1A1C1B</color>
+    <color name="colorBackgroundTrans">#AA1A1C1B</color>
 </resources>

@@ -218,6 +218,14 @@ public class SourceConfigManager {
         return firstHttp(rawValue(key, field), fallback);
     }
 
+    public synchronized String getRawField(String key, String field, String fallback) {
+        String value = rawValue(key, field);
+        if (value == null || value.isEmpty()) {
+            return fallback;
+        }
+        return value;
+    }
+
     public boolean isSourceBaseUrlJson(String json) {
         JSONObject object = parseObject(json);
         if (object == null) {

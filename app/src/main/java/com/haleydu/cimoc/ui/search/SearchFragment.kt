@@ -12,6 +12,7 @@ import android.widget.TextView
 import androidx.annotation.ColorRes
 import androidx.fragment.app.viewModels
 import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipDrawable
 import com.haleydu.cimoc.R
 import com.haleydu.cimoc.component.DialogCaller
 import com.haleydu.cimoc.component.ThemeResponsive
@@ -196,12 +197,20 @@ class SearchFragment : BaseFragment(), DialogCaller, ThemeResponsive, TextView.O
     }
 
     private fun suggestionChip(text: String, onClick: () -> Unit): Chip {
-        return Chip(requireContext(), null, com.google.android.material.R.attr.chipStyle).apply {
-            this.text = text
-            isCheckable = false
-            isClickable = true
-            setOnClickListener { onClick() }
-        }
+        val chip = Chip(requireContext())
+        val drawable = ChipDrawable.createFromAttributes(
+            requireContext(),
+            null,
+            0,
+            R.style.Guofeng_PillChip
+        )
+        chip.setChipDrawable(drawable)
+        chip.text = text
+        chip.isCheckable = false
+        chip.isClickable = true
+        chip.elevation = 0f
+        chip.setOnClickListener { onClick() }
+        return chip
     }
 
     private fun onAutoCompleteLoadSuccess(list: List<String>) {

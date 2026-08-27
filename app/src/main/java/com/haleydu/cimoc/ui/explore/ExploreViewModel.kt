@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import com.haleydu.cimoc.core.Manga
 import com.haleydu.cimoc.core.MangaService
 import com.haleydu.cimoc.data.PreferenceManager
+import com.haleydu.cimoc.data.SourceCatalogRefresher
 import com.haleydu.cimoc.data.SourceHealthManager
 import com.haleydu.cimoc.data.SourceManager
 import com.haleydu.cimoc.model.MiniComic
@@ -27,7 +28,8 @@ class ExploreViewModel @Inject constructor(
     private val sourceManager: SourceManager,
     private val mangaService: MangaService,
     private val preferenceManager: PreferenceManager,
-    private val sourceHealthManager: SourceHealthManager
+    private val sourceHealthManager: SourceHealthManager,
+    private val sourceCatalogRefresher: SourceCatalogRefresher
 ) : ViewModel() {
 
     enum class Error {
@@ -144,7 +146,7 @@ class ExploreViewModel @Inject constructor(
                 if (list.isEmpty()) {
                     _ended.value = true
                     if (reset) {
-                        sourceHealthManager.recordFailure(type, SourceHealthManager.KIND_EMPTY)
+                        noteFailure(type, SourceHealthManager.KIND_EMPTY)
                         _error.emit(Error.EMPTY)
                     }
                 } else {
@@ -159,13 +161,13 @@ class ExploreViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Manga.NetworkErrorException) {
-                sourceHealthManager.recordFailure(type, SourceHealthManager.KIND_NETWORK)
+                noteFailure(type, SourceHealthManager.KIND_NETWORK)
                 if (reset) {
                     _error.emit(Error.NETWORK)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                sourceHealthManager.recordFailure(type, SourceHealthManager.KIND_PARSE)
+                noteFailure(type, SourceHealthManager.KIND_PARSE)
                 if (reset) {
                     _error.emit(Error.PARSE)
                 }
@@ -174,6 +176,13 @@ class ExploreViewModel @Inject constructor(
                     _loading.value = false
                 }
             }
+        }
+    }
+
+    private fun noteFailure(type: Int, kind: String) {
+        sourceHealthManager.recordFailure(type, kind)
+        viewModelScope.launch(Dispatchers.IO) {
+            sourceCatalogRefresher.refreshAfterFailure(type)
         }
     }
 }

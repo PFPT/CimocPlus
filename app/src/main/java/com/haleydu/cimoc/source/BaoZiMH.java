@@ -12,7 +12,6 @@ import com.haleydu.cimoc.soup.Node;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 public class BaoZiMH extends GenericHtmlParser {
 
@@ -38,22 +37,14 @@ public class BaoZiMH extends GenericHtmlParser {
             if (parsed != null) {
                 list.addAll(parsed);
             }
-            if (list.isEmpty()) {
-                parseAmpImages(html, chapter, list);
-            }
-            for (ImageUrl image : list) {
-                String[] urls = image.getUrls();
-                if (urls == null || urls.length == 0) {
-                    continue;
-                }
-                String[] rewritten = new String[urls.length];
-                for (int i = 0; i < urls.length; i++) {
-                    rewritten[i] = rewriteCdn(urls[i]);
-                }
-                image.setUrls(rewritten);
-            }
         } catch (Exception e) {
             Log.e("BaoZiMH", "parseImages", e);
+        }
+        if (list.isEmpty()) {
+            parseAmpImages(html, chapter, list);
+        }
+        for (ImageUrl image : list) {
+            rewriteImage(image);
         }
         return list;
     }
@@ -68,43 +59,85 @@ public class BaoZiMH extends GenericHtmlParser {
         } catch (Exception e) {
             return;
         }
+        Long comicChapter = chapter == null ? null : chapter.getId();
+        if (comicChapter == null) {
+            return;
+        }
         int i = 0;
         for (Node node : nodes) {
-            String url = firstImageUrl(node);
-            url = rewriteCdn(url);
+            String url = rewriteCdn(firstImageUrl(node));
             if (url == null || url.isEmpty() || !seen.add(url)) {
                 continue;
             }
-            Long comicChapter = chapter.getId();
             Long id = Long.parseLong(comicChapter + "000" + i);
             list.add(new ImageUrl(id, comicChapter, ++i, url, false));
         }
     }
 
+    private void rewriteImage(ImageUrl image) {
+        try {
+            String[] urls = image.getUrls();
+            if (urls == null || urls.length == 0) {
+                return;
+            }
+            String[] rewritten = new String[urls.length];
+            for (int i = 0; i < urls.length; i++) {
+                rewritten[i] = rewriteCdn(urls[i]);
+            }
+            image.setUrls(rewritten);
+        } catch (Exception ignored) {
+        }
+    }
+
     private String firstImageUrl(Node node) {
-        String[] attrs = new String[]{"src", "data-src", "data-original", "data-echo"};
+        String[] attrs = new String[]{"src", "data-src", "data-original", "data-echo", "srcset"};
         for (String attr : attrs) {
             String value = node.attr(attr);
-            if (value != null && !value.isEmpty() && !value.startsWith("data:")) {
-                return value.trim();
+            if (value == null || value.isEmpty() || value.startsWith("data:")) {
+                continue;
             }
+            value = value.trim();
+            if ("srcset".equals(attr)) {
+                value = firstSrcsetUrl(value);
+                if (value == null || value.isEmpty()) {
+                    continue;
+                }
+            }
+            return value;
         }
         return null;
+    }
+
+    private String firstSrcsetUrl(String srcset) {
+        String[] candidates = srcset.split(",");
+        if (candidates.length == 0) {
+            return null;
+        }
+        String first = candidates[0].trim();
+        int space = first.indexOf(' ');
+        if (space > 0) {
+            first = first.substring(0, space);
+        }
+        return first;
     }
 
     private String rewriteCdn(String url) {
         if (url == null || url.isEmpty()) {
             return url;
         }
-        String def = sourceConfigManager.getRawField("BAOZIMH", "DEFAULT_TOP_DOMIAN", ".baozicdn.com");
-        String current = sourceConfigManager.getRawField("BAOZIMH", "CURRENT_TOP_DOMIAN", ".baozicdn.com");
-        if (def == null || def.isEmpty() || current == null || current.isEmpty() || def.equals(current)) {
+        try {
+            String def = sourceConfigManager.getRawField("BAOZIMH", "DEFAULT_TOP_DOMIAN", ".baozicdn.com");
+            String current = sourceConfigManager.getRawField("BAOZIMH", "CURRENT_TOP_DOMIAN", ".baozicdn.com");
+            if (def == null || def.isEmpty() || current == null || current.isEmpty() || def.equals(current)) {
+                return url;
+            }
+            int index = url.indexOf(def);
+            if (index < 0) {
+                return url;
+            }
+            return url.substring(0, index) + current + url.substring(index + def.length());
+        } catch (Exception e) {
             return url;
         }
-        String[] parts = url.split(Pattern.quote(def), 2);
-        if (parts.length < 2) {
-            return url;
-        }
-        return parts[0] + current + parts[1];
     }
 }
