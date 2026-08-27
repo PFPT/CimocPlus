@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="360dp"
+    android:height="180dp"
+    android:viewportWidth="360"
+    android:viewportHeight="180">
+    <path
+        android:fillColor="@color/colorGuofengCloud"
+        android:pathData="M40,120c12,-28 40,-44 72,-40c8,-24 36,-40 64,-32c20,-20 56,-24 80,-8c28,-8 56,8 64,32c28,4 48,28 44,52c-80,8 -168,12 -252,4c-20,-4 -40,-8 -72,-8z" />
+    <path
+        android:fillColor="@color/colorGuofengCloud"
+        android:pathData="M20,70c16,-18 44,-22 64,-8c12,-16 40,-22 60,-8c24,-12 52,-4 64,12c-48,4 -96,8 -148,6c-14,0 -28,-2 -40,-2z" />
+</vector>
