@@ -49,6 +49,37 @@ public class FrescoUtils {
 
     private static final String PHOTO_FRESCO = "frescocache";
 
+    public static Uri httpImageUri(String cover) {
+        if (cover == null) {
+            return null;
+        }
+        String value = cover.trim();
+        int space = value.indexOf(' ');
+        if (space > 0) {
+            value = value.substring(0, space);
+        }
+        int comma = value.indexOf(',');
+        if (comma > 0) {
+            value = value.substring(0, comma);
+        }
+        if (!value.startsWith("http://") && !value.startsWith("https://")) {
+            return null;
+        }
+        try {
+            Uri uri = Uri.parse(value);
+            String scheme = uri.getScheme();
+            if (scheme == null) {
+                return null;
+            }
+            if (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme)) {
+                return null;
+            }
+            return uri;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     /**
      *
      * 需要添加依赖:

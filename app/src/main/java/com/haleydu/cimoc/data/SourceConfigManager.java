@@ -36,11 +36,16 @@ public class SourceConfigManager {
 
     public static final String PREF_SOURCE_BASE_URL_JSON = "pref_source_base_url_json";
 
+    private static final String CATALOG_UA =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
     private static final String[] REMOTE_URLS = {
-            "https://raw.githubusercontent.com/haleydu-test/cimocUpdate/main/sourceBaseUrl.json",
+            "https://gitee.com/Haleydu/update/raw/master/sourceBaseUrl.json",
+            "https://raw.gitcode.com/Haleydutest/cupdate/raw/main/sourceBaseUrl.json",
             "https://miuscapp.com/cimoc/sourceBaseUrl.json",
             "http://www.cimoc.top/cimoc/sourc/master/raw/sourceBaseUrl.json",
-            "https://gitcode.net/Haleydutest/cupdate/-/raw/master/sourceBaseUrl.json"
+            "https://gitcode.net/Haleydutest/cupdate/-/raw/master/sourceBaseUrl.json",
+            "https://raw.githubusercontent.com/haleydu-test/cimocUpdate/main/sourceBaseUrl.json"
     };
 
     private static final String[] COPY_API_PREFERRED = {
@@ -50,8 +55,8 @@ public class SourceConfigManager {
     };
 
     private static final String[] COPY_WEB_FALLBACKS = {
-            "https://www.copy3000.com",
             "https://www.2026copy.com",
+            "https://www.copy3000.com",
             "https://www.mangacopy.com",
             "https://www.copy20.com",
             "https://www.2025copy.com"
@@ -60,7 +65,9 @@ public class SourceConfigManager {
     private static final String[] HOTMANGA_FALLBACKS = {
             "https://www.relamanhua.com",
             "https://www.manga2020.com",
-            "https://mapi.hotmangasg.com:12001"
+            "https://mapi.hotmangasg.com:12001",
+            "https://www.relam.cn",
+            "https://www.relamanhua.xyz"
     };
 
     private static final Map<String, Item> GENERIC_ITEMS = new LinkedHashMap<>();
@@ -212,6 +219,49 @@ public class SourceConfigManager {
 
     public synchronized String getUrl(String key, String fallback) {
         return firstHttp(rawValue(key, "baseUrl"), fallback);
+    }
+
+    public synchronized String firstUrl(String fallback, String... keys) {
+        List<String> urls = listUrls(fallback, keys);
+        return urls.isEmpty() ? fallback : urls.get(0);
+    }
+
+    public synchronized List<String> listUrls(String fallback, String... keys) {
+        List<String> hosts = new ArrayList<>();
+        if (keys != null) {
+            for (String key : keys) {
+                addUnique(hosts, firstHttp(rawValue(key, "baseUrl"), ""));
+                addUnique(hosts, firstHttp(rawValue(key, "serverUrl"), ""));
+                addUnique(hosts, firstHttp(rawValue(key, "apiUrl"), ""));
+            }
+        }
+        addUnique(hosts, fallback);
+        return hosts;
+    }
+
+    public Request hostPathRequest(String path, String fallbackHost, String... keys) {
+        List<String> hosts = listUrls(fallbackHost, keys);
+        String host = hosts.isEmpty() ? fallbackHost : hosts.get(0);
+        Request.Builder builder = new Request.Builder().url(host + path);
+        applyHostFallbacks(builder, path, hosts);
+        return builder.build();
+    }
+
+    public Request.Builder applyHostFallbacks(Request.Builder builder, String path, List<String> hosts) {
+        if (builder == null || hosts == null || hosts.size() < 2) {
+            return builder;
+        }
+        StringBuilder fallback = new StringBuilder();
+        for (int i = 1; i < hosts.size(); i++) {
+            if (fallback.length() > 0) {
+                fallback.append(',');
+            }
+            fallback.append(hosts.get(i)).append(path);
+        }
+        if (fallback.length() > 0) {
+            builder.header("X-Cimoc-Fallback", fallback.toString());
+        }
+        return builder;
     }
 
     public synchronized String getField(String key, String field, String fallback) {
@@ -375,6 +425,12 @@ public class SourceConfigManager {
         if ("DUMH".equals(key)) {
             return object.optJSONObject("DuManHua");
         }
+        if ("HAOMAN6".equals(key)) {
+            return object.optJSONObject("HaoManSix");
+        }
+        if ("HAOMAN8".equals(key)) {
+            return object.optJSONObject("HaoManEight");
+        }
         return null;
     }
 
@@ -499,7 +555,11 @@ public class SourceConfigManager {
     private String download(OkHttpClient client, String url) {
         Response response = null;
         try {
-            Request request = new Request.Builder().url(url).build();
+            Request request = new Request.Builder()
+                    .url(url)
+                    .header("User-Agent", CATALOG_UA)
+                    .header("Accept", "application/json,text/plain,*/*")
+                    .build();
             response = client.newCall(request).execute();
             if (response.isSuccessful() && response.body() != null) {
                 String body = response.body().string();

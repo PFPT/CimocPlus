@@ -1,6 +1,7 @@
 package com.haleydu.cimoc.source;
 
 import com.google.common.collect.Lists;
+import com.haleydu.cimoc.data.SourceConfigManager;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.ImageUrl;
@@ -38,9 +39,21 @@ public class Tencent extends MangaParser {
 
     public static final int TYPE = 51;
     public static final String DEFAULT_TITLE = "腾讯动漫";
+    private static final String MOBILE_UA =
+            "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36";
+    private final SourceConfigManager sourceConfigManager;
 
-    public Tencent(Source source) {
+    public Tencent(Source source, SourceConfigManager sourceConfigManager) {
+        this.sourceConfigManager = sourceConfigManager;
         init(source, null);
+    }
+
+    private String mobileHost() {
+        return sourceConfigManager.firstUrl("https://m.ac.qq.com", "TENCENTM", "TENCENT");
+    }
+
+    private String webHost() {
+        return sourceConfigManager.firstUrl("http://ac.qq.com", "TENCENT", "TENCENTM");
     }
 
     public static Source getDefaultSource() {
@@ -52,8 +65,8 @@ public class Tencent extends MangaParser {
         if (page != 1) {
             return null;
         }
-        String url = StringUtils.format("https://m.ac.qq.com/search/result?word=%s", keyword);
-        return new Request.Builder().url(url).build();
+        String path = StringUtils.format("/search/result?word=%s", keyword);
+        return mobileRequest(path);
     }
 
     @Override
@@ -75,7 +88,7 @@ public class Tencent extends MangaParser {
 
     @Override
     public String getUrl(String cid) {
-        return "http://ac.qq.com/Comic/ComicInfo/id/".concat(cid);
+        return webHost() + "/Comic/ComicInfo/id/".concat(cid);
     }
 
     @Override
@@ -86,8 +99,7 @@ public class Tencent extends MangaParser {
 
     @Override
     public Request getInfoRequest(String cid) {
-        String url = "https://m.ac.qq.com/comic/index/id/".concat(cid);
-        return new Request.Builder().url(url).build();
+        return mobileRequest("/comic/index/id/".concat(cid));
     }
 
     @Override
@@ -105,10 +117,7 @@ public class Tencent extends MangaParser {
 
     @Override
     public Request getChapterRequest(String html, String cid) {
-        String url = "https://m.ac.qq.com/comic/chapterList/id/".concat(cid);
-        return new Request.Builder()
-                .url(url)
-                .build();
+        return mobileRequest("/comic/chapterList/id/".concat(cid));
     }
 
     @Override
@@ -129,10 +138,8 @@ public class Tencent extends MangaParser {
 
     @Override
     public Request getImagesRequest(String cid, String path) {
-        String url = StringUtils.format("https://m.ac.qq.com/chapter/index/id/%s/cid/%s", cid, path);
-        return new Request.Builder()
-                .url(url)
-                .build();
+        String suffix = StringUtils.format("/chapter/index/id/%s/cid/%s", cid, path);
+        return mobileRequest(suffix);
     }
 
     private String splice(String str, int from, int length) {
@@ -271,7 +278,12 @@ public class Tencent extends MangaParser {
 
     @Override
     public Headers getHeader() {
-        return Headers.of("Referer", "https://m.ac.qq.com");
+        return Headers.of("Referer", mobileHost(), "User-Agent", MOBILE_UA);
+    }
+
+    private Request mobileRequest(String path) {
+        Request request = sourceConfigManager.hostPathRequest(path, "https://m.ac.qq.com", "TENCENTM", "TENCENT");
+        return request.newBuilder().header("User-Agent", MOBILE_UA).build();
     }
 
 }

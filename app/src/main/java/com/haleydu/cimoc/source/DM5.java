@@ -4,6 +4,7 @@ import android.util.Log;
 import android.util.Pair;
 
 import com.google.common.collect.Lists;
+import com.haleydu.cimoc.data.SourceConfigManager;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.ImageUrl;
@@ -42,9 +43,23 @@ public class DM5 extends MangaParser {
 
     public static final int TYPE = 5;
     public static final String DEFAULT_TITLE = "动漫屋";
+    private final SourceConfigManager sourceConfigManager;
 
-    public DM5(Source source) {
+    public DM5(Source source, SourceConfigManager sourceConfigManager) {
+        this.sourceConfigManager = sourceConfigManager;
         init(source, new Category());
+    }
+
+    private String mobileHost() {
+        return sourceConfigManager.firstUrl("https://m.dm5.com", "DM5", "DongManWu");
+    }
+
+    private String wwwHost() {
+        String mobile = mobileHost();
+        if (mobile.contains("://m.")) {
+            return mobile.replace("://m.", "://www.");
+        }
+        return mobile;
     }
 
     public static Source getDefaultSource() {
@@ -53,13 +68,13 @@ public class DM5 extends MangaParser {
 
     @Override
     public Request getSearchRequest(String keyword, int page) {
-        String url = "https://m.dm5.com/pagerdata.ashx";
+        String url = mobileHost() + "/pagerdata.ashx";
         RequestBody body = new FormBody.Builder()
                 .add("t", "7")
                 .add("pageindex", String.valueOf(page))
                 .add("title", keyword)
                 .build();
-        return new Request.Builder().url(url).post(body).addHeader("Referer", "https://m.dm5.com").build();
+        return new Request.Builder().url(url).post(body).addHeader("Referer", mobileHost()).build();
     }
 
     @Override
@@ -92,7 +107,7 @@ public class DM5 extends MangaParser {
 
     @Override
     public String getUrl(String cid) {
-        return "https://www.dm5.com/".concat(cid);
+        return wwwHost() + "/".concat(cid);
     }
 
     @Override
@@ -105,7 +120,7 @@ public class DM5 extends MangaParser {
 
     @Override
     public Request getInfoRequest(String cid) {
-        String url = "https://www.dm5.com/".concat(cid);
+        String url = wwwHost() + "/".concat(cid);
         return new Request.Builder().url(url).build();
     }
 
@@ -161,10 +176,10 @@ public class DM5 extends MangaParser {
 
     @Override
     public Request getImagesRequest(String cid, String path) {
-        String url = "https://m.dm5.com/".concat(path);
+        String url = mobileHost() + "/".concat(path);
         return new Request
                 .Builder()
-                .addHeader("Referer", StringUtils.format("https://m.dm5.com/%s", path))
+                .addHeader("Referer", StringUtils.format("%s/%s", mobileHost(), path))
                 .url(url).build();
     }
 
@@ -194,7 +209,7 @@ public class DM5 extends MangaParser {
     @Override
     public Request getLazyRequest(String url) {
         return new Request.Builder().url(url)
-                .addHeader("Referer", "https://www.dm5.com")
+                .addHeader("Referer", wwwHost())
                 .build();
     }
 
@@ -258,7 +273,7 @@ public class DM5 extends MangaParser {
     @Override
     public Headers getHeader(String url) {
         String cid = "m".concat(StringUtils.match("cid=(\\d+)", url, 1));
-        return Headers.of("Referer", "https://m.dm5.com/".concat(cid));
+        return Headers.of("Referer", mobileHost() + "/".concat(cid));
     }
 
     @Override
@@ -267,10 +282,10 @@ public class DM5 extends MangaParser {
         if (list != null) {
             cid = list.get(0).getChapter();
         }
-        return Headers.of("Referer", "https://m.dm5.com/".concat(cid));
+        return Headers.of("Referer", mobileHost() + "/".concat(cid));
     }
 
-    private static class Category extends MangaCategory {
+    private class Category extends MangaCategory {
 
         @Override
         public boolean isComposite() {
@@ -285,9 +300,9 @@ public class DM5 extends MangaParser {
                     + joinPart(args, CATEGORY_ORDER);
             path = path.trim().replaceAll("\\s+", "-");
             if (path.isEmpty()) {
-                return "https://www.dm5.com/manhua-list-p%d";
+                return wwwHost() + "/manhua-list-p%d";
             }
-            return StringUtils.format("https://www.dm5.com/manhua-list-%s-p%%d", path);
+            return StringUtils.format("%s/manhua-list-%s-p%%d", wwwHost(), path);
         }
 
         private String joinPart(String[] args, int index) {

@@ -28,6 +28,7 @@ import java.util.regex.Pattern;
 
 import okhttp3.FormBody;
 import okhttp3.Headers;
+import okhttp3.HttpUrl;
 import okhttp3.Request;
 
 public class GenericHtmlParser extends MangaParser {
@@ -35,7 +36,7 @@ public class GenericHtmlParser extends MangaParser {
     private static final String USER_AGENT =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
-    private final SourceConfig mConfig;
+    protected final SourceConfig mConfig;
     private final int mType;
 
     public GenericHtmlParser(Source source, SourceConfig config) {
@@ -65,7 +66,11 @@ public class GenericHtmlParser extends MangaParser {
                 return null;
             }
             FormBody body = new FormBody.Builder().add(mConfig.searchKey, keyword).build();
-            return requestBuilder(absUrl(path)).post(body).build();
+            Request.Builder builder = requestBuilder(absUrl(path));
+            if (builder == null) {
+                return null;
+            }
+            return builder.post(body).build();
         }
         String url;
         if (path.contains("%s") && path.contains("%d")) {
@@ -81,7 +86,7 @@ public class GenericHtmlParser extends MangaParser {
             }
             url = mConfig.baseUrl + path + encoded;
         }
-        return requestBuilder(url).build();
+        return buildGet(url);
     }
 
     @Override
@@ -118,7 +123,7 @@ public class GenericHtmlParser extends MangaParser {
 
     @Override
     public Request getInfoRequest(String cid) {
-        return requestBuilder(absUrl(cid)).build();
+        return buildGet(absUrl(cid));
     }
 
     @Override
@@ -149,7 +154,7 @@ public class GenericHtmlParser extends MangaParser {
 
     @Override
     public Request getImagesRequest(String cid, String path) {
-        return requestBuilder(absUrl(path)).build();
+        return buildGet(absUrl(path));
     }
 
     @Override
@@ -181,19 +186,33 @@ public class GenericHtmlParser extends MangaParser {
         );
     }
 
-    private Request.Builder requestBuilder(String url) {
-        Request.Builder builder = new Request.Builder().url(url);
+    protected Request.Builder requestBuilder(String url) {
+        if (url == null || url.isEmpty()) {
+            return null;
+        }
+        HttpUrl httpUrl = HttpUrl.parse(url);
+        if (httpUrl == null) {
+            return null;
+        }
+        Request.Builder builder = new Request.Builder().url(httpUrl);
         Headers headers = getHeader();
-        for (int i = 0; i < headers.size(); i++) {
-            builder.header(headers.name(i), headers.value(i));
+        if (headers != null) {
+            for (int i = 0; i < headers.size(); i++) {
+                builder.header(headers.name(i), headers.value(i));
+            }
         }
         return builder;
+    }
+
+    protected Request buildGet(String url) {
+        Request.Builder builder = requestBuilder(url);
+        return builder == null ? null : builder.build();
     }
 
     @Override
     public Request getCategoryRequest(String format, int page) {
         String url = StringUtils.format(format, page);
-        return requestBuilder(url).build();
+        return buildGet(url);
     }
 
     @Override
@@ -250,8 +269,11 @@ public class GenericHtmlParser extends MangaParser {
             if (title == null || title.isEmpty()) {
                 title = path;
             }
-            list.add(new Chapter(Long.parseLong(sourceComic + "000" + index), sourceComic, title, path));
-            index++;
+            try {
+                list.add(new Chapter(Long.parseLong(sourceComic + "000" + index), sourceComic, title, path));
+                index++;
+            } catch (Exception ignored) {
+            }
         }
         return index;
     }
@@ -330,7 +352,7 @@ public class GenericHtmlParser extends MangaParser {
         return value != null && (value.contains("(.*") || value.contains("(.+") || value.contains("=\\") || value.contains("='"));
     }
 
-    private String absUrl(String path) {
+    protected String absUrl(String path) {
         if (path == null || path.isEmpty()) {
             return mConfig.baseUrl;
         }
@@ -346,7 +368,7 @@ public class GenericHtmlParser extends MangaParser {
         return mConfig.baseUrl + path;
     }
 
-    private String absImage(String url) {
+    protected String absImage(String url) {
         if (url == null) {
             return null;
         }
@@ -373,7 +395,7 @@ public class GenericHtmlParser extends MangaParser {
         return mConfig.baseUrl + "/" + url;
     }
 
-    private String extractPath(String href) {
+    protected String extractPath(String href) {
         if (href == null) {
             return null;
         }
@@ -383,6 +405,17 @@ public class GenericHtmlParser extends MangaParser {
         }
         if (href.startsWith(mConfig.baseUrl)) {
             href = href.substring(mConfig.baseUrl.length());
+        } else if (href.startsWith("http://") || href.startsWith("https://") || href.startsWith("//")) {
+            try {
+                Uri uri = Uri.parse(href.startsWith("//") ? "https:" + href : href);
+                String path = uri.getEncodedPath();
+                String query = uri.getEncodedQuery();
+                href = path == null ? "" : path;
+                if (query != null && !query.isEmpty()) {
+                    href = href + "?" + query;
+                }
+            } catch (Exception ignored) {
+            }
         }
         int hash = href.indexOf('#');
         if (hash >= 0) {
@@ -480,13 +513,23 @@ public class GenericHtmlParser extends MangaParser {
     private String imageAttr(Node node, String attrHint) {
         String[] attrs;
         if (attrHint != null && !attrHint.isEmpty() && !attrHint.contains(" ") && !attrHint.contains(">") && !attrHint.contains(".")) {
-            attrs = new String[]{attrHint, "data-original", "data-src", "data-echo", "src"};
+            attrs = new String[]{attrHint, "data-original", "data-src", "data-echo", "srcset", "src"};
         } else {
-            attrs = new String[]{"data-original", "data-src", "data-echo", "src"};
+            attrs = new String[]{"data-original", "data-src", "data-echo", "srcset", "src"};
         }
         for (String attr : attrs) {
             String value = node.attr(attr);
             if (value != null && !value.isEmpty() && !value.startsWith("data:")) {
+                if ("srcset".equals(attr)) {
+                    int space = value.indexOf(' ');
+                    if (space > 0) {
+                        value = value.substring(0, space);
+                    }
+                    int comma = value.indexOf(',');
+                    if (comma > 0) {
+                        value = value.substring(0, comma);
+                    }
+                }
                 return value;
             }
         }

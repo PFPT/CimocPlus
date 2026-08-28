@@ -2,7 +2,6 @@ package com.haleydu.cimoc.ui.search
 import com.haleydu.cimoc.ui.common.BaseAdapter
 import android.content.Context
 import android.graphics.Rect
-import android.net.Uri
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -13,6 +12,7 @@ import com.haleydu.cimoc.databinding.ItemResultBinding
 import com.haleydu.cimoc.fresco.ControllerBuilderProvider
 import com.haleydu.cimoc.data.SourceManager
 import com.haleydu.cimoc.ui.search.ResultViewModel
+import com.haleydu.cimoc.utils.FrescoUtils
 
 class ResultAdapter(
     context: Context,
@@ -35,14 +35,17 @@ class ResultAdapter(
         viewHolder.binding.resultComicAuthor.text = comic.author
         viewHolder.binding.resultComicSource.text = sourceLabel(group)
         viewHolder.binding.resultComicUpdate.text = comic.update
-        val cover = comic.cover
-        if (!cover.isNullOrEmpty() && provider != null) {
-            val request = ImageRequestBuilder
-                .newBuilderWithSource(Uri.parse(cover))
-                .setResizeOptions(ResizeOptions(App.mCoverWidthPixels / 3, App.mCoverHeightPixels / 3))
-                .build()
-            viewHolder.binding.resultComicImage.controller =
-                provider!!.get(comic.source).setImageRequest(request).build()
+        val uri = FrescoUtils.httpImageUri(comic.cover)
+        if (uri != null && provider != null) {
+            try {
+                val request = ImageRequestBuilder
+                    .newBuilderWithSource(uri)
+                    .setResizeOptions(ResizeOptions(App.mCoverWidthPixels / 3, App.mCoverHeightPixels / 3))
+                    .build()
+                viewHolder.binding.resultComicImage.controller =
+                    provider!!.get(comic.source).setImageRequest(request).build()
+            } catch (_: Exception) {
+            }
         }
     }
 

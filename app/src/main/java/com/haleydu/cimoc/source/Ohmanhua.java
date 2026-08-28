@@ -35,7 +35,7 @@ public class Ohmanhua extends MangaParser {
 
     public static final int TYPE = 71;
     public static final String DEFAULT_TITLE = "oh漫画";
-    private static final String DEFAULT_HOST = "https://www.yoyomanga.com";
+    private static final String DEFAULT_HOST = "https://www.colamanga.com";
     private final SourceConfigManager sourceConfigManager;
 
     public Ohmanhua(Source source, SourceConfigManager sourceConfigManager) {
@@ -44,11 +44,7 @@ public class Ohmanhua extends MangaParser {
     }
 
     private String baseUrl() {
-        String url = sourceConfigManager.getUrl("OHMANHUA", "");
-        if (url == null || url.isEmpty()) {
-            url = sourceConfigManager.getField("CoCoManHua", "baseUrl", DEFAULT_HOST);
-        }
-        return url == null || url.isEmpty() ? DEFAULT_HOST : url;
+        return sourceConfigManager.firstUrl(DEFAULT_HOST, "CoCoManHua", "OHMANHUA");
     }
 
     public static Source getDefaultSource() {
@@ -60,8 +56,8 @@ public class Ohmanhua extends MangaParser {
         if (page != 1) {
             return null;
         }
-        String url = StringUtils.format(baseUrl()+"/search?searchString=%s", keyword);
-        return new Request.Builder().url(url).build();
+        String path = StringUtils.format("/search?searchString=%s", keyword);
+        return sourceConfigManager.hostPathRequest(path, DEFAULT_HOST, "CoCoManHua", "OHMANHUA");
     }
 
     @Override

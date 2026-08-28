@@ -160,6 +160,7 @@ public class PreferenceManager {
     public static final String PREF_HHAAZZ_SW = "pref_hhaazz_sw";
     public static final String PREF_SOURCE_RESTORE_ENABLE = "pref_source_restore_enable_v1";
     public static final String PREF_SOURCE_CATALOG_REFRESH_AT = "pref_source_catalog_refresh_at";
+    public static final String PREF_SOURCE_CATALOG_VERSION = "pref_source_catalog_version";
 
     private SharedPreferences mSharedPreferences;
 

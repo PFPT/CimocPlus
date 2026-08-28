@@ -50,6 +50,9 @@ public class HaoMan8 extends GenericHtmlParser {
                 encoded, page);
         String host = apiHost();
         Request.Builder builder = requestBuilder(host + path);
+        if (builder == null) {
+            return null;
+        }
         if (!DEFAULT_API.equals(host)) {
             builder.header("X-Cimoc-Fallback", DEFAULT_API + path);
         }

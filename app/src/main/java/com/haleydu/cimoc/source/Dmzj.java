@@ -2,6 +2,7 @@ package com.haleydu.cimoc.source;
 
 import android.util.Pair;
 
+import com.haleydu.cimoc.data.SourceConfigManager;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.ImageUrl;
@@ -29,8 +30,6 @@ import java.util.Locale;
 import okhttp3.Headers;
 import okhttp3.Request;
 
-import static com.haleydu.cimoc.utils.HttpUtils.getSimpleMobileRequest;
-
 /**
  * Created by Hiroshi on 2016/7/8.
  */
@@ -38,9 +37,19 @@ public class Dmzj extends MangaParser {
 
     public static final int TYPE = 1;
     public static final String DEFAULT_TITLE = "动漫之家";
+    private final SourceConfigManager sourceConfigManager;
 
-    public Dmzj(Source source) {
+    public Dmzj(Source source, SourceConfigManager sourceConfigManager) {
+        this.sourceConfigManager = sourceConfigManager;
         init(source, new Category());
+    }
+
+    private String mobileHost() {
+        return sourceConfigManager.firstUrl("http://m.dmzj1.com", "DMZJ", "DongManZhiJia", "DMZJV2");
+    }
+
+    private String pictureHost() {
+        return sourceConfigManager.firstUrl("http://images.dmzj1.com", "DMZJPICTURE", "DongManZhiJia");
     }
 
     public static Source getDefaultSource() {
@@ -49,28 +58,46 @@ public class Dmzj extends MangaParser {
 
     @Override
     public Request getSearchRequest(String keyword, int page) {
-        if (page == 1) {
-            String url = StringUtils.format("http://s.acg.dmzj1.com/comicsum/search.php?s=%s", keyword, page - 1);
-            return getSimpleMobileRequest(url);
+        String encoded = keyword;
+        try {
+            encoded = java.net.URLEncoder.encode(keyword, "UTF-8");
+        } catch (Exception ignored) {
         }
-        return null;
+        String suffix = StringUtils.format("/search/show/0/%s/%d.json", encoded, Math.max(page - 1, 0));
+        List<String> hosts = sourceConfigManager.listUrls(
+                "https://v3api.idmzj.com", "DMZJV2SERVER", "DMZJSERVER");
+        addHost(hosts, "https://v3api.dmzj.com");
+        addHost(hosts, "http://v3api.dmzj1.com");
+        String host = hosts.isEmpty() ? "https://v3api.idmzj.com" : hosts.get(0);
+        Request.Builder builder = new Request.Builder()
+                .url(host + suffix)
+                .header("User-Agent",
+                        "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36");
+        sourceConfigManager.applyHostFallbacks(builder, suffix, hosts);
+        return builder.build();
     }
 
     @Override
     public SearchIterator getSearchIterator(String html, int page) {
         try {
-            String JsonString = StringUtils.match("var g_search_data = (.*?);", html, 1);
-            String decodeJsonString = UicodeBackslashU.unicodeToCn(JsonString).replace("\\/","/");
-
-            return new JsonIterator(new JSONArray(decodeJsonString)) {
+            JSONArray array = searchArray(html);
+            if (array == null) {
+                return null;
+            }
+            return new JsonIterator(array) {
                 @Override
                 protected Comic parse(JSONObject object) {
                     try {
-                        String cid = object.getString("id");
-                        String title = object.getString("comic_name");
-                        String cover = object.getString("comic_cover");
-                        if (cover.startsWith("//")) cover = "https:" + cover;
-                        String author = object.optString("comic_author");
+                        String cid = object.optString("id");
+                        if (cid.isEmpty()) {
+                            return null;
+                        }
+                        String title = firstNonEmpty(object, "title", "comic_name", "name");
+                        String cover = firstNonEmpty(object, "cover", "comic_cover");
+                        if (cover.startsWith("//")) {
+                            cover = "https:" + cover;
+                        }
+                        String author = firstNonEmpty(object, "authors", "comic_author", "author");
                         return new Comic(TYPE, cid, title, cover, null, author);
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -84,16 +111,50 @@ public class Dmzj extends MangaParser {
         return null;
     }
 
+    private JSONArray searchArray(String html) throws JSONException {
+        if (html == null) {
+            return null;
+        }
+        String trimmed = html.trim();
+        if (trimmed.startsWith("[")) {
+            return new JSONArray(trimmed);
+        }
+        String embedded = StringUtils.match("var g_search_data = (.*?);", html, 1);
+        if (embedded == null) {
+            embedded = StringUtils.match("var serchArry=(\\[\\{.*?\\}\\])", html, 1);
+        }
+        if (embedded == null) {
+            return null;
+        }
+        return new JSONArray(UicodeBackslashU.unicodeToCn(embedded).replace("\\/", "/"));
+    }
+
+    private static String firstNonEmpty(JSONObject object, String... keys) {
+        for (String key : keys) {
+            String value = object.optString(key, "");
+            if (value != null && !value.isEmpty() && !"null".equals(value)) {
+                return value;
+            }
+        }
+        return "";
+    }
+
+    private static void addHost(List<String> hosts, String host) {
+        if (host != null && !host.isEmpty() && !hosts.contains(host)) {
+            hosts.add(host);
+        }
+    }
+
     @Override
     public String getUrl(String cid) {
-        return StringUtils.format("http://m.dmzj1.com/info/%s.html", cid);
+        return StringUtils.format("%s/info/%s.html", mobileHost(), cid);
     }
 
     @Override
     public Request getInfoRequest(String cid) {
         cid = "comic_"+cid+"_android";
-        String url = StringUtils.format("http://v3api.dmzj1.com/comic/%s.json", cid);
-        return new Request.Builder().url(url).build();
+        String suffix = StringUtils.format("/comic/%s.json", cid);
+        return sourceConfigManager.hostPathRequest(suffix, "http://v3api.dmzj1.com", "DMZJSERVER", "DMZJV2SERVER");
     }
 
     @Override
@@ -143,8 +204,8 @@ public class Dmzj extends MangaParser {
 
     @Override
     public Request getImagesRequest(String cid, String path) {
-        String url = StringUtils.format("http://v3api.dmzj1.com/chapter/%s/%s.json", cid, path);
-        return new Request.Builder().url(url).build();
+        String suffix = StringUtils.format("/chapter/%s/%s.json", cid, path);
+        return sourceConfigManager.hostPathRequest(suffix, "http://v3api.dmzj1.com", "DMZJSERVER", "DMZJV2SERVER");
     }
 
     @Override
@@ -193,7 +254,7 @@ public class Dmzj extends MangaParser {
                     if (object.optInt("hidden", 1) != 1) {
                         String cid = object.getString("id");
                         String title = object.getString("comic_name");
-                        String cover = "http://images.dmzj1.com/".concat(object.getString("comic_cover"));
+                        String cover = pictureHost() + "/".concat(object.getString("comic_cover"));
                         Long time = object.has("last_updatetime") ? object.getLong("last_updatetime") * 1000 : null;
                         String update = time == null ? null : new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date(time));
                         String author = object.optString("comic_author");
@@ -211,10 +272,10 @@ public class Dmzj extends MangaParser {
 
     @Override
     public Headers getHeader() {
-        return Headers.of("Referer", "http://m.dmzj1.com/");
+        return Headers.of("Referer", mobileHost() + "/");
     }
 
-    private static class Category extends MangaCategory {
+    private class Category extends MangaCategory {
 
         @Override
         public boolean isComposite() {
@@ -223,7 +284,8 @@ public class Dmzj extends MangaParser {
 
         @Override
         public String getFormat(String... args) {
-            return StringUtils.format("http://m.dmzj1.com/classify/%s-%s-%s-%s-%s-%%d.json",
+            return StringUtils.format("%s/classify/%s-%s-%s-%s-%s-%%d.json",
+                    mobileHost(),
                     args[CATEGORY_SUBJECT], args[CATEGORY_READER], args[CATEGORY_PROGRESS], args[CATEGORY_AREA], args[CATEGORY_ORDER]);
         }
 

@@ -55,7 +55,13 @@ public class HotManga extends MangaParser {
         String primary = hosts.get(0) + path;
         Request.Builder builder = new Request.Builder()
                 .url(primary)
-                .addHeader("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36");
+                .addHeader("User-Agent", "COPY/3.0.0")
+                .addHeader("Accept", "application/json")
+                .addHeader("version", sourceConfigManager.getCopyVersion())
+                .addHeader("platform", "1")
+                .addHeader("webp", "1")
+                .addHeader("region", "1")
+                .addHeader("Referer", webBase() + "/");
         if (hosts.size() > 1) {
             StringBuilder fallback = new StringBuilder();
             for (int i = 1; i < hosts.size(); i++) {
@@ -92,6 +98,9 @@ public class HotManga extends MangaParser {
     protected void initUrlFilterList() {
         filter.add(new UrlFilter("relamanhua.com", "/comic/(\\w.+)"));
         filter.add(new UrlFilter("manga2020.com", "/comic/(\\w.+)"));
+        filter.add(new UrlFilter("relam.cn", "/comic/(\\w.+)"));
+        filter.add(new UrlFilter("relamanhua.xyz", "/comic/(\\w.+)"));
+        filter.add(new UrlFilter("hotmangasg.com", "/comic/(\\w.+)"));
     }
 
     @Override
@@ -235,6 +244,6 @@ public class HotManga extends MangaParser {
 
     @Override
     public Headers getHeader() {
-        return Headers.of("Referer", webBase() + "/");
+        return Headers.of("Referer", webBase() + "/", "User-Agent", "COPY/3.0.0");
     }
 }

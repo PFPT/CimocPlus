@@ -1,5 +1,6 @@
 package com.haleydu.cimoc.source;
 
+import com.haleydu.cimoc.data.SourceConfigManager;
 import com.haleydu.cimoc.model.Chapter;
 import com.haleydu.cimoc.model.Comic;
 import com.haleydu.cimoc.model.ImageUrl;
@@ -32,12 +33,44 @@ public class IKanman extends MangaParser {
 
     public static final int TYPE = 0;
     public static final String DEFAULT_TITLE = "漫画柜";
+    private static final String UA =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
     private String referer = "";
+    private final SourceConfigManager sourceConfigManager;
 
-    public IKanman(Source source) {
+    public IKanman(Source source, SourceConfigManager sourceConfigManager) {
+        this.sourceConfigManager = sourceConfigManager;
         init(source, null);
-//        init(source, new Category());
+    }
+
+    private String wwwHost() {
+        return sourceConfigManager.firstUrl("https://www.manhuagui.com", "IKANMAN");
+    }
+
+    private String comicHost() {
+        return sourceConfigManager.firstUrl("https://tw.manhuagui.com", "IKANMANTW", "IKANMAN");
+    }
+
+    private String imageHost() {
+        return sourceConfigManager.firstUrl("https://i.hamreus.com", "IKANMANSERVER");
+    }
+
+    private List<String> siteHosts(String fallback, String... keys) {
+        List<String> hosts = sourceConfigManager.listUrls(fallback, keys);
+        String[] extra = {
+                "https://www.manhuagui.com",
+                "https://tw.manhuagui.com",
+                "https://m.manhuagui.com",
+                "https://www.manhuagui.net",
+                "https://www.manhuagui8.com"
+        };
+        for (String host : extra) {
+            if (!hosts.contains(host)) {
+                hosts.add(host);
+            }
+        }
+        return hosts;
     }
 
     public static Source getDefaultSource() {
@@ -46,11 +79,17 @@ public class IKanman extends MangaParser {
 
     @Override
     public Request getSearchRequest(String keyword, int page) {
-        String url = StringUtils.format("https://www.manhuagui.com/s/%s_p%d.html", keyword, page);
-        return new Request.Builder()
-                .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 4.1.1; Nexus 7 Build/JRO03D) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.166  Safari/535.19")
-                .url(url)
-                .build();
+        String encoded = keyword;
+        try {
+            encoded = java.net.URLEncoder.encode(keyword, "UTF-8");
+        } catch (Exception ignored) {
+        }
+        String path = StringUtils.format("/s/%s_p%d.html", encoded, page);
+        Request.Builder builder = new Request.Builder()
+                .addHeader("User-Agent", UA)
+                .url(wwwHost() + path);
+        sourceConfigManager.applyHostFallbacks(builder, path, siteHosts("https://www.manhuagui.com", "IKANMAN", "IKANMANTW"));
+        return builder.build();
     }
 
     @Override
@@ -71,7 +110,7 @@ public class IKanman extends MangaParser {
 
     @Override
     public String getUrl(String cid) {
-        return "https://tw.manhuagui.com/comic/".concat(cid);
+        return comicHost() + "/comic/".concat(cid);
     }
 
     @Override
@@ -79,15 +118,18 @@ public class IKanman extends MangaParser {
         filter.add(new UrlFilter("www.manhuagui.com"));
         filter.add(new UrlFilter("tw.manhuagui.com"));
         filter.add(new UrlFilter("m.manhuagui.com"));
+        filter.add(new UrlFilter("www.manhuagui.net"));
+        filter.add(new UrlFilter("www.manhuagui8.com"));
     }
 
     @Override
     public Request getInfoRequest(String cid) {
-        String url = "https://tw.manhuagui.com/comic/".concat(cid).concat("/");
-        return new Request.Builder()
-                .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 4.1.1; Nexus 7 Build/JRO03D) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.166  Safari/535.19")
-                .url(url)
-                .build();
+        String path = "/comic/".concat(cid).concat("/");
+        Request.Builder builder = new Request.Builder()
+                .addHeader("User-Agent", UA)
+                .url(comicHost() + path);
+        sourceConfigManager.applyHostFallbacks(builder, path, siteHosts("https://tw.manhuagui.com", "IKANMANTW", "IKANMAN"));
+        return builder.build();
     }
 
     @Override
@@ -128,13 +170,13 @@ public class IKanman extends MangaParser {
 
     @Override
     public Request getImagesRequest(String cid, String path) {
-        String url = StringUtils.format("https://tw.manhuagui.com/comic/%s/%s.html", cid, path);
-        referer = url;
-        return new Request.Builder()
-                .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 4.1.1; Nexus 7 Build/JRO03D) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.166  Safari/535.19")
-//            .addHeader("Referer", StringUtils.format("https://m.manhuagui.com/comic/%s/%s.html", cid, path))
-                .url(url)
-                .build();
+        String suffix = StringUtils.format("/comic/%s/%s.html", cid, path);
+        referer = comicHost() + suffix;
+        Request.Builder builder = new Request.Builder()
+                .addHeader("User-Agent", UA)
+                .url(referer);
+        sourceConfigManager.applyHostFallbacks(builder, suffix, siteHosts("https://tw.manhuagui.com", "IKANMANTW", "IKANMAN"));
+        return builder.build();
     }
 
     @Override
@@ -160,7 +202,7 @@ public class IKanman extends MangaParser {
                 for (int i = 0; i != array.length(); ++i) {
                     Long comicChapter = chapter.getId();
                     Long id = Long.parseLong(comicChapter + "000" + i);
-                    String url = StringUtils.format("https://i.hamreus.com%s%s?e=%s&m=%s", path, array.getString(i), e, m);
+                    String url = StringUtils.format("%s%s%s?e=%s&m=%s", imageHost(), path, array.getString(i), e, m);
                     list.add(new ImageUrl(id, comicChapter, i + 1, url, false));
                 }
             } catch (Exception e) {
@@ -210,7 +252,7 @@ public class IKanman extends MangaParser {
     public Headers getHeader() {
 //        return Headers.of("Referer", "https://tw.manhuagui.com/comic/30449/408812.html",
         return Headers.of("Referer", referer,
-                "User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36");
+                "User-Agent", UA);
     }
 
 //    private static class Category extends MangaCategory {

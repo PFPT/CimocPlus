@@ -38,6 +38,7 @@ import com.haleydu.cimoc.ui.common.collectOnStart
 import com.haleydu.cimoc.ui.reader.ChapterListHolder
 import com.haleydu.cimoc.ui.reader.ReaderActivity
 import com.haleydu.cimoc.ui.search.ResultActivity
+import com.haleydu.cimoc.utils.FrescoUtils
 import com.haleydu.cimoc.utils.StringUtils
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -333,14 +334,23 @@ class DetailActivity : BackActivity(), BaseAdapter.OnItemClickListener, BaseAdap
         if (!comic.update.isNullOrEmpty()) {
             binding.detailUpdate.text = getString(R.string.detail_last_update, comic.update)
         }
-        if (comic.title != null && comic.cover != null) {
-            if (boundCover != comic.cover) {
-                boundCover = comic.cover
-                imagePipelineFactory = ImagePipelineFactoryBuilder.build(this, vm.parserHeader(), false, httpClient)
-                val supplier = ControllerBuilderSupplierFactory.get(this, imagePipelineFactory)
-                binding.detailCover.controller = supplier.get().setUri(comic.cover).build()
-            }
+        if (comic.title != null) {
+            bindCover(comic.cover)
             invalidateOptionsMenu()
+        }
+    }
+
+    private fun bindCover(cover: String?) {
+        val uri = FrescoUtils.httpImageUri(cover) ?: return
+        val key = uri.toString()
+        if (boundCover == key) return
+        boundCover = key
+        try {
+            imagePipelineFactory = ImagePipelineFactoryBuilder.build(this, vm.parserHeader(), false, httpClient)
+            val supplier = ControllerBuilderSupplierFactory.get(this, imagePipelineFactory)
+            binding.detailCover.controller = supplier.get().setUri(uri).build()
+        } catch (_: Exception) {
+            boundCover = null
         }
     }
 

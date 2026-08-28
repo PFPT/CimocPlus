@@ -79,10 +79,10 @@ public class SourceManager {
             Source source = load(type);
             switch (type) {
                 case IKanman.TYPE:
-                    parser = new IKanman(source);
+                    parser = new IKanman(source, sourceConfigManager);
                     break;
                 case Dmzj.TYPE:
-                    parser = new Dmzj(source);
+                    parser = new Dmzj(source, sourceConfigManager);
                     break;
                 case HHAAZZ.TYPE:
                     parser = new HHAAZZ(source, preferenceManager);
@@ -94,7 +94,7 @@ public class SourceManager {
                     parser = new U17(source);
                     break;
                 case DM5.TYPE:
-                    parser = new DM5(source);
+                    parser = new DM5(source, sourceConfigManager);
                     break;
                 case Webtoon.TYPE:
                     parser = new Webtoon(source);
@@ -120,7 +120,7 @@ public class SourceManager {
                     parser = new PuFei(source, sourceConfigManager);
                     break;
                 case Tencent.TYPE:
-                    parser = new Tencent(source);
+                    parser = new Tencent(source, sourceConfigManager);
                     break;
                 case BuKa.TYPE:
                     parser = new BuKa(source);
@@ -209,12 +209,18 @@ public class SourceManager {
                     parser = new YKMH(source, sourceConfigManager);
                     break;
                 case DmzjFix.TYPE:
-                    parser = new DmzjFix(source);
+                    parser = new DmzjFix(source, sourceConfigManager);
                     break;
                 case BaoZiMH.TYPE:
                     SourceConfig baoziConfig = sourceConfigManager.getConfig(BaoZiMH.TYPE);
                     parser = baoziConfig != null
                             ? new BaoZiMH(source, baoziConfig, sourceConfigManager)
+                            : new Null();
+                    break;
+                case HaoMan8.TYPE:
+                    SourceConfig haomanConfig = sourceConfigManager.getConfig(HaoMan8.TYPE);
+                    parser = haomanConfig != null
+                            ? new HaoMan8(source, haomanConfig)
                             : new Null();
                     break;
                 default:

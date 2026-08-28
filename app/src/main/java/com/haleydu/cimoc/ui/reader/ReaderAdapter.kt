@@ -82,11 +82,34 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
     }
 
     private fun bindImage(holder: ImageHolder, imageUrl: ImageUrl) {
-        val loader = imageLoader ?: return
-        val urls = imageUrl.urls ?: return
-        val raw = urls.firstOrNull { !it.isNullOrEmpty() } ?: return
-        val url = normalizeUrl(raw)
+        val urls = imageUrl.urls
+            ?.map { it?.trim().orEmpty() }
+            ?.filter { it.isNotEmpty() }
+            ?: return
+        if (urls.isEmpty()) {
+            return
+        }
         holder.showError(false)
+        loadImage(holder, imageUrl, urls, 0)
+    }
+
+    private fun loadImage(holder: ImageHolder, imageUrl: ImageUrl, urls: List<String>, index: Int) {
+        val loader = imageLoader ?: return
+        if (index >= urls.size) {
+            imageUrl.isSuccess = false
+            holder.showError(true)
+            holder.onRetry = {
+                if (imageUrl.isSuccess) {
+                    false
+                } else {
+                    holder.showError(false)
+                    loadImage(holder, imageUrl, urls, 0)
+                    true
+                }
+            }
+            return
+        }
+        val url = normalizeUrl(urls[index])
         val transformation = MangaTransformation(
             imageUrl,
             isPaging,
@@ -100,6 +123,15 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
             .bitmapConfig(Bitmap.Config.RGB_565)
             .transformations(transformation)
         applyHeaders(requestBuilder)
+        holder.onRetry = {
+            if (imageUrl.isSuccess) {
+                false
+            } else {
+                holder.showError(false)
+                loadImage(holder, imageUrl, urls, 0)
+                true
+            }
+        }
 
         if (reader == READER_PAGE) {
             val pageView = holder.imageView as? ReaderPageImageView ?: return
@@ -109,6 +141,9 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
             pageView.isQuickScaleEnabled = isDoubleTap
             requestBuilder.target(
                 onSuccess = { result ->
+                    if (!isBound(holder, imageUrl)) {
+                        return@target
+                    }
                     imageUrl.isSuccess = true
                     holder.showError(false)
                     val bitmap = drawableToBitmap(result)
@@ -118,20 +153,14 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
                     pageView.tag = imageUrl.id
                 },
                 onError = {
-                    imageUrl.isSuccess = false
-                    holder.showError(true)
+                    if (!isBound(holder, imageUrl)) {
+                        return@target
+                    }
+                    loadImage(holder, imageUrl, urls, index + 1)
                 }
             )
+            holder.disposable?.dispose()
             holder.disposable = loader.enqueue(requestBuilder.build())
-            holder.onRetry = {
-                if (imageUrl.isSuccess) {
-                    false
-                } else {
-                    holder.showError(false)
-                    holder.disposable = loader.enqueue(requestBuilder.build())
-                    true
-                }
-            }
         } else {
             val imageView = holder.imageView as? ImageView ?: return
             bindStreamTap(imageView)
@@ -139,6 +168,9 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
             val request = requestBuilder
                 .target(
                     onSuccess = { result ->
+                        if (!isBound(holder, imageUrl)) {
+                            return@target
+                        }
                         imageUrl.isSuccess = true
                         holder.showError(false)
                         imageView.setImageDrawable(result)
@@ -148,22 +180,23 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
                         }
                     },
                     onError = {
-                        imageUrl.isSuccess = false
-                        holder.showError(true)
+                        if (!isBound(holder, imageUrl)) {
+                            return@target
+                        }
+                        loadImage(holder, imageUrl, urls, index + 1)
                     }
                 )
                 .build()
+            holder.disposable?.dispose()
             holder.disposable = loader.enqueue(request)
-            holder.onRetry = {
-                if (imageUrl.isSuccess) {
-                    false
-                } else {
-                    holder.showError(false)
-                    holder.disposable = loader.enqueue(request)
-                    true
-                }
-            }
         }
+    }
+
+    private fun isBound(holder: ImageHolder, imageUrl: ImageUrl): Boolean {
+        val position = holder.bindingAdapterPosition
+        return position != RecyclerView.NO_POSITION &&
+            position < mDataSet.size &&
+            mDataSet[position] === imageUrl
     }
 
     private fun applyStreamWrapContent(holder: ImageHolder, imageView: ImageView) {

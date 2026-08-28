@@ -226,13 +226,13 @@ class DetailViewModel @Inject constructor(
                     if (current.id != null) {
                         updateChapterList(chapters)
                     }
+                    chapterManager.insertOrReplace(chapters)
                     chapters
                 }
                 sourceHealthManager.recordSuccess(
                     current.source,
                     android.os.SystemClock.elapsedRealtime() - start
                 )
-                chapterManager.insertOrReplace(list)
                 publishChapters(list)
                 _events.emit(Event.NetworkLoadSuccess)
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -385,11 +385,27 @@ class DetailViewModel @Inject constructor(
     }
 
     fun applyUpdateInfo(incoming: Comic) {
-        if (comic?.id != null) {
-            comicManager.insertOrReplace(incoming)
-            comic = comicManager.load(incoming.id)
-            val current = comic ?: return
-            publishComic(current)
+        val id = incoming.id ?: comic?.id
+        if (id == null) {
+            comic = incoming
+            publishComic(incoming)
+            return
+        }
+        incoming.id = id
+        viewModelScope.launch {
+            try {
+                val loaded = withContext(Dispatchers.IO) {
+                    comicManager.insertOrReplace(incoming)
+                    comicManager.load(id)
+                } ?: incoming
+                comic = loaded
+                publishComic(loaded)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                comic = incoming
+                publishComic(incoming)
+            }
         }
     }
 }

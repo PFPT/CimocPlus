@@ -40,21 +40,40 @@ public class GuFeng extends MangaParser {
     }
 
     private String host() {
-        return sourceConfigManager.getUrl("GUFENG", "https://m.gufengmh9.com");
+        return sourceConfigManager.firstUrl("https://m.gufengmh.com", "GuFengManHua", "GuFengWang", "GUFENG");
+    }
+
+    private String imageServer() {
+        return sourceConfigManager.firstUrl("https://res.xiaoqinre.com", "GUFENGSERVER", "GuFengManHua", "GuFengWang");
+    }
+
+    private List<String> siteHosts() {
+        List<String> hosts = sourceConfigManager.listUrls(
+                "https://m.gufengmh.com", "GuFengManHua", "GuFengWang", "GUFENG");
+        String[] extra = {
+                "https://m.gufengmh8.com",
+                "https://m.gufengmh9.com",
+                "https://m.gufengmanhua.com"
+        };
+        for (String extraHost : extra) {
+            if (!hosts.contains(extraHost)) {
+                hosts.add(extraHost);
+            }
+        }
+        return hosts;
     }
 
     @Override
     public Request getSearchRequest(String keyword, int page) throws UnsupportedEncodingException {
-        String url = "";
-        if (page == 1) {
-            url = StringUtils.format(host() + "/search/?keywords=%s",
-                    URLEncoder.encode(keyword, "UTF-8"));
+        if (page != 1) {
+            return null;
         }
-        return new Request.Builder()
-//                .addHeader("Referer", "https://www.gufengmh8.com/")
-//                .addHeader("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 12_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/12.0 Mobile/15A372 Safari/604.1")
-//                .addHeader("Host", "m.gufengmh8.com")
-                .url(url).build();
+        String path = "/search/?keywords=" + URLEncoder.encode(keyword, "UTF-8");
+        List<String> hosts = siteHosts();
+        String primary = hosts.isEmpty() ? "https://m.gufengmh.com" : hosts.get(0);
+        Request.Builder builder = new Request.Builder().url(primary + path);
+        sourceConfigManager.applyHostFallbacks(builder, path, hosts);
+        return builder.build();
     }
 
     @Override
@@ -65,13 +84,19 @@ public class GuFeng extends MangaParser {
             protected Comic parse(Node node) {
 
                 String cover = node.attr("div.itemImg > a > mip-img", "src");
+                if (cover == null || cover.isEmpty()) {
+                    cover = node.attr("div.itemImg > a > img", "src");
+                }
+                if (cover == null || cover.isEmpty()) {
+                    cover = node.attr("div.itemImg img", "data-src");
+                }
 
                 String title = node.text("div.itemTxt > a");
                 String href = node.attr("div.itemTxt > a", "href");
-                String cid = href.replace(host() + "/manhua/", "")
-                        .replace("https://m.gufengmh8.com/manhua/", "")
-                        .replace("https://m.gufengmh9.com/manhua/", "");
-                cid = cid.substring(0, cid.length() - 1);
+                String cid = href == null ? "" : href.replaceFirst("https?://[^/]+/manhua/", "");
+                if (cid.endsWith("/")) {
+                    cid = cid.substring(0, cid.length() - 1);
+                }
 
                 String update = node.text("div.itemTxt > p:eq(3) > span.date");
                 String author = node.text("div.itemTxt > p:eq(1)");
@@ -134,7 +159,7 @@ public class GuFeng extends MangaParser {
                     String s = array[i].substring(1, array[i].length() - 1);
                     Long comicChapter = chapter.getId();
                     Long id = Long.parseLong(comicChapter + "000" + i);
-                    list.add(new ImageUrl(id, comicChapter, i + 1, "https://res.xiaoqinre.com/" + urlPrev + s, false));
+                    list.add(new ImageUrl(id, comicChapter, i + 1, imageServer() + "/" + urlPrev + s, false));
                 }
             } catch (Exception e) {
                 e.printStackTrace();

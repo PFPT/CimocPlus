@@ -87,8 +87,7 @@ public class SourceConfig {
     public boolean isComplete() {
         return !baseUrl.isEmpty()
                 && (!search.isEmpty() || !searchKey.isEmpty())
-                && !searchInfoList.isEmpty()
-                && !parseChapterList1.isEmpty();
+                && !searchInfoList.isEmpty();
     }
 
     public Source toSource(boolean enable) {
