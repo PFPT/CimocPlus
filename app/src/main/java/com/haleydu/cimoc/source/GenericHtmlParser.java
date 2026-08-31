@@ -537,9 +537,16 @@ public class GenericHtmlParser extends MangaParser {
     }
 
     private boolean isFault(String url) {
-        return mConfig.parseImageFaultImage != null
+        if (url == null || url.isEmpty()) {
+            return true;
+        }
+        if (mConfig.parseImageFaultImage != null
                 && !mConfig.parseImageFaultImage.isEmpty()
-                && url.contains(mConfig.parseImageFaultImage);
+                && url.contains(mConfig.parseImageFaultImage)) {
+            return true;
+        }
+        String lower = url.toLowerCase();
+        return lower.contains("icon_loading") || lower.contains("placeholder");
     }
 
     private String emptyTo(String value, String fallback) {

@@ -39,6 +39,9 @@ class ReaderPageImageView @JvmOverloads constructor(
             parent?.requestDisallowInterceptTouchEvent(true)
         }
         detector.onTouchEvent(event)
+        if (!isReady) {
+            return true
+        }
         return super.onTouchEvent(event)
     }
 }

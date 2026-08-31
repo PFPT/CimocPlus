@@ -85,28 +85,37 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
         val urls = imageUrl.urls
             ?.map { it?.trim().orEmpty() }
             ?.filter { it.isNotEmpty() }
-            ?: return
+            .orEmpty()
         if (urls.isEmpty()) {
+            showLoadFail(holder, imageUrl, emptyList())
             return
         }
         holder.showError(false)
         loadImage(holder, imageUrl, urls, 0)
     }
 
-    private fun loadImage(holder: ImageHolder, imageUrl: ImageUrl, urls: List<String>, index: Int) {
-        val loader = imageLoader ?: return
-        if (index >= urls.size) {
-            imageUrl.isSuccess = false
-            holder.showError(true)
-            holder.onRetry = {
-                if (imageUrl.isSuccess) {
-                    false
-                } else {
-                    holder.showError(false)
-                    loadImage(holder, imageUrl, urls, 0)
-                    true
-                }
+    private fun showLoadFail(holder: ImageHolder, imageUrl: ImageUrl, urls: List<String>) {
+        imageUrl.isSuccess = false
+        holder.showError(true)
+        holder.onRetry = {
+            if (imageUrl.isSuccess || urls.isEmpty()) {
+                false
+            } else {
+                holder.showError(false)
+                loadImage(holder, imageUrl, urls, 0)
+                true
             }
+        }
+    }
+
+    private fun loadImage(holder: ImageHolder, imageUrl: ImageUrl, urls: List<String>, index: Int) {
+        val loader = imageLoader
+        if (loader == null) {
+            showLoadFail(holder, imageUrl, urls)
+            return
+        }
+        if (index >= urls.size) {
+            showLoadFail(holder, imageUrl, urls)
             return
         }
         val url = normalizeUrl(urls[index])
@@ -134,7 +143,11 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
         }
 
         if (reader == READER_PAGE) {
-            val pageView = holder.imageView as? ReaderPageImageView ?: return
+            val pageView = holder.imageView as? ReaderPageImageView
+            if (pageView == null) {
+                showLoadFail(holder, imageUrl, urls)
+                return
+            }
             pageView.tapListener = tapGestureListener
             pageView.alwaysBlockParent = isBanTurn
             pageView.setDoubleTapZoomScale(scaleFactor)
@@ -144,11 +157,13 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
                     if (!isBound(holder, imageUrl)) {
                         return@target
                     }
-                    imageUrl.isSuccess = true
-                    holder.showError(false)
                     val bitmap = drawableToBitmap(result)
                     if (bitmap != null && !bitmap.isRecycled) {
+                        imageUrl.isSuccess = true
+                        holder.showError(false)
                         pageView.setImage(ImageSource.bitmap(bitmap))
+                    } else {
+                        showLoadFail(holder, imageUrl, urls)
                     }
                     pageView.tag = imageUrl.id
                 },
@@ -162,7 +177,11 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
             holder.disposable?.dispose()
             holder.disposable = loader.enqueue(requestBuilder.build())
         } else {
-            val imageView = holder.imageView as? ImageView ?: return
+            val imageView = holder.imageView as? ImageView
+            if (imageView == null) {
+                showLoadFail(holder, imageUrl, urls)
+                return
+            }
             bindStreamTap(imageView)
             requestBuilder.size(Size.ORIGINAL)
             val request = requestBuilder
@@ -288,6 +307,9 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
 
     @OptIn(ExperimentalCoilApi::class)
     fun evict(url: String) {
+        if (url.isEmpty()) {
+            return
+        }
         val loader = imageLoader ?: return
         loader.memoryCache?.keys
             ?.filter { it.key.contains(url) }
@@ -379,6 +401,9 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
             if (imageUrl.id == id && imageUrl.isLoading) {
                 if (url == null) {
                     imageUrl.isLoading = false
+                    imageUrl.isLazy = false
+                    imageUrl.isSuccess = false
+                    notifyItemChanged(i)
                     return
                 }
                 imageUrl.url = url

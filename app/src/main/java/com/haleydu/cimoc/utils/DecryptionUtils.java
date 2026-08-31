@@ -56,6 +56,19 @@ public class DecryptionUtils {
         return new String(cipher.doFinal(code));
     }
 
+    public static String aesCbcDecryptEmbeddedIv(String base64, String key) throws Exception {
+        byte[] raw = Base64.decode(base64, Base64.DEFAULT);
+        if (raw == null || raw.length <= 16) {
+            return null;
+        }
+        byte[] iv = Arrays.copyOfRange(raw, 0, 16);
+        byte[] ct = Arrays.copyOfRange(raw, 16, raw.length);
+        SecretKeySpec secretKey = new SecretKeySpec(key.getBytes("UTF-8"), "AES");
+        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7Padding");
+        cipher.init(Cipher.DECRYPT_MODE, secretKey, new IvParameterSpec(iv));
+        return new String(cipher.doFinal(ct), "UTF-8");
+    }
+
     public static String base64Decrypt(String cipherString) throws UnsupportedEncodingException {
         byte[] cipherBytes = Base64.decode(cipherString, Base64.DEFAULT);
         return new String(cipherBytes, "UTF-8");

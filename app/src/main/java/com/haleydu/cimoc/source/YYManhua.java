@@ -101,6 +101,9 @@ public class YYManhua extends GenericHtmlParser {
             }
         } catch (Exception ignored) {
         }
+        if (list.isEmpty()) {
+            return super.parseImages(html, chapter);
+        }
         return list;
     }
 }

@@ -35,7 +35,7 @@ public class Ohmanhua extends MangaParser {
 
     public static final int TYPE = 71;
     public static final String DEFAULT_TITLE = "oh漫画";
-    private static final String DEFAULT_HOST = "https://www.colamanga.com";
+    private static final String DEFAULT_HOST = "https://www.yoyomanga.com";
     private final SourceConfigManager sourceConfigManager;
 
     public Ohmanhua(Source source, SourceConfigManager sourceConfigManager) {
@@ -156,12 +156,19 @@ public class Ohmanhua extends MangaParser {
             try {
 
                 String decryptedData = decodeAndDecrypt("encodedData", encodedData, decryptKey1Arr);
-                String imgType = StringUtils.match( "img_type:\"(.+?)\"",decryptedData,1);
-
-                 if (imgType != null && imgType.isEmpty()) {
-                     return processPagesFromExternal(decryptedData, chapter);
+                String imgType = StringUtils.match("img_type:\"(.+?)\"", decryptedData, 1);
+                if (imgType == null || imgType.isEmpty()) {
+                    List<ImageUrl> external = processPagesFromExternal(decryptedData, chapter);
+                    if (!external.isEmpty()) {
+                        return external;
+                    }
+                    return processPagesFromInternal(decryptedData, chapter);
                 } else {
-                     return  processPagesFromInternal(decryptedData, chapter);
+                    List<ImageUrl> internal = processPagesFromInternal(decryptedData, chapter);
+                    if (!internal.isEmpty()) {
+                        return internal;
+                    }
+                    return processPagesFromExternal(decryptedData, chapter);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -185,31 +192,54 @@ public class Ohmanhua extends MangaParser {
 
     private List<ImageUrl> processPagesFromExternal(String decryptedData, Chapter chapter){
         List<ImageUrl> list = new LinkedList<>();
-        String encodedUrlsDirect =  StringUtils.match( "urls__direct:\"(.+?)\"", decryptedData,1);
-        String decodedUrlsDirect = new  String(Base64.decode(encodedUrlsDirect, Base64.NO_WRAP));
-        String pageUrlArr[] = decodedUrlsDirect.split("|SEPARATER|");
-
-        for (int i = 1; i <= pageUrlArr.length; ++i) {
+        String encodedUrlsDirect = StringUtils.match("urls__direct:\"(.+?)\"", decryptedData, 1);
+        if (encodedUrlsDirect == null || encodedUrlsDirect.isEmpty()) {
+            return list;
+        }
+        String decodedUrlsDirect = new String(Base64.decode(encodedUrlsDirect, Base64.NO_WRAP));
+        String[] pageUrlArr = decodedUrlsDirect.split("\\|SEPARATER\\|");
+        int index = 0;
+        for (String pageUrl : pageUrlArr) {
+            if (pageUrl == null) {
+                continue;
+            }
+            pageUrl = pageUrl.trim();
+            if (pageUrl.isEmpty()) {
+                continue;
+            }
             Long comicChapter = chapter.getId();
-            Long id = Long.parseLong(comicChapter + "000" + i);
-            list.add(new ImageUrl(id, comicChapter, i, pageUrlArr[i-1], false));
+            Long id = Long.parseLong(comicChapter + "000" + index);
+            list.add(new ImageUrl(id, comicChapter, ++index, pageUrl, false));
         }
         return list;
     }
 
     private List<ImageUrl> processPagesFromInternal(String decryptedData, Chapter chapter){
         List<ImageUrl> list = new LinkedList<>();
-        String imageServerDomain = StringUtils.match(  "domain:\"(.+?)\"", decryptedData,1);
-        int startImg = Integer.parseInt(StringUtils.match(  "startimg:([0-9]+?),", decryptedData,1));
-        String encodedRelativePath = StringUtils.match(  "enc_code2:\"(.+?)\"", decryptedData,1);
+        String imageServerDomain = StringUtils.match("domain:\"(.+?)\"", decryptedData, 1);
+        String startImgRaw = StringUtils.match("startimg:([0-9]+?),", decryptedData, 1);
+        String encodedRelativePath = StringUtils.match("enc_code2:\"(.+?)\"", decryptedData, 1);
+        String encodedTotalPages = StringUtils.match("enc_code1:\"(.+?)\"", decryptedData, 1);
+        if (imageServerDomain == null || imageServerDomain.isEmpty()
+                || encodedRelativePath == null || encodedTotalPages == null) {
+            return list;
+        }
         String decryptedRelativePath = decodeAndDecrypt("encodedRelativePath", encodedRelativePath, decryptKey2Arr);
-        String encodedTotalPages = StringUtils.match("enc_code1:\"(.+?)\"", decryptedData,1);
-        int decryptedTotalPages = Integer.parseInt(decodeAndDecrypt("encodedTotalPages", encodedTotalPages, decryptKey1Arr));
+        String decryptedTotalPagesRaw = decodeAndDecrypt("encodedTotalPages", encodedTotalPages, decryptKey1Arr);
+        if (decryptedRelativePath == null || decryptedRelativePath.isEmpty()
+                || decryptedTotalPagesRaw == null || decryptedTotalPagesRaw.isEmpty()) {
+            return list;
+        }
+        int startImg = 1;
+        if (startImgRaw != null && !startImgRaw.isEmpty()) {
+            startImg = Integer.parseInt(startImgRaw);
+        }
+        int decryptedTotalPages = Integer.parseInt(decryptedTotalPagesRaw);
         for (int i = startImg; i <= decryptedTotalPages; ++i) {
             Long comicChapter = chapter.getId();
             Long id = Long.parseLong(comicChapter + "000" + i);
             String jpg = StringUtils.format("%04d.jpg", i);
-            String url = "https://" + imageServerDomain+"/comic/"+encodeUri(decryptedRelativePath)+jpg;
+            String url = "https://" + imageServerDomain + "/comic/" + encodeUri(decryptedRelativePath) + jpg;
             list.add(new ImageUrl(id, comicChapter, i, url, false));
         }
         return list;

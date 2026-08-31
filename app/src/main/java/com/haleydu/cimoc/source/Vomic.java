@@ -105,7 +105,7 @@ public class Vomic extends GenericHtmlParser {
         }
         JSONArray array = findImgList(html);
         if (array == null) {
-            return list;
+            return super.parseImages(html, chapter);
         }
         int index = 0;
         for (int i = 0; i < array.length(); i++) {
@@ -125,6 +125,9 @@ public class Vomic extends GenericHtmlParser {
             }
             Long id = Long.parseLong(comicChapter + "000" + index);
             list.add(new ImageUrl(id, comicChapter, ++index, url, false));
+        }
+        if (list.isEmpty()) {
+            return super.parseImages(html, chapter);
         }
         return list;
     }

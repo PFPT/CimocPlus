@@ -223,6 +223,55 @@ public class SourceManager {
                             ? new HaoMan8(source, haomanConfig)
                             : new Null();
                     break;
+                case McCmsParser.TYPE_DUMANWUORG:
+                case McCmsParser.TYPE_TTKANMANHUA:
+                case McCmsParser.TYPE_HAODUOMAN:
+                case McCmsParser.TYPE_MANHUAYU:
+                case McCmsParser.TYPE_YOUMANHUAWU:
+                    SourceConfig mcConfig = sourceConfigManager.getConfig(type);
+                    parser = mcConfig != null
+                            ? new McCmsParser(source, mcConfig)
+                            : new Null();
+                    break;
+                case YYManhua.TYPE:
+                    SourceConfig yyConfig = sourceConfigManager.getConfig(type);
+                    parser = yyConfig != null
+                            ? new YYManhua(source, yyConfig)
+                            : new Null();
+                    break;
+                case LaiMH.TYPE:
+                    SourceConfig laiConfig = sourceConfigManager.getConfig(type);
+                    parser = laiConfig != null
+                            ? new LaiMH(source, laiConfig)
+                            : new Null();
+                    break;
+                case ShouJiMH.TYPE:
+                    SourceConfig sjConfig = sourceConfigManager.getConfig(type);
+                    parser = sjConfig != null
+                            ? new ShouJiMH(source, sjConfig)
+                            : new Null();
+                    break;
+                case Vomic.TYPE:
+                    SourceConfig voConfig = sourceConfigManager.getConfig(type);
+                    parser = voConfig != null
+                            ? new Vomic(source, voConfig)
+                            : new Null();
+                    break;
+                case DaShuMH.TYPE:
+                    SourceConfig dashuConfig = sourceConfigManager.getConfig(type);
+                    parser = dashuConfig != null
+                            ? new DaShuMH(source, dashuConfig)
+                            : new Null();
+                    break;
+                case KuaiKan.TYPE:
+                    parser = new KuaiKan(source, sourceConfigManager);
+                    break;
+                case JiuerMH.TYPE:
+                    SourceConfig jiuerConfig = sourceConfigManager.getConfig(type);
+                    parser = jiuerConfig != null
+                            ? new JiuerMH(source, jiuerConfig)
+                            : new Null();
+                    break;
                 default:
                     SourceConfig config = sourceConfigManager.getConfig(type);
                     if (config != null) {

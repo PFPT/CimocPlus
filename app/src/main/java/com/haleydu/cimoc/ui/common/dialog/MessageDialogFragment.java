@@ -60,7 +60,7 @@ public class MessageDialogFragment extends DialogFragment implements DialogInter
         int requestCode = getArguments().getInt(DialogCaller.EXTRA_DIALOG_REQUEST_CODE);
         DialogCaller target = DialogCaller.from(this);
         if (target != null) {
-            target.onDialogResult(requestCode, null);
+            target.onDialogResult(requestCode, new Bundle());
         }
     }
 

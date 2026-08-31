@@ -19,6 +19,7 @@ public class McCmsParser extends GenericHtmlParser {
     public static final int TYPE_TTKANMANHUA = 221;
     public static final int TYPE_HAODUOMAN = 222;
     public static final int TYPE_MANHUAYU = 223;
+    public static final int TYPE_YOUMANHUAWU = 230;
 
     private static final String[] KEYS = {
             "5V&RoR%Jf@pJPydF",

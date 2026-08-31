@@ -52,6 +52,6 @@ class SourceCatalogRefresher @Inject constructor(
     companion object {
         const val COOLDOWN_MS = 15 * 60 * 1000L
         const val PERIODIC_MS = 24 * 60 * 60 * 1000L
-        const val CATALOG_VERSION = 3
+        const val CATALOG_VERSION = 6
     }
 }

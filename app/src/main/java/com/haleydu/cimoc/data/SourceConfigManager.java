@@ -93,6 +93,20 @@ public class SourceConfigManager {
         GENERIC_ITEMS.put("BOLEFU", new Item(217, "博乐福"));
         GENERIC_ITEMS.put("QIXIMH", new Item(218, "七夕漫画"));
         GENERIC_ITEMS.put("ZERO", new Item(219, "Zero"));
+        GENERIC_ITEMS.put("DUMANWUORG", new Item(220, "读漫屋"));
+        GENERIC_ITEMS.put("TTKANMANHUA", new Item(221, "天天看"));
+        GENERIC_ITEMS.put("HAODUOMAN", new Item(222, "好多漫"));
+        GENERIC_ITEMS.put("MANHUAYU", new Item(223, "漫画鱼"));
+        GENERIC_ITEMS.put("YYMANHUA", new Item(224, "优优漫画"));
+        GENERIC_ITEMS.put("LAIMH", new Item(225, "来漫画"));
+        GENERIC_ITEMS.put("SHOUJIMH", new Item(226, "手机漫画"));
+        GENERIC_ITEMS.put("VOMIC", new Item(227, "vomic漫"));
+        GENERIC_ITEMS.put("DASHUMANHUA", new Item(228, "大树漫画"));
+        GENERIC_ITEMS.put("MANMANMANHUA", new Item(229, "漫漫漫画"));
+        GENERIC_ITEMS.put("YOUMANHUAWU", new Item(230, "漫画屋"));
+        GENERIC_ITEMS.put("KUAIKANMANHUA", new Item(231, "快看漫画"));
+        GENERIC_ITEMS.put("GUAZIMANHUA", new Item(232, "瓜子漫画"));
+        GENERIC_ITEMS.put("JIUERMH", new Item(233, "92漫画"));
     }
 
     private final PreferenceManager preferenceManager;
@@ -103,6 +117,7 @@ public class SourceConfigManager {
     private final List<String> mCopyApiHosts = new ArrayList<>();
     private final List<String> mCopyWebHosts = new ArrayList<>();
     private JSONObject mRootJson;
+    private JSONObject mAssetJson;
     private String mCopyVersion = "2025.11.21";
 
     @Inject
@@ -343,6 +358,15 @@ public class SourceConfigManager {
                     }
                 }
             }
+            if (config == null || !config.isComplete()) {
+                JSONObject assetItem = assetRoot().optJSONObject(entry.getKey());
+                if (assetItem != null) {
+                    SourceConfig fromAsset = new SourceConfig(entry.getKey(), meta.type, meta.title, assetItem);
+                    if (fromAsset.isComplete()) {
+                        config = fromAsset;
+                    }
+                }
+            }
             if (config != null && config.isComplete()) {
                 mConfigByType.put(meta.type, config);
             }
@@ -524,6 +548,16 @@ public class SourceConfigManager {
         if (changed) {
             dao.update(existing);
         }
+    }
+
+    private JSONObject assetRoot() {
+        if (mAssetJson == null) {
+            mAssetJson = parseObject(readAssetJson());
+            if (mAssetJson == null) {
+                mAssetJson = new JSONObject();
+            }
+        }
+        return mAssetJson;
     }
 
     private String readAssetJson() {

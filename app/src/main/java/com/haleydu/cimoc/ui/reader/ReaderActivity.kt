@@ -44,7 +44,6 @@ import com.haleydu.cimoc.utils.StringUtils
 import org.adw.library.widgets.discreteseekbar.DiscreteSeekBar
 import java.io.File
 import java.io.FileInputStream
-import java.io.IOException
 import javax.inject.Inject
 
 abstract class ReaderActivity : BaseActivity(), OnTapGestureListener,
@@ -395,7 +394,8 @@ abstract class ReaderActivity : BaseActivity(), OnTapGestureListener,
     }
 
     fun onParseError() {
-        mLoadingText.visibility = View.GONE
+        mLoadingText.setText(R.string.common_parse_error)
+        mLoadingText.visibility = View.VISIBLE
         HintUtils.showToast(this, R.string.common_parse_error)
     }
 
@@ -449,7 +449,7 @@ abstract class ReaderActivity : BaseActivity(), OnTapGestureListener,
         if (chapter.count > 0) {
             max = chapter.count
         }
-        val title = chapter.title
+        val title = chapter.title.orEmpty()
         val titleLengthMax = 15
         mChapterTitle.text = if (title.length > titleLengthMax) {
             title.substring(0, titleLengthMax).plus("...")
@@ -613,7 +613,10 @@ abstract class ReaderActivity : BaseActivity(), OnTapGestureListener,
     protected fun reloadImage() {
         val position = currentAdapterPosition() ?: return
         val image = mReaderAdapter.getItem(position)
-        mReaderAdapter.evict(image.url)
+        val url = image.url
+        if (!url.isNullOrEmpty()) {
+            mReaderAdapter.evict(url)
+        }
         mReaderAdapter.notifyItemChanged(position)
     }
 
@@ -629,10 +632,13 @@ abstract class ReaderActivity : BaseActivity(), OnTapGestureListener,
             return
         }
         val imageUrl = mReaderAdapter.getItem(position)
-        val urls = imageUrl.urls
+        val urls = imageUrl.urls ?: emptyArray()
         try {
             val title = mChapterTitle.text.toString()
             for (url in urls) {
+                if (url.isNullOrEmpty()) {
+                    continue
+                }
                 if (url.startsWith("file")) {
                     vm.savePicture(
                         FileInputStream(File(Uri.parse(url).path!!)),
@@ -655,7 +661,7 @@ abstract class ReaderActivity : BaseActivity(), OnTapGestureListener,
                     }
                 }
             }
-        } catch (e: IOException) {
+        } catch (e: Exception) {
             e.printStackTrace()
         }
         onPictureSaveFail()

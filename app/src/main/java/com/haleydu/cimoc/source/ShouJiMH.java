@@ -35,7 +35,7 @@ public class ShouJiMH extends GenericHtmlParser {
                 decrypted = DecryptionUtils.evalDecrypt(packed);
             }
             if (decrypted == null || decrypted.isEmpty()) {
-                return list;
+                return super.parseImages(html, chapter);
             }
             String[] array = decrypted.split(",");
             int index = 0;
@@ -45,10 +45,16 @@ public class ShouJiMH extends GenericHtmlParser {
                     continue;
                 }
                 url = absImage(url);
+                if (url == null) {
+                    continue;
+                }
                 Long id = Long.parseLong(comicChapter + "000" + index);
                 list.add(new ImageUrl(id, comicChapter, ++index, url, false));
             }
         } catch (Exception ignored) {
+        }
+        if (list.isEmpty()) {
+            return super.parseImages(html, chapter);
         }
         return list;
     }

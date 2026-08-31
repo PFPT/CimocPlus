@@ -47,7 +47,7 @@ public class MH160 extends MangaParser {
     }
 
     private String host() {
-        return sourceConfigManager.getUrl("MH160", "https://www.mh160mh.com");
+        return sourceConfigManager.firstUrl("https://www.mh160mh.com", "MH160CC", "MH160");
     }
 
     private String hostName() {
@@ -155,18 +155,27 @@ public class MH160 extends MangaParser {
             try {
                 str = DecryptionUtils.base64Decrypt(str);
                 String[] array = str.split("\\$qingtiandy\\$");
-                String preUrl = "";
-                if(Integer.parseInt(str_id)>542724){
-                    preUrl = "https://mhpic5.gezhengzhongyi.cn:8443";
-                }else {
-                    preUrl = "https://res.gezhengzhongyi.cn:20207";
-                }
-                if (Integer.parseInt(str_id)>884998){
-                    preUrl = "https://mhpic88.miyeye.cn:8443";
-                }
-
+                String preUrl = imagePrefix(str_id);
                 for (int i = 0; i != array.length; ++i) {
-                    String url = preUrl + array[i];
+                    String path = array[i];
+                    if (path == null) {
+                        continue;
+                    }
+                    path = path.trim();
+                    if (path.isEmpty()) {
+                        continue;
+                    }
+                    String url;
+                    if (path.startsWith("http://") || path.startsWith("https://")) {
+                        url = path;
+                    } else if (path.startsWith("//")) {
+                        url = "https:" + path;
+                    } else {
+                        if (!path.startsWith("/")) {
+                            path = "/" + path;
+                        }
+                        url = preUrl + path;
+                    }
                     Long comicChapter = chapter.getId();
                     Long id = Long.parseLong(comicChapter + "000" + i);
                     list.add(new ImageUrl(id, comicChapter, i + 1, url, false));
@@ -176,6 +185,22 @@ public class MH160 extends MangaParser {
             }
         }
         return list;
+    }
+
+    private String imagePrefix(String strId) {
+        String server1 = sourceConfigManager.getField("MH160CC", "SERVER1", "https://mhpic5.kingwar.cn");
+        String server2 = sourceConfigManager.getField("MH160CC", "SERVER2", "https://mhpic6.tgmhfc.uk");
+        int id = 0;
+        if (strId != null && !strId.isEmpty()) {
+            try {
+                id = Integer.parseInt(strId);
+            } catch (Exception ignored) {
+            }
+        }
+        if (id > 542724) {
+            return server1;
+        }
+        return server2;
     }
 
     @Override
@@ -190,6 +215,9 @@ public class MH160 extends MangaParser {
 
     @Override
     public Headers getHeader() {
-        return Headers.of("User-Agent","Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.106 Safari/537.36");
+        return Headers.of(
+                "User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.106 Safari/537.36",
+                "Referer", host() + "/"
+        );
     }
 }
