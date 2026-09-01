@@ -1,7 +1,6 @@
 package com.haleydu.cimoc.app.ui
 
 import android.graphics.Bitmap
-import android.graphics.drawable.BitmapDrawable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -9,8 +8,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.material.Text
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,11 +26,21 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import coil.imageLoader
-import coil.request.ImageRequest
-import coil.request.SuccessResult
+import coil3.imageLoader
+import coil3.network.NetworkHeaders
+import coil3.network.httpHeaders
+import coil3.request.CachePolicy
+import coil3.request.Disposable
+import coil3.request.ErrorResult
+import coil3.request.ImageRequest
+import coil3.request.SuccessResult
+import coil3.request.allowHardware
+import coil3.toBitmap
 import com.davemorrissey.labs.subscaleview.ImageSource
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlin.coroutines.cancellation.CancellationException
 
 @Composable
 actual fun ReaderPageCanvas(
@@ -46,17 +57,36 @@ actual fun ReaderPageCanvas(
     LaunchedEffect(url, headers, whiteEdge, retry) {
         if (url.isEmpty()) {
             bitmap = null
-            failed = true
+            failed = false
             return@LaunchedEffect
         }
         failed = false
-        val builder = ImageRequest.Builder(context).data(url).allowHardware(false)
-        headers.forEach { (k, v) -> builder.setHeader(k, v) }
-        val result = runCatching { context.imageLoader.execute(builder.build()) }.getOrNull()
-        val raw = (result as? SuccessResult)?.drawable.let { (it as? BitmapDrawable)?.bitmap }
-        val fixed = raw?.let { fixReaderBitmap(it, url, whiteEdge) }
-        bitmap = fixed
-        failed = fixed == null
+        try {
+            val decoded = withContext(Dispatchers.IO) {
+                val builder = ImageRequest.Builder(context)
+                    .data(url)
+                    .allowHardware(false)
+                    .memoryCachePolicy(CachePolicy.ENABLED)
+                    .diskCachePolicy(CachePolicy.ENABLED)
+                applyImageHeaders(builder, headers)
+                val result = context.imageLoader.execute(builder.build())
+                when (result) {
+                    is SuccessResult -> {
+                        val raw = result.image.toBitmap()
+                        fixReaderBitmap(raw, url, whiteEdge)
+                    }
+                    is ErrorResult -> {
+                        if (result.throwable is CancellationException) throw result.throwable
+                        null
+                    }
+                    else -> null
+                }
+            }
+            bitmap = decoded
+            failed = decoded == null
+        } catch (e: CancellationException) {
+            throw e
+        }
     }
     when {
         failed -> Box(
@@ -68,18 +98,15 @@ actual fun ReaderPageCanvas(
         ) {
             Text("加载失败 / 点击重试", color = Color.White, fontSize = 14.sp)
         }
-        fillWidth -> {
-            val bmp = bitmap
-            if (bmp != null) {
-                Image(
-                    bitmap = bmp.asImageBitmap(),
-                    contentDescription = null,
-                    modifier = modifier.fillMaxWidth(),
-                    contentScale = ContentScale.FillWidth
-                )
-            }
+        bitmap != null && fillWidth -> {
+            Image(
+                bitmap = bitmap!!.asImageBitmap(),
+                contentDescription = null,
+                modifier = modifier.fillMaxWidth(),
+                contentScale = ContentScale.FillWidth
+            )
         }
-        else -> AndroidView(
+        bitmap != null -> AndroidView(
             modifier = modifier,
             factory = { ctx ->
                 SubsamplingScaleImageView(ctx).apply {
@@ -94,18 +121,58 @@ actual fun ReaderPageCanvas(
                 }
             }
         )
+        else -> Box(
+            modifier = modifier
+                .then(if (fillWidth) Modifier.fillMaxWidth().height(220.dp) else Modifier.fillMaxSize())
+                .background(Color.Black),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
     }
 }
 
 @Composable
 actual fun PrefetchReaderImages(urls: List<String>, headers: Map<String, String>) {
     val context = LocalContext.current
-    LaunchedEffect(urls, headers) {
+    val jobs = remember { mutableMapOf<String, Disposable>() }
+    val boundHeaders = remember { mutableStateOf(headers) }
+    DisposableEffect(urls, headers) {
+        if (boundHeaders.value != headers) {
+            jobs.values.forEach { it.dispose() }
+            jobs.clear()
+            boundHeaders.value = headers
+        }
         val loader = context.imageLoader
-        urls.forEach { url ->
-            val builder = ImageRequest.Builder(context).data(url)
-            headers.forEach { (k, v) -> builder.setHeader(k, v) }
-            loader.enqueue(builder.build())
+        val wanted = urls.toSet()
+        jobs.keys.filter { it !in wanted }.forEach { key ->
+            jobs.remove(key)?.dispose()
+        }
+        wanted.forEach { url ->
+            if (url.isNotEmpty() && url !in jobs) {
+                val builder = ImageRequest.Builder(context)
+                    .data(url)
+                    .memoryCachePolicy(CachePolicy.ENABLED)
+                    .diskCachePolicy(CachePolicy.ENABLED)
+                applyImageHeaders(builder, headers)
+                jobs[url] = loader.enqueue(builder.build())
+            }
+        }
+        onDispose { }
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            jobs.values.forEach { it.dispose() }
+            jobs.clear()
         }
     }
+}
+
+private fun applyImageHeaders(builder: ImageRequest.Builder, headers: Map<String, String>) {
+    if (headers.isEmpty()) return
+    builder.httpHeaders(
+        NetworkHeaders.Builder().apply {
+            headers.forEach { (k, v) -> set(k, v) }
+        }.build()
+    )
 }

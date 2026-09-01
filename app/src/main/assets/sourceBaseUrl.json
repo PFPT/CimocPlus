@@ -1,15 +1,31 @@
 {
 	"GUILUOLIMANHUA": {
-		"baseUrl": "http://m.ymgjmh.com"
+		"baseUrl": "http://m.ymgjmh.com",
+		"search": "/search/?keywords=%s",
+		"searchInfoList": "div.itemBox, li",
+		"searchInfoCid": "a",
+		"searchInfoTitle": "a"
 	},
 	"BILIMANHUA": {
-		"baseUrl": "https://www.bilimanga.net"
+		"baseUrl": "https://www.bilimanga.net",
+		"search": "/search?q=%s",
+		"searchInfoList": "div.book-list li, .item",
+		"searchInfoCid": "a",
+		"searchInfoTitle": "a"
 	},
 	"MYCOMIC": {
-		"baseUrl": "https://mycomic.com"
+		"baseUrl": "https://mycomic.com",
+		"search": "/search?q=%s",
+		"searchInfoList": "a",
+		"searchInfoCid": "a",
+		"searchInfoTitle": "a"
 	},
 	"DUMANWU": {
-		"baseUrl": "http://dumanwu1.com"
+		"baseUrl": "http://dumanwu1.com",
+		"search": "/index.php/search?key=%s",
+		"searchInfoList": "div.bookBak",
+		"searchInfoCid": "a",
+		"searchInfoTitle": "p.title a"
 	},
 	"DUMANWUORG": {
 		"baseUrl": "https://www.dumanwu.org",
@@ -33,7 +49,11 @@
 		"parseCategoryInfoList": "div.bookBak"
 	},
 	"QIMANHUA": {
-		"baseUrl": "https://www.qimanwu.org"
+		"baseUrl": "https://www.qimanwu.org",
+		"search": "/search?q=%s",
+		"searchInfoList": "a",
+		"searchInfoCid": "a",
+		"searchInfoTitle": "a"
 	},
 	"TTKANMANHUA": {
 		"baseUrl": "https://www.ttkmh.com",
@@ -99,7 +119,11 @@
 		"parseCategoryInfoList": "div.cell.comic-item"
 	},
 	"RUMANHUA": {
-		"baseUrl": "http://m.rumanhua2.com"
+		"baseUrl": "http://m.rumanhua2.com",
+		"search": "/search?q=%s",
+		"searchInfoList": "a",
+		"searchInfoCid": "a",
+		"searchInfoTitle": "a"
 	},
 	"HAODUOMAN": {
 		"baseUrl": "https://www.haoduoman.com",

@@ -10,6 +10,12 @@ import kotlinx.coroutines.flow.Flow
 interface ComicRepository {
     suspend fun listFavorite(): List<ComicItem>
     suspend fun listHistory(): List<ComicItem>
+    suspend fun listDownload(): List<ComicItem>
+    suspend fun listLocal(): List<ComicItem>
+    suspend fun listFavoritePage(offset: Int, limit: Int): List<ComicItem>
+    suspend fun listHistoryPage(offset: Int, limit: Int): List<ComicItem>
+    suspend fun listDownloadPage(offset: Int, limit: Int): List<ComicItem>
+    suspend fun listLocalPage(offset: Int, limit: Int): List<ComicItem>
     suspend fun load(id: Long): ComicItem?
     suspend fun loadOrCreate(source: Int, cid: String): ComicItem
     suspend fun favorite(item: ComicItem)
@@ -31,10 +37,32 @@ interface MangaRepository {
     suspend fun resolveLazy(source: Int, url: String): String?
     fun imageHeaders(source: Int): Map<String, String>
     suspend fun markRead(item: ComicItem, path: String): Long
+    suspend fun saveProgress(comicId: Long, page: Int)
+}
+
+interface ExploreRepository {
+    suspend fun loadPage(source: Int, page: Int): LoadResult<List<ComicItem>>
+}
+
+interface DownloadRepository {
+    suspend fun enqueue(item: ComicItem, chapters: List<ChapterItem>): LoadResult<Int>
+}
+
+interface SettingsRepository {
+    fun bool(key: String, default: Boolean = false): Boolean
+    fun setBool(key: String, value: Boolean)
+    fun int(key: String, default: Int = 0): Int
+    fun setInt(key: String, value: Int)
+    suspend fun backupFavorites(): LoadResult<Int>
+    suspend fun restoreFavorites(filename: String): LoadResult<Unit>
+    suspend fun listBackupFiles(): List<String>
 }
 
 data class CimocRepositories(
     val comics: ComicRepository,
     val sources: SourceRepository,
-    val manga: MangaRepository
+    val manga: MangaRepository,
+    val explore: ExploreRepository,
+    val downloads: DownloadRepository,
+    val settings: SettingsRepository
 )

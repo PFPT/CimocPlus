@@ -52,6 +52,16 @@ object UpdateHelper {
 
     private val VERSION = BuildConfig.VERSION_CODE
 
+    private val DEAD_TYPES = intArrayOf(
+        EHentai.TYPE,
+        Hhxxee.TYPE,
+        Mangakakalot.TYPE,
+        MangaNel.TYPE,
+        MHLove.TYPE,
+        YYLS.TYPE,
+        HHAAZZ.TYPE
+    )
+
     private val RESTORE_TYPES = intArrayOf(
         CopyMH.TYPE,
         Ohmanhua.TYPE,
@@ -83,6 +93,17 @@ object UpdateHelper {
         }
         sourceConfigManager.applyToDatabase()
         restoreEnabledSources(manager, sourceConfigManager, sourceDao)
+        disableDeadSources(sourceDao)
+    }
+
+    private fun disableDeadSources(sourceDao: SourceDao) {
+        for (type in DEAD_TYPES) {
+            val source = sourceDao.load(type) ?: continue
+            if (source.enable) {
+                source.enable = false
+                sourceDao.update(source)
+            }
+        }
     }
 
     private fun restoreEnabledSources(

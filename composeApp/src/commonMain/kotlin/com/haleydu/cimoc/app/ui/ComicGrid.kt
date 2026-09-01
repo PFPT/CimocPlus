@@ -1,6 +1,7 @@
 package com.haleydu.cimoc.app.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -9,14 +10,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Card
-import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,26 +39,46 @@ fun ComicGrid(
     loading: Boolean,
     emptyText: String,
     onClick: (ComicItem) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onNearEnd: () -> Unit = {}
 ) {
     when {
         loading && items.isEmpty() -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
         items.isEmpty() -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(emptyText, color = MaterialTheme.colors.onBackground.copy(alpha = 0.6f))
+            Text(emptyText, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
         }
-        else -> LazyVerticalGrid(
-            columns = GridCells.Adaptive(110.dp),
-            contentPadding = PaddingValues(12.dp),
-            modifier = modifier.fillMaxSize()
-        ) {
-            items(items, key = { "${it.source}_${it.cid}_${it.id}" }) { comic ->
-                ComicCard(
-                    comic = comic,
-                    sourceTitle = titles[comic.source].orEmpty(),
-                    onClick = { onClick(comic) }
-                )
+        else -> {
+            val gridState = rememberLazyGridState()
+            LaunchedEffect(gridState, items.size) {
+                snapshotFlow { gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+                    .collect { last ->
+                        if (last != null && last >= items.lastIndex - 4) onNearEnd()
+                    }
+            }
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 120.dp),
+                state = gridState,
+                contentPadding = PaddingValues(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = modifier.fillMaxSize()
+            ) {
+                items(items, key = { "${it.source}_${it.cid}_${it.id}" }) { comic ->
+                    ComicCard(
+                        comic = comic,
+                        sourceTitle = titles[comic.source].orEmpty(),
+                        onClick = { onClick(comic) }
+                    )
+                }
+                if (loading) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                }
             }
         }
     }
@@ -61,16 +87,17 @@ fun ComicGrid(
 @Composable
 fun ComicCard(comic: ComicItem, sourceTitle: String, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.padding(6.dp).clickable(onClick = onClick),
-        elevation = 2.dp,
-        shape = RoundedCornerShape(10.dp)
+        modifier = Modifier.clickable(onClick = onClick),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column {
             ComicCover(
                 url = comic.cover,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(150.dp)
+                    .height(160.dp)
                     .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
             )
             Text(
@@ -87,7 +114,7 @@ fun ComicCard(comic: ComicItem, sourceTitle: String, onClick: () -> Unit) {
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     fontSize = 11.sp,
-                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.55f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
                 )
             }
         }

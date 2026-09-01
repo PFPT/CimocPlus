@@ -10,20 +10,16 @@ import android.util.DisplayMetrics
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.multidex.MultiDex
 import androidx.multidex.MultiDexApplication
-import androidx.recyclerview.widget.RecyclerView
 import com.haleydu.cimoc.component.AppGetter
 import com.haleydu.cimoc.core.Storage
 import com.haleydu.cimoc.data.PreferenceManager
 import com.haleydu.cimoc.data.SourceConfigManager
 import com.haleydu.cimoc.data.SourceManager
 import com.haleydu.cimoc.db.CimocDatabase
-import com.haleydu.cimoc.fresco.ControllerBuilderProvider
 import com.haleydu.cimoc.helper.UpdateHelper
 import com.haleydu.cimoc.misc.ActivityLifecycle
 import com.haleydu.cimoc.saf.DocumentFile
-import com.haleydu.cimoc.ui.common.GridAdapter
 import com.haleydu.cimoc.utils.DocumentUtils
-import com.haleydu.cimoc.utils.FrescoUtils
 import com.haleydu.cimoc.utils.StringUtils
 import dagger.hilt.android.HiltAndroidApp
 import okhttp3.OkHttpClient
@@ -42,14 +38,18 @@ class App : MultiDexApplication(), AppGetter, Thread.UncaughtExceptionHandler {
     lateinit var sourceConfigManager: SourceConfigManager
 
     @Inject
+    lateinit var sourceProbe: com.haleydu.cimoc.data.SourceProbe
+
+    @Inject
     lateinit var database: CimocDatabase
 
     @Inject
     lateinit var httpClient: OkHttpClient
 
+    @Inject
+    lateinit var imageLoader: coil3.ImageLoader
+
     private var mDocumentFile: DocumentFile? = null
-    private var mBuilderProvider: ControllerBuilderProvider? = null
-    private var mRecycledPool: RecyclerView.RecycledViewPool? = null
     private lateinit var mActivityLifecycle: ActivityLifecycle
 
     override fun onCreate() {
@@ -63,7 +63,7 @@ class App : MultiDexApplication(), AppGetter, Thread.UncaughtExceptionHandler {
             if (night) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
         )
         UpdateHelper.update(mPreferenceManager!!, sourceConfigManager, database.sourceDao())
-        FrescoUtils.init(this, 250)
+        sourceProbe.probeAsync()
         initPixels()
 
         manager_wifi = getSystemService(WIFI_SERVICE) as WifiManager
@@ -137,26 +137,6 @@ class App : MultiDexApplication(), AppGetter, Thread.UncaughtExceptionHandler {
                 initRootDocumentFile()
             }
             return mDocumentFile
-        }
-
-    val gridRecycledPool: RecyclerView.RecycledViewPool
-        get() {
-            if (mRecycledPool == null) {
-                mRecycledPool = RecyclerView.RecycledViewPool()
-                mRecycledPool!!.setMaxRecycledViews(GridAdapter.TYPE_GRID, 20)
-            }
-            return mRecycledPool!!
-        }
-
-    val builderProvider: ControllerBuilderProvider
-        get() {
-            if (mBuilderProvider == null) {
-                mBuilderProvider = ControllerBuilderProvider(
-                    applicationContext,
-                    sourceManager.HeaderGetter(), true, httpClient
-                )
-            }
-            return mBuilderProvider!!
         }
 
     override fun attachBaseContext(base: Context) {

@@ -24,6 +24,8 @@ class SearchViewModel(
         val loading: Boolean = false,
         val items: List<ComicItem> = emptyList(),
         val enabledSources: List<SourceItem> = emptyList(),
+        val page: Int = 1,
+        val ended: Boolean = false,
         val error: String? = null,
         val empty: Boolean = false
     )
@@ -41,41 +43,65 @@ class SearchViewModel(
         }
     }
 
-    fun search(keyword: String) {
+    fun search(keyword: String, page: Int = 1) {
         val trimmed = keyword.trim()
         if (trimmed.isEmpty()) {
             _ui.update { it.copy(error = "请输入关键字") }
             return
         }
         searchJob?.cancel()
-        _ui.update { it.copy(keyword = trimmed, loading = true, items = emptyList(), error = null, empty = false) }
-        searchJob = scope.launch {
-            val types = _ui.value.enabledSources.map { it.type }
-            if (types.isEmpty()) {
-                _ui.update { it.copy(loading = false, error = "未选择图源") }
-                return@launch
-            }
-            val collected = LinkedHashMap<String, ComicItem>()
-            var failed = 0
-            try {
-                withContext(Dispatchers.Default) {
-                    manga.search(types, trimmed, 1, false).collect { comic ->
-                        val key = "${comic.source}_${comic.cid}"
-                        collected[key] = comic
-                        _ui.update { it.copy(items = collected.values.toList(), loading = true) }
-                    }
+        _ui.update {
+            it.copy(
+                keyword = trimmed,
+                loading = true,
+                items = if (page == 1) emptyList() else it.items,
+                page = page,
+                ended = false,
+                error = null,
+                empty = false
+            )
+        }
+        searchJob = scope.launch { runSearch(trimmed, page, append = page > 1) }
+    }
+
+    fun searchMore() {
+        val state = _ui.value
+        if (state.loading || state.ended || state.keyword.isEmpty()) return
+        search(state.keyword, state.page + 1)
+    }
+
+    private suspend fun runSearch(keyword: String, page: Int, append: Boolean) {
+        val types = _ui.value.enabledSources.map { it.type }
+        if (types.isEmpty()) {
+            _ui.update { it.copy(loading = false, error = "未选择图源") }
+            return
+        }
+        val collected = LinkedHashMap<String, ComicItem>()
+        if (append) {
+            _ui.value.items.forEach { collected["${it.source}_${it.cid}"] = it }
+        }
+        val before = collected.size
+        var failed = 0
+        try {
+            withContext(Dispatchers.Default) {
+                manga.search(types, keyword, page, false).collect { comic ->
+                    val key = "${comic.source}_${comic.cid}"
+                    collected[key] = comic
+                    _ui.update { it.copy(items = collected.values.toList(), loading = true) }
                 }
-            } catch (_: Exception) {
-                failed++
             }
-            _ui.update {
-                it.copy(
-                    loading = false,
-                    items = collected.values.toList(),
-                    empty = collected.isEmpty(),
-                    error = if (collected.isEmpty() && failed > 0) "搜索失败，请稍后重试" else null
-                )
-            }
+        } catch (_: Exception) {
+            failed++
+        }
+        _ui.update {
+            it.copy(
+                loading = false,
+                items = collected.values.toList(),
+                page = page,
+                ended = collected.size == before,
+                empty = collected.isEmpty(),
+                error = if (collected.isEmpty() && failed > 0) "搜索失败，请稍后重试" else null
+            )
         }
     }
 

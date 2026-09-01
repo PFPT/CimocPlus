@@ -155,57 +155,35 @@ class SourceManager @Inject constructor(
                     QiMiaoMH.TYPE -> QiMiaoMH(source, httpClient)
                     YKMH.TYPE -> YKMH(source, sourceConfigManager)
                     DmzjFix.TYPE -> DmzjFix(source, sourceConfigManager)
-                    BaoZiMH.TYPE -> {
-                        val baoziConfig = sourceConfigManager.getConfig(BaoZiMH.TYPE)
-                        if (baoziConfig != null) BaoZiMH(source, baoziConfig, sourceConfigManager) else Null()
-                    }
-                    HaoMan8.TYPE -> {
-                        val haomanConfig = sourceConfigManager.getConfig(HaoMan8.TYPE)
-                        if (haomanConfig != null) HaoMan8(source, haomanConfig) else Null()
-                    }
+                    BaoZiMH.TYPE -> BaoZiMH(source, sourceConfigManager.requireConfig(BaoZiMH.TYPE), sourceConfigManager)
+                    HaoMan8.TYPE -> HaoMan8(source, sourceConfigManager.requireConfig(HaoMan8.TYPE))
                     McCmsParser.TYPE_DUMANWUORG,
                     McCmsParser.TYPE_TTKANMANHUA,
                     McCmsParser.TYPE_HAODUOMAN,
                     McCmsParser.TYPE_MANHUAYU,
-                    McCmsParser.TYPE_YOUMANHUAWU -> {
-                        val mcConfig = sourceConfigManager.getConfig(type)
-                        if (mcConfig != null) McCmsParser(source, mcConfig) else Null()
-                    }
-                    YYManhua.TYPE -> {
-                        val yyConfig = sourceConfigManager.getConfig(type)
-                        if (yyConfig != null) YYManhua(source, yyConfig) else Null()
-                    }
-                    LaiMH.TYPE -> {
-                        val laiConfig = sourceConfigManager.getConfig(type)
-                        if (laiConfig != null) LaiMH(source, laiConfig) else Null()
-                    }
-                    ShouJiMH.TYPE -> {
-                        val sjConfig = sourceConfigManager.getConfig(type)
-                        if (sjConfig != null) ShouJiMH(source, sjConfig) else Null()
-                    }
-                    Vomic.TYPE -> {
-                        val voConfig = sourceConfigManager.getConfig(type)
-                        if (voConfig != null) Vomic(source, voConfig) else Null()
-                    }
-                    DaShuMH.TYPE -> {
-                        val dashuConfig = sourceConfigManager.getConfig(type)
-                        if (dashuConfig != null) DaShuMH(source, dashuConfig) else Null()
-                    }
+                    McCmsParser.TYPE_YOUMANHUAWU -> McCmsParser(source, sourceConfigManager.requireConfig(type))
+                    YYManhua.TYPE -> YYManhua(source, sourceConfigManager.requireConfig(type))
+                    LaiMH.TYPE -> LaiMH(source, sourceConfigManager.requireConfig(type))
+                    ShouJiMH.TYPE -> ShouJiMH(source, sourceConfigManager.requireConfig(type))
+                    Vomic.TYPE -> Vomic(source, sourceConfigManager.requireConfig(type))
+                    DaShuMH.TYPE -> DaShuMH(source, sourceConfigManager.requireConfig(type))
                     KuaiKan.TYPE -> KuaiKan(source, sourceConfigManager)
-                    JiuerMH.TYPE -> {
-                        val jiuerConfig = sourceConfigManager.getConfig(type)
-                        if (jiuerConfig != null) JiuerMH(source, jiuerConfig) else Null()
-                    }
-                    else -> {
-                        val config = sourceConfigManager.getConfig(type)
-                        if (config != null) GenericHtmlParser(source, config) else Null()
-                    }
+                    JiuerMH.TYPE -> JiuerMH(source, sourceConfigManager.requireConfig(type))
+                    else -> GenericHtmlParser(source, sourceConfigManager.requireConfig(type))
                 }
             } catch (_: Exception) {
-                parser = Null()
+                parser = try {
+                    GenericHtmlParser(source, sourceConfigManager.requireConfig(type))
+                } catch (_: Exception) {
+                    Null()
+                }
             }
             if (parser == null) {
-                parser = Null()
+                parser = try {
+                    GenericHtmlParser(source, sourceConfigManager.requireConfig(type))
+                } catch (_: Exception) {
+                    Null()
+                }
             }
             mParserArray.put(type, parser)
         }

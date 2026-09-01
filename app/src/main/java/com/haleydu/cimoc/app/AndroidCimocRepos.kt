@@ -1,17 +1,29 @@
 package com.haleydu.cimoc.app
 
+import android.content.Context
+import android.net.Uri
+import com.haleydu.cimoc.App
+import com.haleydu.cimoc.core.Backup
+import com.haleydu.cimoc.core.Download
+import com.haleydu.cimoc.core.Local
 import com.haleydu.cimoc.core.Manga
 import com.haleydu.cimoc.core.MangaService
+import com.haleydu.cimoc.saf.DocumentFile
+import java.io.File
 import com.haleydu.cimoc.data.ChapterManager
 import com.haleydu.cimoc.data.ComicManager
 import com.haleydu.cimoc.data.ImageUrlManager
+import com.haleydu.cimoc.data.PreferenceManager
 import com.haleydu.cimoc.data.SourceCatalogRefresher
 import com.haleydu.cimoc.data.SourceHealthManager
 import com.haleydu.cimoc.data.SourceManager
+import com.haleydu.cimoc.data.TaskManager
 import com.haleydu.cimoc.model.Chapter
 import com.haleydu.cimoc.model.Comic
 import com.haleydu.cimoc.model.ImageUrl
 import com.haleydu.cimoc.model.Source
+import com.haleydu.cimoc.model.Task
+import com.haleydu.cimoc.service.DownloadService
 import com.haleydu.cimoc.shared.model.ChapterItem
 import com.haleydu.cimoc.shared.model.ComicItem
 import com.haleydu.cimoc.shared.model.LoadResult
@@ -19,7 +31,10 @@ import com.haleydu.cimoc.shared.model.PageImage
 import com.haleydu.cimoc.shared.model.SourceItem
 import com.haleydu.cimoc.shared.repo.CimocRepositories
 import com.haleydu.cimoc.shared.repo.ComicRepository
+import com.haleydu.cimoc.shared.repo.DownloadRepository
+import com.haleydu.cimoc.shared.repo.ExploreRepository
 import com.haleydu.cimoc.shared.repo.MangaRepository
+import com.haleydu.cimoc.shared.repo.SettingsRepository
 import com.haleydu.cimoc.shared.repo.SourceRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -31,13 +46,16 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.withContext
 
 fun createCimocRepositories(
+    context: Context,
     comicManager: ComicManager,
     chapterManager: ChapterManager,
     imageUrlManager: ImageUrlManager,
     sourceManager: SourceManager,
     mangaService: MangaService,
     sourceHealthManager: SourceHealthManager,
-    sourceCatalogRefresher: SourceCatalogRefresher
+    sourceCatalogRefresher: SourceCatalogRefresher,
+    taskManager: TaskManager,
+    preferenceManager: PreferenceManager
 ): CimocRepositories {
     val comics = AndroidComicRepository(comicManager)
     val sources = AndroidSourceRepository(sourceManager, sourceHealthManager)
@@ -50,7 +68,10 @@ fun createCimocRepositories(
         sourceHealthManager,
         sourceCatalogRefresher
     )
-    return CimocRepositories(comics, sources, manga)
+    val explore = AndroidExploreRepository(sourceManager, mangaService, sourceHealthManager)
+    val downloads = AndroidDownloadRepository(context, comicManager, chapterManager, taskManager)
+    val settings = AndroidSettingsRepository(preferenceManager, comicManager)
+    return CimocRepositories(comics, sources, manga, explore, downloads, settings)
 }
 
 private class AndroidComicRepository(
@@ -63,6 +84,26 @@ private class AndroidComicRepository(
     override suspend fun listHistory(): List<ComicItem> = withContext(Dispatchers.IO) {
         comicManager.listHistory().orEmpty().map { it.toItem() }
     }
+
+    override suspend fun listDownload(): List<ComicItem> = withContext(Dispatchers.IO) {
+        comicManager.listDownloadOrdered().orEmpty().map { it.toItem() }
+    }
+
+    override suspend fun listLocal(): List<ComicItem> = withContext(Dispatchers.IO) {
+        comicManager.listLocal().orEmpty().map { it.toItem() }
+    }
+
+    override suspend fun listFavoritePage(offset: Int, limit: Int): List<ComicItem> =
+        listFavorite().drop(offset).take(limit)
+
+    override suspend fun listHistoryPage(offset: Int, limit: Int): List<ComicItem> =
+        listHistory().drop(offset).take(limit)
+
+    override suspend fun listDownloadPage(offset: Int, limit: Int): List<ComicItem> =
+        listDownload().drop(offset).take(limit)
+
+    override suspend fun listLocalPage(offset: Int, limit: Int): List<ComicItem> =
+        listLocal().drop(offset).take(limit)
 
     override suspend fun load(id: Long): ComicItem? = withContext(Dispatchers.IO) {
         comicManager.load(id)?.toItem()
@@ -195,11 +236,20 @@ private class AndroidMangaRepository(
 
     override suspend fun loadPages(item: ComicItem, chapter: ChapterItem): LoadResult<List<PageImage>> =
         withContext(Dispatchers.IO) {
+            val comic = if (item.id != null && item.id!! > 0) comicManager.load(item.id!!) else null
+            val entity = Chapter(chapter.title, chapter.path).apply {
+                id = chapter.id
+                sourceComic = chapter.sourceComic
+                count = if (chapter.count > 0) chapter.count else Int.MAX_VALUE
+                complete = chapter.complete
+            }
+            val offline = loadOfflinePages(item, comic, entity)
+            if (!offline.isNullOrEmpty()) {
+                runCatching { imageUrlManager.insertOrReplace(offline) }
+                return@withContext LoadResult.Ok(offline.map { it.toItem() })
+            }
             try {
                 val parser = sourceManager.getParser(item.source)
-                val entity = Chapter(chapter.title, chapter.path)
-                entity.id = chapter.id
-                entity.sourceComic = chapter.sourceComic
                 val list = mangaService.getChapterImage(entity, parser, item.cid, chapter.path)
                 imageUrlManager.insertOrReplace(list)
                 val pages = list.map { it.toItem() }
@@ -212,6 +262,38 @@ private class AndroidMangaRepository(
                 fallbackPages(chapter) ?: LoadResult.Err("解析失败")
             }
         }
+
+    private fun loadOfflinePages(item: ComicItem, comic: Comic?, chapter: Chapter): List<com.haleydu.cimoc.model.ImageUrl>? {
+        val app = App.getApp()
+        val isLocal = item.local || comic?.local == true
+        if (isLocal) {
+            val uri = chapter.path?.takeIf { it.isNotEmpty() } ?: item.cid
+            val dir = openLocalDir(app, uri)
+            return runCatching { Local.images(dir, chapter) }.getOrNull()?.takeIf { it.isNotEmpty() }
+        }
+        val title = runCatching { sourceManager.getParser(item.source).getTitle() }.getOrDefault("")
+        val entity = comic ?: Comic(item.source, item.cid, item.title, item.cover, null, item.author)
+        val downloaded = chapter.complete || comic?.download != null
+        val hasDir = runCatching { Download.getChapterDir(app.documentFile, entity, chapter, title) }.getOrNull() != null
+        if (downloaded || hasDir) {
+            return runCatching { Download.images(app.documentFile, entity, chapter, title) }.getOrNull()?.takeIf { it.isNotEmpty() }
+        }
+        return null
+    }
+
+    private fun openLocalDir(context: android.content.Context, uri: String): DocumentFile? {
+        if (uri.isEmpty()) return null
+        return runCatching {
+            when {
+                uri.startsWith("content") -> DocumentFile.fromSubTreeUri(context, Uri.parse(uri))
+                uri.startsWith("file") -> {
+                    val path = Uri.parse(uri).path ?: return@runCatching null
+                    DocumentFile.fromFile(File(path))
+                }
+                else -> DocumentFile.fromFile(File(uri))
+            }
+        }.getOrNull()
+    }
 
     private fun fallbackPages(chapter: ChapterItem): LoadResult.Ok<List<PageImage>>? {
         val cached = imageUrlManager.getListImageUrl(chapter.id).orEmpty().map { it.toItem() }
@@ -249,6 +331,135 @@ private class AndroidMangaRepository(
         if (comic.id == null || comic.id == 0L) comic.id = null
         comicManager.updateOrInsert(comic)
         comic.id ?: -1L
+    }
+
+    override suspend fun saveProgress(comicId: Long, page: Int) = withContext(Dispatchers.IO) {
+        val comic = comicManager.load(comicId) ?: return@withContext
+        comic.page = page
+        comicManager.update(comic)
+    }
+}
+
+private class AndroidExploreRepository(
+    private val sourceManager: SourceManager,
+    private val mangaService: MangaService,
+    private val sourceHealthManager: SourceHealthManager
+) : ExploreRepository {
+    override suspend fun loadPage(source: Int, page: Int): LoadResult<List<ComicItem>> = withContext(Dispatchers.IO) {
+        try {
+            val parser = sourceManager.getParser(source)
+            val category = parser.getCategory()
+            val format = if (category != null) {
+                category.getFormat("")
+            } else {
+                parser.getUrl("")
+            }
+            if (format.isNullOrEmpty() || (!format.contains("http") && !format.contains("%"))) {
+                return@withContext LoadResult.Err("该图源不支持浏览")
+            }
+            val list = mangaService.getCategoryComic(parser, format, page)
+            if (list.isEmpty()) LoadResult.Err("暂无内容") else LoadResult.Ok(list.map { it.toItem() })
+        } catch (e: Manga.NetworkErrorException) {
+            sourceHealthManager.recordFailure(source, SourceHealthManager.KIND_NETWORK)
+            LoadResult.Err("网络错误", network = true)
+        } catch (e: Exception) {
+            sourceHealthManager.recordFailure(source, SourceHealthManager.KIND_PARSE)
+            LoadResult.Err(e.message ?: "加载失败")
+        }
+    }
+}
+
+private class AndroidDownloadRepository(
+    private val context: Context,
+    private val comicManager: ComicManager,
+    private val chapterManager: ChapterManager,
+    private val taskManager: TaskManager
+) : DownloadRepository {
+    override suspend fun enqueue(item: ComicItem, chapters: List<ChapterItem>): LoadResult<Int> =
+        withContext(Dispatchers.IO) {
+            try {
+                val comicId = item.id
+                val comic = if (comicId != null && comicId > 0) {
+                    comicManager.load(comicId) ?: comicManager.loadOrCreate(item.source, item.cid)
+                } else {
+                    comicManager.loadOrCreate(item.source, item.cid)
+                }
+                comic.download = System.currentTimeMillis()
+                comicManager.updateOrInsert(comic)
+                val id = comic.id ?: return@withContext LoadResult.Err("无法保存漫画")
+                val tasks = ArrayList<Task>()
+                for (chapter in chapters) {
+                    if (chapter.path.isEmpty()) continue
+                    val task = Task(null, id, chapter.path, chapter.title, 0, 0)
+                    task.source = comic.source
+                    task.cid = comic.cid
+                    task.state = Task.STATE_WAIT
+                    taskManager.insert(task)
+                    tasks.add(task)
+                }
+                runCatching {
+                    val app = context.applicationContext as App
+                    Download.updateComicIndex(
+                        app.contentResolver,
+                        app.documentFile,
+                        chapters.map { Chapter(it.title, it.path) },
+                        comic
+                    )
+                }
+                if (tasks.isNotEmpty()) {
+                    val intent = DownloadService.createIntent(context, tasks)
+                    DownloadService.start(context, intent)
+                }
+                LoadResult.Ok(tasks.size)
+            } catch (e: Exception) {
+                LoadResult.Err(e.message ?: "加入下载失败")
+            }
+        }
+}
+
+private class AndroidSettingsRepository(
+    private val preferenceManager: PreferenceManager,
+    private val comicManager: ComicManager
+) : SettingsRepository {
+    override fun bool(key: String, default: Boolean): Boolean = preferenceManager.getBoolean(key, default)
+    override fun setBool(key: String, value: Boolean) {
+        preferenceManager.putBoolean(key, value)
+    }
+    override fun int(key: String, default: Int): Int = preferenceManager.getInt(key, default)
+    override fun setInt(key: String, value: Int) {
+        preferenceManager.putInt(key, value)
+    }
+
+    override suspend fun backupFavorites(): LoadResult<Int> = withContext(Dispatchers.IO) {
+        try {
+            val app = App.getApp()
+            val n = Backup.saveComic(app.contentResolver, app.documentFile, comicManager.listFavorite())
+            if (n < 0) LoadResult.Err("备份失败") else LoadResult.Ok(n)
+        } catch (e: Exception) {
+            LoadResult.Err(e.message ?: "备份失败")
+        }
+    }
+
+    override suspend fun restoreFavorites(filename: String): LoadResult<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val app = App.getApp()
+            val list = Backup.restoreComic(app.contentResolver, app.documentFile, filename)
+            if (list.isNullOrEmpty()) {
+                LoadResult.Err("恢复失败")
+            } else {
+                for (comic in list) {
+                    comicManager.updateOrInsert(comic)
+                }
+                LoadResult.Ok(Unit)
+            }
+        } catch (e: Exception) {
+            LoadResult.Err(e.message ?: "恢复失败")
+        }
+    }
+
+    override suspend fun listBackupFiles(): List<String> = withContext(Dispatchers.IO) {
+        runCatching { Backup.loadFavorite(App.getApp().documentFile)?.toList().orEmpty() }
+            .getOrDefault(emptyList())
     }
 }
 

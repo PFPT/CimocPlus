@@ -93,6 +93,33 @@ class SourceConfigManager @Inject constructor(
     fun getConfig(type: Int): SourceConfig? = mConfigByType.get(type)
 
     @Synchronized
+    fun requireConfig(type: Int): SourceConfig {
+        getConfig(type)?.let { return it }
+        val meta = genericMeta(type)
+        val key = meta?.first ?: "SOURCE_$type"
+        val title = meta?.second ?: "Source $type"
+        val roots = listOfNotNull(mRootJson, assetRoot())
+        for (root in roots) {
+            val item = root.optJSONObject(key) ?: aliasOf(root, key)
+            if (item != null) {
+                val config = SourceConfig(key, type, title, item)
+                mConfigByType.put(type, config)
+                return config
+            }
+        }
+        val json = JSONObject()
+        val base = getUrl(key, "")
+        if (base.isNotEmpty()) {
+            json.put("baseUrl", base)
+        }
+        json.put("search", "/search?q=%s")
+        json.put("searchInfoList", "a")
+        val fallback = SourceConfig(key, type, title, json)
+        mConfigByType.put(type, fallback)
+        return fallback
+    }
+
+    @Synchronized
     fun getCopyApiHosts(): List<String> {
         val hosts = ArrayList<String>()
         for (host in COPY_API_PREFERRED) {
@@ -409,16 +436,8 @@ class SourceConfigManager @Inject constructor(
             dao.insert(source)
             return
         }
-        var changed = false
         if (source.title != existing.title) {
             existing.title = source.title
-            changed = true
-        }
-        if (!existing.enable) {
-            existing.enable = true
-            changed = true
-        }
-        if (changed) {
             dao.update(existing)
         }
     }
@@ -536,6 +555,15 @@ class SourceConfigManager @Inject constructor(
             "https://www.relam.cn",
             "https://www.relamanhua.xyz"
         )
+
+        fun genericMeta(type: Int): Pair<String, String>? {
+            for (entry in GENERIC_ITEMS.entries) {
+                if (entry.value.type == type) {
+                    return entry.key to entry.value.title
+                }
+            }
+            return null
+        }
 
         private val GENERIC_ITEMS: MutableMap<String, Item> = LinkedHashMap()
 

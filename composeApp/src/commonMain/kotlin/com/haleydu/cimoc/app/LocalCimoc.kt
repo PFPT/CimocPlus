@@ -7,11 +7,17 @@ val LocalCimocRepos = staticCompositionLocalOf<CimocRepositories> {
     error("CimocRepositories not provided")
 }
 
+val LocalCimocSession = staticCompositionLocalOf<CimocSession> {
+    error("CimocSession not provided")
+}
+
 data class CimocActions(
-    val openSettings: () -> Unit = {},
-    val openAbout: () -> Unit = {},
-    val openBackup: () -> Unit = {},
-    val openClassic: () -> Unit = {}
+    val bindBack: ((() -> Boolean) -> Unit) = {},
+    val bindVolume: (((Boolean) -> Boolean) -> Unit) = {},
+    val onNightChanged: (Boolean) -> Unit = {},
+    val openUrl: (String) -> Unit = {},
+    val setImmersive: (Boolean) -> Unit = {},
+    val setKeepScreenOn: (Boolean) -> Unit = {}
 )
 
 val LocalCimocActions = staticCompositionLocalOf { CimocActions() }

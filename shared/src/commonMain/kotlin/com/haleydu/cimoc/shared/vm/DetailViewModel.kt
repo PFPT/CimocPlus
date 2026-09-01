@@ -4,6 +4,7 @@ import com.haleydu.cimoc.shared.model.ChapterItem
 import com.haleydu.cimoc.shared.model.ComicItem
 import com.haleydu.cimoc.shared.model.LoadResult
 import com.haleydu.cimoc.shared.repo.ComicRepository
+import com.haleydu.cimoc.shared.repo.DownloadRepository
 import com.haleydu.cimoc.shared.repo.MangaRepository
 import com.haleydu.cimoc.shared.repo.SourceRepository
 import kotlinx.coroutines.CoroutineScope
@@ -18,7 +19,8 @@ import kotlinx.coroutines.launch
 class DetailViewModel(
     private val comics: ComicRepository,
     private val manga: MangaRepository,
-    private val sources: SourceRepository
+    private val sources: SourceRepository,
+    private val downloads: DownloadRepository
 ) {
     data class UiState(
         val comic: ComicItem? = null,
@@ -26,7 +28,8 @@ class DetailViewModel(
         val sourceTitle: String = "",
         val loading: Boolean = false,
         val error: String? = null,
-        val reversed: Boolean = false
+        val reversed: Boolean = false,
+        val downloadMessage: String? = null
     ) {
         val displayed: List<ChapterItem>
             get() = if (reversed) chapters.reversed() else chapters
@@ -92,6 +95,23 @@ class DetailViewModel(
                 _ui.update { it.copy(comic = fresh.copy(favorite = true)) }
             }
         }
+    }
+
+    fun downloadUnread() {
+        val state = _ui.value
+        val comic = state.comic ?: return
+        val chapters = state.chapters.filter { it.path.isNotEmpty() }
+        if (chapters.isEmpty()) return
+        scope.launch {
+            when (val result = downloads.enqueue(comic, chapters)) {
+                is LoadResult.Ok -> _ui.update { it.copy(downloadMessage = "已加入 ${result.value} 章下载") }
+                is LoadResult.Err -> _ui.update { it.copy(downloadMessage = result.message) }
+            }
+        }
+    }
+
+    fun consumeDownloadMessage() {
+        _ui.update { it.copy(downloadMessage = null) }
     }
 
     suspend fun prepareRead(path: String?): Long {

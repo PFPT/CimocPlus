@@ -5,25 +5,22 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Divider
-import androidx.compose.material.Text
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.haleydu.cimoc.app.LocalCimocActions
+import com.haleydu.cimoc.app.nav.Screen
 
 @Composable
-fun ProfileScreen() {
-    val actions = LocalCimocActions.current
+fun ProfileScreen(onOpen: (Screen) -> Unit) {
     Column(Modifier.fillMaxSize().padding(vertical = 12.dp)) {
-        ProfileRow("设置", actions.openSettings)
-        Divider()
-        ProfileRow("备份", actions.openBackup)
-        Divider()
-        ProfileRow("关于", actions.openAbout)
-        Divider()
-        ProfileRow("经典界面", actions.openClassic)
+        ProfileRow("设置") { onOpen(Screen.Settings) }
+        HorizontalDivider()
+        ProfileRow("备份") { onOpen(Screen.Backup) }
+        HorizontalDivider()
+        ProfileRow("关于") { onOpen(Screen.About) }
     }
 }
 

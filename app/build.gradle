@@ -1,5 +1,6 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
+apply plugin: 'org.jetbrains.kotlin.plugin.compose'
 apply plugin: 'kotlin-kapt'
 apply plugin: 'com.google.gms.google-services'
 apply plugin: 'com.google.firebase.crashlytics'
@@ -36,12 +37,8 @@ android {
 
     buildFeatures {
         buildConfig true
-        viewBinding true
+        viewBinding false
         compose true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion '1.5.14'
     }
 
     defaultConfig {
@@ -108,40 +105,33 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 dependencies {
-    implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
     implementation fileTree(include: ['*.jar'], exclude: ['rhino*.jar'], dir: 'libs')
     implementation 'androidx.appcompat:appcompat:1.7.0'
-    implementation 'androidx.recyclerview:recyclerview:1.2.1'
     implementation 'com.google.android.material:material:1.12.0'
-    implementation 'androidx.viewpager2:viewpager2:1.1.0'
     implementation project(':core:database')
     implementation project(':core:network')
     implementation project(':shared')
     implementation project(':composeApp')
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
-    implementation 'com.facebook.fresco:fresco:2.3.0'
-    implementation 'io.coil-kt:coil:2.6.0'
-    implementation 'com.davemorrissey.labs:subsampling-scale-image-view-androidx:3.10.0'
-    implementation 'androidx.navigation:navigation-fragment-ktx:2.7.7'
+    implementation 'io.coil-kt.coil3:coil:3.0.0'
+    implementation 'io.coil-kt.coil3:coil-network-okhttp:3.0.0'
     implementation 'androidx.paging:paging-runtime-ktx:3.2.1'
     implementation 'androidx.room:room-paging:2.6.1'
     implementation 'org.jsoup:jsoup:1.13.1'
     implementation 'org.mozilla:rhino:1.7.14'
-    implementation 'org.adw.library:discrete-seekbar:1.0.1'
     api 'com.google.guava:guava:27.0.1-android'
 
     implementation 'androidx.multidex:multidex:2.0.1'
     implementation 'com.google.code.gson:gson:2.8.6'
     implementation 'com.alibaba:fastjson:1.2.62'
     implementation "androidx.core:core-ktx:1.13.1"
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.24"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.0.21"
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.6.2'
     implementation 'androidx.activity:activity-ktx:1.8.2'
-    implementation 'androidx.fragment:fragment-ktx:1.6.2'
-    implementation 'com.google.dagger:hilt-android:2.51.1'
-    kapt 'com.google.dagger:hilt-compiler:2.51.1'
+    implementation 'com.google.dagger:hilt-android:2.52'
+    kapt 'com.google.dagger:hilt-compiler:2.52'
     implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2'
     implementation 'androidx.activity:activity-compose:1.8.2'
     implementation platform('androidx.compose:compose-bom:2024.02.00')

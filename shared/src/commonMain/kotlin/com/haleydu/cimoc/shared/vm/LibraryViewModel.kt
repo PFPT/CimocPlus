@@ -6,7 +6,6 @@ import com.haleydu.cimoc.shared.repo.SourceRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -16,12 +15,13 @@ class LibraryViewModel(
     private val comics: ComicRepository,
     private val sources: SourceRepository
 ) {
-    enum class Tab { Favorite, History }
+    enum class Tab { Favorite, History, Download, Local }
 
     data class UiState(
         val tab: Tab = Tab.Favorite,
         val items: List<ComicItem> = emptyList(),
         val loading: Boolean = false,
+        val ended: Boolean = false,
         val titles: Map<Int, String> = emptyMap()
     )
 
@@ -31,13 +31,34 @@ class LibraryViewModel(
     val ui: StateFlow<UiState> = _ui
 
     fun load(tab: Tab = _ui.value.tab) {
-        _ui.update { it.copy(tab = tab, loading = true) }
+        _ui.update { it.copy(tab = tab, items = emptyList(), ended = false, loading = false) }
+        loadMore()
+    }
+
+    fun loadMore() {
+        val state = _ui.value
+        if (state.loading || state.ended) return
+        _ui.update { it.copy(loading = true) }
+        val offset = state.items.size
         scope.launch {
-            val list = runCatching {
-                if (tab == Tab.Favorite) comics.listFavorite() else comics.listHistory()
+            val page = runCatching {
+                when (state.tab) {
+                    Tab.Favorite -> comics.listFavoritePage(offset, PAGE)
+                    Tab.History -> comics.listHistoryPage(offset, PAGE)
+                    Tab.Download -> comics.listDownloadPage(offset, PAGE)
+                    Tab.Local -> comics.listLocalPage(offset, PAGE)
+                }
             }.getOrDefault(emptyList())
-            val titles = list.associate { it.source to sources.sourceTitle(it.source) }
-            _ui.update { it.copy(items = list, loading = false, titles = titles) }
+            _ui.update {
+                if (it.tab != state.tab) return@update it
+                val merged = it.items + page
+                it.copy(
+                    items = merged,
+                    loading = false,
+                    ended = page.size < PAGE,
+                    titles = merged.associate { comic -> comic.source to sources.sourceTitle(comic.source) }
+                )
+            }
         }
     }
 
@@ -57,7 +78,7 @@ class LibraryViewModel(
         }
     }
 
-    fun clear() {
-        scope.cancel()
+    companion object {
+        const val PAGE = 40
     }
 }

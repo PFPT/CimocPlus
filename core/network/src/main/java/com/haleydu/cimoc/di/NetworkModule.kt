@@ -86,6 +86,16 @@ object NetworkModule {
             .build()
     }
 
+    @Provides
+    @Singleton
+    fun provideKtorClient(okHttpClient: OkHttpClient): io.ktor.client.HttpClient {
+        return io.ktor.client.HttpClient(io.ktor.client.engine.okhttp.OkHttp) {
+            engine {
+                preconfigured = okHttpClient
+            }
+        }
+    }
+
     private fun createSslSocketFactory(trustManager: X509TrustManager): SSLSocketFactory {
         val sc = SSLContext.getInstance("TLS")
         sc.init(null, arrayOf<TrustManager>(trustManager), SecureRandom())

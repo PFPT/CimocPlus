@@ -6,14 +6,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.OutlinedTextField
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -23,18 +23,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import com.haleydu.cimoc.app.LocalCimocRepos
+import com.haleydu.cimoc.app.LocalCimocSession
 import com.haleydu.cimoc.app.nav.Screen
-import com.haleydu.cimoc.shared.vm.SearchViewModel
 
 @Composable
 fun SearchScreen(onOpen: (Screen.Detail) -> Unit) {
-    val repos = LocalCimocRepos.current
-    val vm = remember { SearchViewModel(repos.sources, repos.manga) }
-    DisposableEffect(vm) { onDispose { vm.clear() } }
+    val vm = LocalCimocSession.current.search
     val state by vm.ui.collectAsState()
-    LaunchedEffect(Unit) { vm.loadSources() }
-    var input by remember { mutableStateOf("") }
+    LaunchedEffect(Unit) { if (state.enabledSources.isEmpty()) vm.loadSources() }
+    var input by remember { mutableStateOf(state.keyword) }
 
     Column(Modifier.fillMaxSize()) {
         OutlinedTextField(
@@ -51,7 +48,9 @@ fun SearchScreen(onOpen: (Screen.Detail) -> Unit) {
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { vm.search(input) })
         )
-        state.error?.let { Text(it, modifier = Modifier.padding(horizontal = 16.dp), color = androidx.compose.material.MaterialTheme.colors.error) }
+        state.error?.let {
+            Text(it, modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.error)
+        }
         ComicGrid(
             items = state.items,
             titles = state.enabledSources.associate { it.type to it.title },
@@ -68,7 +67,8 @@ fun SearchScreen(onOpen: (Screen.Detail) -> Unit) {
                         author = comic.author
                     )
                 )
-            }
+            },
+            onNearEnd = { vm.searchMore() }
         )
     }
 }
