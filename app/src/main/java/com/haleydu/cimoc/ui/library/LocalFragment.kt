@@ -32,7 +32,7 @@ class LocalFragment : GridFragment() {
         showProgressDialog()
         val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
         requireActivity().contentResolver.takePersistableUriPermission(uri, flags)
-        vm.scan(DocumentFile.fromTreeUri(activity, uri))
+        vm.scan(DocumentFile.fromTreeUri(requireActivity(), uri))
     }
 
     private val dirLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -62,15 +62,15 @@ class LocalFragment : GridFragment() {
             try {
                 treeLauncher.launch(null)
             } catch (e: ActivityNotFoundException) {
-                HintUtils.showToast(activity, R.string.settings_other_storage_not_found)
+                HintUtils.showToast(requireActivity(), R.string.settings_other_storage_not_found)
             }
         } else {
-            dirLauncher.launch(Intent(activity, DirPickerActivity::class.java))
+            dirLauncher.launch(Intent(requireActivity(), DirPickerActivity::class.java))
         }
     }
 
     override fun onItemClick(view: View, position: Int) {
-        val comic = mGridAdapter.comicAt(position)
+        val comic = mGridAdapter.comicAt(position) ?: return
         startActivity(TaskActivity.createIntent(requireActivity(), comic.id))
     }
 
@@ -98,7 +98,7 @@ class LocalFragment : GridFragment() {
     fun onLocalDeleteSuccess(id: Long) {
         hideProgressDialog()
         mGridAdapter.removeItemById(id)
-        HintUtils.showToast(activity, R.string.common_execute_success)
+        HintUtils.showToast(requireActivity(), R.string.common_execute_success)
     }
 
     fun onLocalScanSuccess(list: List<Any>) {
@@ -108,7 +108,7 @@ class LocalFragment : GridFragment() {
 
     override fun onExecuteFail() {
         hideProgressDialog()
-        HintUtils.showToast(activity, R.string.common_execute_fail)
+        HintUtils.showToast(requireActivity(), R.string.common_execute_fail)
     }
 
     override fun getActionButtonRes(): Int = R.drawable.ic_add_white_24dp

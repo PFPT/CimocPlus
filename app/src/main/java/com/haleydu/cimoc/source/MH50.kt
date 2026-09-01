@@ -9,11 +9,11 @@ import com.haleydu.cimoc.model.Chapter
 import com.haleydu.cimoc.model.Comic
 import com.haleydu.cimoc.model.ImageUrl
 import com.haleydu.cimoc.model.Source
-import com.haleydu.cimoc.parser.Category.CATEGORY_AREA
-import com.haleydu.cimoc.parser.Category.CATEGORY_PROGRESS
-import com.haleydu.cimoc.parser.Category.CATEGORY_READER
-import com.haleydu.cimoc.parser.Category.CATEGORY_SUBJECT
-import com.haleydu.cimoc.parser.Category.CATEGORY_YEAR
+import com.haleydu.cimoc.parser.Category.Companion.CATEGORY_AREA
+import com.haleydu.cimoc.parser.Category.Companion.CATEGORY_PROGRESS
+import com.haleydu.cimoc.parser.Category.Companion.CATEGORY_READER
+import com.haleydu.cimoc.parser.Category.Companion.CATEGORY_SUBJECT
+import com.haleydu.cimoc.parser.Category.Companion.CATEGORY_YEAR
 import com.haleydu.cimoc.parser.MangaCategory
 import com.haleydu.cimoc.parser.MangaParser
 import com.haleydu.cimoc.parser.NodeIterator
@@ -170,7 +170,7 @@ class MH50(
         }
     }
 
-    private fun getImageUrlByKey(key: String, domain: String, chapter: String): String? {
+    private fun getImageUrlByKey(key: String, domain: String, chapter: String?): String? {
         if (key.startsWith("http://images.dmzj.com")) {
             return try {
                 "https://imgdm.eshanyao.com/showImage.php?url=$key"

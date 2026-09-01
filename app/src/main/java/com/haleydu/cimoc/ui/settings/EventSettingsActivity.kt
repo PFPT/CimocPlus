@@ -13,7 +13,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.haleydu.cimoc.R
 import com.haleydu.cimoc.component.DialogCaller
-import com.haleydu.cimoc.data.PreferenceManager.READER_ORIENTATION_AUTO
+import com.haleydu.cimoc.data.PreferenceManager.Companion.READER_ORIENTATION_AUTO
 import com.haleydu.cimoc.databinding.ActivityEventBinding
 import com.haleydu.cimoc.global.ClickEvents
 import com.haleydu.cimoc.global.Extra

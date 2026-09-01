@@ -52,13 +52,14 @@ class LocalViewModel @Inject constructor(
         }
     }
 
-    fun loadComic(id: Long): Comic = comicManager.load(id)
+    fun loadComic(id: Long): Comic? = comicManager.load(id)
 
-    fun scan(doc: DocumentFile) {
+    fun scan(doc: DocumentFile?) {
+        val target = doc ?: return
         viewModelScope.launch {
             try {
                 val list = withContext(Dispatchers.IO) {
-                    MiniComic.listOf(processScanResult(Local.scan(doc)))
+                    MiniComic.listOf(processScanResult(Local.scan(target)))
                 }
                 _scanSuccess.emit(list)
             } catch (e: Exception) {
@@ -97,7 +98,7 @@ class LocalViewModel @Inject constructor(
         }
         for (comic in comicManager.listLocal()) {
             map[comic.cid] = comic
-            set.addAll(array.get(comic.id, ArrayList()))
+            set.addAll(array.get(comic.id ?: 0L, ArrayList()))
         }
         return Pair.create(map, set)
     }
@@ -110,7 +111,7 @@ class LocalViewModel @Inject constructor(
                 val comic = hash.first[pr.first.cid]
                 if (comic != null) {
                     for (task in pr.second) {
-                        task.key = comic.id
+                        task.key = comic.id ?: 0L
                         if (!hash.second.contains(task.path)) {
                             taskManager.insert(task)
                         }
@@ -118,7 +119,7 @@ class LocalViewModel @Inject constructor(
                 } else {
                     comicManager.insert(pr.first)
                     for (task in pr.second) {
-                        task.key = pr.first.id
+                        task.key = pr.first.id ?: 0L
                         taskManager.insert(task)
                     }
                     result.add(pr.first)

@@ -32,8 +32,8 @@ class DaShuMH(source: Source?, config: SourceConfig) : GenericHtmlParser(source,
                 if (url.contains("banquan") || url.contains("icon_loading") || url.contains("grey")) {
                     continue
                 }
-                url = absImage(url)
-                if (url == null) {
+                url = absImage(url) ?: continue
+                if (url.isEmpty()) {
                     continue
                 }
                 val id = (comicChapter.toString() + "000" + index).toLong()

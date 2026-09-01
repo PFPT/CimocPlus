@@ -1,7 +1,7 @@
 package com.haleydu.cimoc.source
 
 import com.haleydu.cimoc.core.Manga
-import com.haleydu.cimoc.core.Manga.getResponseBody
+import com.haleydu.cimoc.core.Manga.Companion.getResponseBody
 import com.haleydu.cimoc.model.Chapter
 import com.haleydu.cimoc.model.Comic
 import com.haleydu.cimoc.model.ImageUrl
@@ -93,8 +93,8 @@ class QiMiaoMH(source: Source?, private val httpClient: OkHttpClient) : MangaPar
     override fun parseImages(html: String, chapter: Chapter): List<ImageUrl> {
         val list: MutableList<ImageUrl> = LinkedList()
         try {
-            val did = Objects.requireNonNull(StringUtils.match("var did =(.*?);", html, 1)).trim()
-            val sid = Objects.requireNonNull(StringUtils.match("var sid =(.*?);", html, 1)).trim()
+            val did = StringUtils.match("var did =(.*?);", html, 1)?.trim() ?: ""
+            val sid = StringUtils.match("var sid =(.*?);", html, 1)?.trim() ?: ""
             val random = Random().nextFloat()
             val url = StringUtils.format(baseUrl + "/Action/Play/AjaxLoadImgUrl?did=%s&sid=%s&tmp=%f", did, sid, random)
             val request = Request.Builder().url(url).build()

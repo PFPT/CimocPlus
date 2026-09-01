@@ -3,6 +3,7 @@ package com.haleydu.cimoc.misc
 import android.app.Activity
 import android.app.Application
 import android.os.Bundle
+import java.util.LinkedList
 
 class ActivityLifecycle : Application.ActivityLifecycleCallbacks {
 

@@ -40,8 +40,9 @@ class TagRefManager @Inject constructor(
         mRefDao.deleteByTag(tid)
     }
 
-    fun deleteByComic(cid: Long) {
-        mRefDao.deleteByComic(cid)
+    fun deleteByComic(cid: Long?) {
+        val id = cid ?: return
+        mRefDao.deleteByComic(id)
     }
 
     fun delete(tid: Long, cid: Long) {

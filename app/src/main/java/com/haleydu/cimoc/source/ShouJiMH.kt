@@ -10,7 +10,7 @@ import java.util.LinkedList
 
 class ShouJiMH(source: Source?, config: SourceConfig) : GenericHtmlParser(source, config) {
 
-    override fun parseImages(html: String, chapter: Chapter): List<ImageUrl>? {
+    override fun parseImages(html: String, chapter: Chapter): List<ImageUrl> {
         val list: MutableList<ImageUrl> = LinkedList()
         val comicChapter = chapter?.id
         if (html == null || comicChapter == null) {

@@ -28,9 +28,8 @@ abstract class BackActivity : BaseActivity() {
             )
     }
 
-    protected fun isProgressBarShown(): Boolean {
-        return mProgressBar != null && mProgressBar!!.isShown
-    }
+    protected val isProgressBarShown: Boolean
+        get() = mProgressBar != null && mProgressBar!!.isShown
 
     protected fun hideProgressBar() {
         mProgressBar?.visibility = View.GONE

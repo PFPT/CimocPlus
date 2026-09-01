@@ -63,13 +63,12 @@ class ChoicePreference : Option, View.OnClickListener {
         mSummaryView.text = mItems!![mChoice]
     }
 
-    fun getValue(): Int {
-        return mChoice
-    }
-
-    fun setValue(choice: Int) {
-        mPreferenceManager.putInt(mPreferenceKey, choice)
-        mChoice = choice
-        mSummaryView.text = mItems!![mChoice]
-    }
+    var value: Int
+        get() = mChoice
+        set(choice) {
+            val key = mPreferenceKey ?: return
+            mPreferenceManager.putInt(key, choice)
+            mChoice = choice
+            mSummaryView.text = mItems!![mChoice]
+        }
 }

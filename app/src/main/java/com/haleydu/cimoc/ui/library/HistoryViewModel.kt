@@ -57,10 +57,10 @@ class HistoryViewModel @Inject constructor(
         }
     }
 
-    fun loadComic(id: Long): Comic = comicManager.load(id)
+    fun loadComic(id: Long): Comic? = comicManager.load(id)
 
     fun delete(id: Long) {
-        val comic = comicManager.load(id)
+        val comic = comicManager.load(id) ?: return
         comic.history = null
         comicManager.updateOrDelete(comic)
     }

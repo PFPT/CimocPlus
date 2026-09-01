@@ -104,7 +104,7 @@ class DetailActivity : BackActivity(), BaseAdapter.OnItemClickListener, BaseAdap
                 recycler.paddingLeft,
                 recycler.paddingTop,
                 recycler.paddingRight,
-                if (isNavTranslation) recycler.paddingBottom else bars.bottom
+                if (isNavTranslation()) recycler.paddingBottom else bars.bottom
             )
             insets
         }
@@ -118,7 +118,7 @@ class DetailActivity : BackActivity(), BaseAdapter.OnItemClickListener, BaseAdap
         binding.detailRecyclerView.layoutManager = GridLayoutManager(this, 3)
         binding.detailRecyclerView.setHasFixedSize(false)
         binding.detailRecyclerView.itemAnimator = null
-        binding.detailRecyclerView.addItemDecoration(detailAdapter.itemDecoration)
+        binding.detailRecyclerView.addItemDecoration(detailAdapter.getItemDecoration())
         binding.detailRecyclerView.adapter = detailAdapter
         binding.detailCover.setOnLongClickListener {
             showIntro()
@@ -159,6 +159,11 @@ class DetailActivity : BackActivity(), BaseAdapter.OnItemClickListener, BaseAdap
         AppEventBus.observe(AppEvent.EVENT_COMIC_UPDATE).collectOnStart(this) { vm.refreshFromUpdate() }
         AppEventBus.observe(AppEvent.EVENT_COMIC_UPDATE_INFO).collectOnStart(this) { event ->
             (event.data as? Comic)?.let { vm.applyUpdateInfo(it) }
+        }
+        if (id == -1L && cid.isNullOrEmpty()) {
+            hideProgressBar()
+            showSnackbar(R.string.common_parse_error)
+            return
         }
         vm.load(id, source, cid, title, cover, author)
     }
@@ -264,8 +269,16 @@ class DetailActivity : BackActivity(), BaseAdapter.OnItemClickListener, BaseAdap
         }
     }
 
-    private fun startReader(path: String) {
+    private fun startReader(path: String?) {
+        if (path.isNullOrEmpty()) {
+            showSnackbar(R.string.common_parse_error)
+            return
+        }
         val id = vm.updateLast(path)
+        if (id <= 0) {
+            showSnackbar(R.string.common_parse_error)
+            return
+        }
         detailAdapter.setLast(path)
         val mode = mPreference.getInt(PreferenceManager.PREF_READER_MODE, PreferenceManager.READER_MODE_PAGE)
         startActivity(ReaderActivity.createIntent(this, id, ArrayList(detailAdapter.dateSet), mode))
@@ -327,8 +340,9 @@ class DetailActivity : BackActivity(), BaseAdapter.OnItemClickListener, BaseAdap
         binding.detailAuthor.text = comic.author
         binding.detailIntro.text = comic.intro
         if (comic.finish != null) {
+            val finish = comic.finish == true
             binding.detailStatus.setText(
-                if (comic.finish) R.string.comic_status_finish else R.string.comic_status_continue
+                if (finish) R.string.comic_status_finish else R.string.comic_status_continue
             )
         }
         if (!comic.update.isNullOrEmpty()) {
@@ -346,8 +360,9 @@ class DetailActivity : BackActivity(), BaseAdapter.OnItemClickListener, BaseAdap
         if (boundCover == key) return
         boundCover = key
         try {
-            imagePipelineFactory = ImagePipelineFactoryBuilder.build(this, vm.parserHeader(), false, httpClient)
-            val supplier = ControllerBuilderSupplierFactory.get(this, imagePipelineFactory)
+            val factory = ImagePipelineFactoryBuilder.build(this, vm.parserHeader(), false, httpClient)
+            imagePipelineFactory = factory
+            val supplier = ControllerBuilderSupplierFactory.get(this, factory)
             binding.detailCover.controller = supplier.get().setUri(uri).build()
         } catch (_: Exception) {
             boundCover = null

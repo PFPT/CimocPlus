@@ -53,11 +53,11 @@ class Task : Parcelable {
     }
 
     @Ignore
-    constructor(id: Long?, key: Long, path: String, title: String, progress: Int, max: Int) {
+    constructor(id: Long?, key: Long, path: String?, title: String?, progress: Int, max: Int) {
         this.id = id
         this.key = key
-        this.path = path
-        this.title = title
+        this.path = path ?: ""
+        this.title = title ?: ""
         this.progress = progress
         this.max = max
     }
@@ -72,7 +72,8 @@ class Task : Parcelable {
 
     override fun hashCode(): Int = id?.hashCode() ?: super.hashCode()
 
-    fun isFinish(): Boolean = max != 0 && progress == max
+    val isFinish: Boolean
+        get() = max != 0 && progress == max
 
     override fun describeContents(): Int = 0
 

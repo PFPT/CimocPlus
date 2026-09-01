@@ -42,8 +42,8 @@ class Chapter : Parcelable {
     constructor()
 
     @Ignore
-    constructor(id: Long?, sourceComic: Long?, title: String?, path: String?, tid: Long) :
-        this(id, sourceComic ?: 0L, title, path, 0, false, false, tid, "")
+    constructor(id: Long?, sourceComic: Long?, title: String?, path: String?, tid: Long?) :
+        this(id, sourceComic ?: 0L, title, path, 0, false, false, tid ?: -1L, "")
 
     @Ignore
     constructor(id: Long?, sourceComic: Long?, title: String?, path: String?, sourceGroup: String?) :

@@ -100,7 +100,7 @@ internal class TreeDocumentFile : DocumentFile {
             return null
         }
         try {
-            val result = DocumentsContract.createDocument(mContext.contentResolver, mUri, null, displayName)
+            val result = DocumentsContract.createDocument(mContext.contentResolver, mUri, "application/octet-stream", displayName)
             if (result != null) {
                 doc = TreeDocumentFile(this, mContext, result, displayName, null)
                 mSubFiles!![displayName] = doc

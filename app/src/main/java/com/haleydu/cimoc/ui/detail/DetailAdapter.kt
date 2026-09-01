@@ -82,13 +82,13 @@ class DetailAdapter(
 
     fun isFirst(position: Int): Boolean {
         if (position < 0 || position >= mDataSet.size) return false
-        if (mDataSet[position].sourceGroup.isEmpty()) return false
+        if (mDataSet[position].sourceGroup.isNullOrEmpty()) return false
         if (position == 0) return true
         return mDataSet[position - 1].sourceGroup != mDataSet[position].sourceGroup
     }
 
     fun getGroupName(position: Int): String {
-        return mDataSet[position].sourceGroup
+        return mDataSet[position].sourceGroup ?: ""
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
@@ -100,7 +100,7 @@ class DetailAdapter(
         val chapter = mDataSet[position]
         val viewHolder = holder as ChapterHolder
         viewHolder.binding.root.text = chapter.title
-        viewHolder.binding.root.setDownload(chapter.isComplete)
+        viewHolder.binding.root.setDownload(chapter.complete)
         viewHolder.binding.root.isSelected = chapter.path != null && chapter.path == last
     }
 

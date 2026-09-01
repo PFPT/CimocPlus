@@ -68,7 +68,7 @@ class ReaderChapterSheet(
                     holder.defaultColor
                 }
             )
-            holder.itemView.setOnClickListener { onSelect(chapter.path) }
+            holder.itemView.setOnClickListener { onSelect(chapter.path ?: "") }
         }
 
         override fun getItemCount(): Int = chapters.size

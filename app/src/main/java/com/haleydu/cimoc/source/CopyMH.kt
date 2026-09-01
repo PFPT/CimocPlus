@@ -2,16 +2,16 @@ package com.haleydu.cimoc.source
 
 import android.util.Pair
 import com.google.common.collect.Lists
-import com.haleydu.cimoc.core.Manga.getResponseBody
+import com.haleydu.cimoc.core.Manga.Companion.getResponseBody
 import com.haleydu.cimoc.data.SourceConfigManager
 import com.haleydu.cimoc.model.Chapter
 import com.haleydu.cimoc.model.Comic
 import com.haleydu.cimoc.model.ImageUrl
 import com.haleydu.cimoc.model.Source
-import com.haleydu.cimoc.parser.Category.CATEGORY_AREA
-import com.haleydu.cimoc.parser.Category.CATEGORY_ORDER
-import com.haleydu.cimoc.parser.Category.CATEGORY_PROGRESS
-import com.haleydu.cimoc.parser.Category.CATEGORY_SUBJECT
+import com.haleydu.cimoc.parser.Category.Companion.CATEGORY_AREA
+import com.haleydu.cimoc.parser.Category.Companion.CATEGORY_ORDER
+import com.haleydu.cimoc.parser.Category.Companion.CATEGORY_PROGRESS
+import com.haleydu.cimoc.parser.Category.Companion.CATEGORY_SUBJECT
 import com.haleydu.cimoc.parser.JsonIterator
 import com.haleydu.cimoc.parser.MangaCategory
 import com.haleydu.cimoc.parser.MangaParser

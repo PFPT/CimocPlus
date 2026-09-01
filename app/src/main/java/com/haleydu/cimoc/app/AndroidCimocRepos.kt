@@ -123,7 +123,7 @@ private class AndroidSourceRepository(
     }
 
     override fun sourceTitle(type: Int): String {
-        return runCatching { sourceManager.getParser(type).title }.getOrDefault("")
+        return runCatching { sourceManager.getParser(type).getTitle() }.getOrDefault("")
     }
 }
 
@@ -224,7 +224,7 @@ private class AndroidMangaRepository(
 
     override fun imageHeaders(source: Int): Map<String, String> {
         return runCatching {
-            val headers = sourceManager.getParser(source).header ?: return emptyMap()
+            val headers = sourceManager.getParser(source).getHeader() ?: return emptyMap()
             buildMap {
                 for (i in 0 until headers.size) {
                     put(headers.name(i), headers.value(i))
@@ -274,7 +274,7 @@ private fun Comic.toItem() = ComicItem(
 
 private fun Chapter.toItem() = ChapterItem(
     id = id,
-    sourceComic = sourceComic ?: 0L,
+    sourceComic = sourceComic,
     title = title ?: "",
     path = path ?: "",
     count = count,

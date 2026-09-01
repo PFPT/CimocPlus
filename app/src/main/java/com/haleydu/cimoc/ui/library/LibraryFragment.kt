@@ -108,8 +108,8 @@ class LibraryFragment : BaseFragment(), DialogCaller, ThemeResponsive {
             val index = bundle.getInt(DialogCaller.EXTRA_DIALOG_RESULT_INDEX)
             startActivity(
                 PartFavoriteActivity.createIntent(
-                    activity,
-                    tagList[index].id,
+                    requireActivity(),
+                    tagList[index].id ?: 0L,
                     tagList[index].title
                 )
             )
@@ -184,7 +184,7 @@ class LibraryFragment : BaseFragment(), DialogCaller, ThemeResponsive {
 
     private fun onTagLoadFail() {
         hideProgressDialog()
-        HintUtils.showToast(activity, R.string.comic_load_tag_fail)
+        HintUtils.showToast(requireActivity(), R.string.comic_load_tag_fail)
     }
 
     companion object {

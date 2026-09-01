@@ -52,9 +52,8 @@ abstract class BaseActivity : AppCompatActivity(), AppGetter {
         initUser()
     }
 
-    override fun getAppInstance(): App {
-        return application as App
-    }
+    override val appInstance: App
+        get() = application as App
 
     fun onNightSwitch() {
         initNight()
@@ -126,7 +125,7 @@ abstract class BaseActivity : AppCompatActivity(), AppGetter {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
 
-    protected fun applyWindowInsets() {
+    protected open fun applyWindowInsets() {
         val insetTarget = mToolbar ?: mContentRoot
         ViewCompat.setOnApplyWindowInsetsListener(insetTarget) { v, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())

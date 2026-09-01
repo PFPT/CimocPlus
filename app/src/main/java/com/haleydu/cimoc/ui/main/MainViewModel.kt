@@ -64,7 +64,7 @@ class MainViewModel @Inject constructor(
             try {
                 val comic = withContext(Dispatchers.IO) { comicManager.loadLast() }
                 if (comic != null) {
-                    _last.emit(LastComic(comic.id, comic.source, comic.cid, comic.title, comic.cover))
+                    _last.emit(LastComic(comic.id ?: 0L, comic.source, comic.cid, comic.title, comic.cover))
                 }
             } catch (e: Exception) {
                 _lastFail.emit(Unit)

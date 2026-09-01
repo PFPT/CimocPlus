@@ -96,12 +96,12 @@ abstract class GridFragment : RecyclerViewFragment(), DialogCaller, ThemeRespons
     }
 
     fun onComicLoadFail() {
-        HintUtils.showToast(activity, R.string.common_data_load_fail)
+        HintUtils.showToast(requireActivity(), R.string.common_data_load_fail)
     }
 
-    fun onExecuteFail() {
+    open fun onExecuteFail() {
         hideProgressDialog()
-        HintUtils.showToast(activity, R.string.common_execute_fail)
+        HintUtils.showToast(requireActivity(), R.string.common_execute_fail)
     }
 
     override fun onThemeChange(@ColorRes primary: Int, @ColorRes accent: Int) {

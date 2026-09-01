@@ -26,7 +26,7 @@ class YYManhua(source: Source?, config: SourceConfig) : GenericHtmlParser(source
         var body = Node(html)
         val baseText = body.id("__VIEWSTATE").attr("value")
         if (!StringUtils.isEmpty(baseText)) {
-            body = Node(DecryptionUtils.LZ64Decrypt(baseText))
+            body = Node(DecryptionUtils.LZ64Decrypt(baseText) ?: "")
         }
         var i = 0
         for (node in body.list("div.chapter-list")) {
@@ -60,7 +60,7 @@ class YYManhua(source: Source?, config: SourceConfig) : GenericHtmlParser(source
         return list
     }
 
-    override fun parseImages(html: String, chapter: Chapter): List<ImageUrl>? {
+    override fun parseImages(html: String, chapter: Chapter): List<ImageUrl> {
         val list: MutableList<ImageUrl> = LinkedList()
         val comicChapter = chapter?.id
         if (html == null || comicChapter == null) {

@@ -118,7 +118,7 @@ class MH160(source: Source?, private val sourceConfigManager: SourceConfigManage
         if (str != null) {
             try {
                 str = DecryptionUtils.base64Decrypt(str)
-                val array = str.split("\\$qingtiandy\\$".toRegex())
+                val array = str.split("\\\$qingtiandy\\\$".toRegex())
                 val preUrl = imagePrefix(str_id)
                 for (i in array.indices) {
                     var path = array[i] ?: continue

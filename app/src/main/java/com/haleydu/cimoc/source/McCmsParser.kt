@@ -124,7 +124,7 @@ class McCmsParser(source: Source?, config: SourceConfig) : GenericHtmlParser(sou
 
         private val KEYS = arrayOf(
             "5V&RoR%Jf@pJPydF",
-            "9S8$vJnU2ANeSRoF"
+            "9S8\$vJnU2ANeSRoF"
         )
 
         private fun firstString(obj: JSONObject, vararg keys: String): String {

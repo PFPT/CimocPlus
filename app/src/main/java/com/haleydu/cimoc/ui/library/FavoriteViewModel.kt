@@ -65,14 +65,14 @@ class FavoriteViewModel @Inject constructor(
         }
     }
 
-    fun loadComic(id: Long): Comic = comicManager.load(id)
+    fun loadComic(id: Long): Comic? = comicManager.load(id)
 
     fun cancelAllHighlight() {
         comicManager.cancelHighlight()
     }
 
     fun unfavoriteComic(id: Long) {
-        val comic = comicManager.load(id)
+        val comic = comicManager.load(id) ?: return
         comic.favorite = null
         tagRefManager.deleteByComic(id)
         comicManager.updateOrDelete(comic)

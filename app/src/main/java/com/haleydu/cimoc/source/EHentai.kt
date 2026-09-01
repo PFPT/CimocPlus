@@ -32,8 +32,8 @@ class EHentai(source: Source?) : MangaParser() {
                 val cid = node.hrefWithSubString("td:eq(2) > div > div:eq(2) > a", 23, -2)
                 var title = node.text("td:eq(2) > div > div:eq(2) > a")
                 var cover = node.src("td:eq(2) > div > div:eq(0) > img")
-                if (cover == null) {
-                    val temp = node.textWithSubstring("td:eq(2) > div > div:eq(0)", 14).split("~", limit = 2)[0]
+                if (cover.isEmpty()) {
+                    val temp = node.textWithSubstring("td:eq(2) > div > div:eq(0)", 14)?.split("~", limit = 2)?.getOrNull(0) ?: ""
                     cover = "http://ehgt.org/".plus(temp)
                 }
                 val update = node.textWithSubstring("td:eq(1)", 0, 10)

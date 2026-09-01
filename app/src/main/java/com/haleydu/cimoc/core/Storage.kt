@@ -49,10 +49,11 @@ object Storage {
     private fun copyFile(
         resolver: ContentResolver,
         src: DocumentFile,
-        parent: DocumentFile,
+        parent: DocumentFile?,
         callback: ProgressCallback
     ): Boolean {
-        val file = DocumentUtils.getOrCreateFile(parent, src.name)
+        val dest = parent ?: return false
+        val file = DocumentUtils.getOrCreateFile(dest, src.name)
         if (file != null) {
             callback.onProgress(StringUtils.format("正在移动 %s...", src.uri.lastPathSegment))
             try {
@@ -68,11 +69,12 @@ object Storage {
     private fun copyDir(
         resolver: ContentResolver,
         src: DocumentFile,
-        parent: DocumentFile,
+        parent: DocumentFile?,
         callback: ProgressCallback
     ): Boolean {
+        val dest = parent ?: return false
         if (src.isDirectory) {
-            val dir = DocumentUtils.getOrCreateSubDirectory(parent, src.name)
+            val dir = DocumentUtils.getOrCreateSubDirectory(dest, src.name)
             for (file in src.listFiles()) {
                 if (file.isDirectory) {
                     if (!copyDir(resolver, file, dir, callback)) {
@@ -116,19 +118,20 @@ object Storage {
     @JvmStatic
     fun moveRootDir(
         resolver: ContentResolver,
-        root: DocumentFile,
+        root: DocumentFile?,
         dst: DocumentFile,
         callback: ProgressCallback
     ) {
-        if (dst.canRead() && !isDirSame(root, dst)) {
-            root.refresh()
-            if (copyDir(resolver, root, dst, BACKUP, callback) &&
-                copyDir(resolver, root, dst, DOWNLOAD, callback) &&
-                copyDir(resolver, root, dst, PICTURE, callback)
+        val src = root ?: throw RuntimeException()
+        if (dst.canRead() && !isDirSame(src, dst)) {
+            src.refresh()
+            if (copyDir(resolver, src, dst, BACKUP, callback) &&
+                copyDir(resolver, src, dst, DOWNLOAD, callback) &&
+                copyDir(resolver, src, dst, PICTURE, callback)
             ) {
-                deleteDir(root, BACKUP, callback)
-                deleteDir(root, DOWNLOAD, callback)
-                deleteDir(root, PICTURE, callback)
+                deleteDir(src, BACKUP, callback)
+                deleteDir(src, DOWNLOAD, callback)
+                deleteDir(src, PICTURE, callback)
                 return
             }
         }
@@ -138,7 +141,7 @@ object Storage {
     @JvmStatic
     fun savePicture(
         resolver: ContentResolver,
-        root: DocumentFile,
+        root: DocumentFile?,
         stream: InputStream,
         filename: String
     ): Uri {
@@ -147,7 +150,7 @@ object Storage {
             if (dir != null) {
                 val file = DocumentUtils.getOrCreateFile(dir, filename)
                 DocumentUtils.writeBinaryToFile(resolver, file, stream)
-                return file.uri
+                return file?.uri ?: throw RuntimeException()
             }
         } catch (e: IOException) {
             e.printStackTrace()
@@ -158,7 +161,7 @@ object Storage {
     @JvmStatic
     fun buildImageUrlFromDocumentFile(
         list: List<DocumentFile>,
-        chapterStr: String,
+        chapterStr: String?,
         max: Int,
         chapter: Chapter
     ): List<ImageUrl> {

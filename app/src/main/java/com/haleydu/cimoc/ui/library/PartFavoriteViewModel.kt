@@ -70,7 +70,7 @@ class PartFavoriteViewModel @Inject constructor(
     private fun buildIdList(list: List<MiniComic>): List<Long> {
         val result = ArrayList<Long>(list.size)
         for (item in list) {
-            result.add(item.id)
+            result.add(item.id ?: 0L)
         }
         return result
     }
@@ -81,7 +81,7 @@ class PartFavoriteViewModel @Inject constructor(
                 val titles = withContext(Dispatchers.IO) {
                     val result = ArrayList<String>()
                     for (comic in comicManager.listFavoriteNotIn(buildIdList(list))) {
-                        savedComic.put(comic.id, comic)
+                        savedComic.put(comic.id ?: 0L, comic)
                         result.add(comic.title)
                     }
                     result
@@ -100,7 +100,7 @@ class PartFavoriteViewModel @Inject constructor(
             for (i in check.indices) {
                 if (check[i]) {
                     val comic = MiniComic(savedComic.valueAt(i))
-                    rList.add(TagRef(null, tagId, comic.id))
+                    rList.add(TagRef(null, tagId, comic.id ?: 0L))
                     cList.add(comic)
                 }
             }
@@ -116,5 +116,5 @@ class PartFavoriteViewModel @Inject constructor(
         tagRefManager.delete(tagId, id)
     }
 
-    fun loadComic(id: Long): Comic = comicManager.load(id)
+    fun loadComic(id: Long): Comic? = comicManager.load(id)
 }

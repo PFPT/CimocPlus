@@ -114,7 +114,8 @@ class App : MultiDexApplication(), AppGetter, Thread.UncaughtExceptionHandler {
         System.exit(1)
     }
 
-    override fun getAppInstance(): App = this
+    override val appInstance: App
+        get() = this
 
     private fun initPixels() {
         val metrics: DisplayMetrics = resources.displayMetrics
@@ -184,6 +185,9 @@ class App : MultiDexApplication(), AppGetter, Thread.UncaughtExceptionHandler {
         private var mApp: App? = null
         private var sActivity: Activity? = null
         private var UPDATE_CURRENT_URL = "https://api.github.com/repos/Haleydu/Cimoc/releases/latest"
+
+        @JvmStatic
+        fun getApp(): App = mApp!!
 
         @JvmStatic
         fun getAppContext(): Context = mApp!!

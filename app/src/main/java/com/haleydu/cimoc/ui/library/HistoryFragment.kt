@@ -77,12 +77,12 @@ class HistoryFragment : GridFragment() {
 
     fun onHistoryClearSuccess() {
         hideProgressDialog()
-        HintUtils.showToast(activity, R.string.common_execute_success)
+        HintUtils.showToast(requireActivity(), R.string.common_execute_success)
     }
 
     fun onHistoryDelete(@Suppress("UNUSED_PARAMETER") id: Long) {
         hideProgressDialog()
-        HintUtils.showToast(activity, R.string.common_execute_success)
+        HintUtils.showToast(requireActivity(), R.string.common_execute_success)
     }
 
     fun OnComicRestore(@Suppress("UNUSED_PARAMETER") list: List<Any>) {

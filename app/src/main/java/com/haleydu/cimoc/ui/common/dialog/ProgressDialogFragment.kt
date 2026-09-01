@@ -31,7 +31,7 @@ class ProgressDialogFragment : DialogFragment() {
         textView = binding.dialogProgressText
         dialog?.requestWindowFeature(Window.FEATURE_NO_TITLE)
         isCancelable = false
-        val resId = ThemeUtils.getResourceId(activity, R.attr.colorAccent)
+        val resId = ThemeUtils.getResourceId(requireActivity(), R.attr.colorAccent)
         progressBar?.indeterminateDrawable?.colorFilter = BlendModeColorFilterCompat.createBlendModeColorFilterCompat(
             ContextCompat.getColor(requireActivity(), resId),
             BlendModeCompat.SRC_ATOP

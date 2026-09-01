@@ -85,7 +85,7 @@ class MHLove(source: Source?) : MangaParser() {
         if (str != null) {
             try {
                 str = DecryptionUtils.base64Decrypt(str)
-                val array = str.split("\\$qingtiandy\\$".toRegex())
+                val array = str.split("\\\$qingtiandy\\\$".toRegex())
                 var preUrl = ""
                 if (!array[0].contains("http")) {
                     preUrl = "http://www.9qv.cn"

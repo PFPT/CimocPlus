@@ -19,6 +19,7 @@ allprojects {
         mavenCentral()
         maven { url "https://maven.aliyun.com/repository/public" }
         maven { url "https://jitpack.io" }
+        maven { url "https://maven.pkg.jetbrains.space/public/p/compose/dev" }
     }
     buildDir = file("${projectDir}/build.nosync")
 }

@@ -85,9 +85,9 @@ class TuHao(source: Source?) : MangaParser() {
 
     override fun parseImages(html: String, chapter: Chapter): List<ImageUrl> {
         val list: MutableList<ImageUrl> = LinkedList()
-        val str = StringUtils.match("\"page_url\":\"(.*?)\",", html, 1)
+        val str = StringUtils.match("\"page_url\":\"(.*?)\",", html, 1) ?: return list
         var i = 0
-        for (url in Objects.requireNonNull(str).split(Regex("\\|72cms\\|"))) {
+        for (url in str.split(Regex("\\|72cms\\|"))) {
             val comicChapter = chapter.id
             val id = (comicChapter.toString() + "000" + i).toLong()
             list.add(ImageUrl(id, comicChapter, ++i, url, false))

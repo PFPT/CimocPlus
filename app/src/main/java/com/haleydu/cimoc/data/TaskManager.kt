@@ -16,7 +16,10 @@ class TaskManager @Inject constructor(
 
     fun listValid(): List<Task> = mTaskDao.listValid()
 
-    fun list(key: Long): List<Task> = mTaskDao.list(key)
+    fun list(key: Long?): List<Task> {
+        val k = key ?: return emptyList()
+        return mTaskDao.list(k)
+    }
 
     fun insert(task: Task) {
         val id = mTaskDao.insert(task)

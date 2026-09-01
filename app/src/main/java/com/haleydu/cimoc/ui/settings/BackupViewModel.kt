@@ -133,7 +133,7 @@ class BackupViewModel @Inject constructor(
                     Backup.saveSetting(
                         app.contentResolver,
                         app.documentFile,
-                        preferenceManager.all
+                        preferenceManager.getAll()
                     )
                 }
                 onSaveResult(size)
@@ -225,11 +225,12 @@ class BackupViewModel @Inject constructor(
         }
         tagRefManager.runInTx {
             for (pair in list) {
-                val tid = pair.first.id
+                val tid = pair.first.id ?: continue
                 for (comic in pair.second) {
-                    val ref = tagRefManager.load(tid, comic.id)
+                    val comicId = comic.id ?: continue
+                    val ref = tagRefManager.load(tid, comicId)
                     if (ref == null) {
-                        tagRefManager.insert(TagRef(null, tid, comic.id))
+                        tagRefManager.insert(TagRef(null, tid, comicId))
                     }
                 }
             }
@@ -242,8 +243,10 @@ class BackupViewModel @Inject constructor(
         comicManager.runInTx {
             for (tag in tagManager.list()) {
                 val comics = LinkedList<Comic>()
-                for (ref in tagRefManager.listByTag(tag.id)) {
-                    comics.add(comicManager.load(ref.cid))
+                val tagId = tag.id ?: continue
+                for (ref in tagRefManager.listByTag(tagId)) {
+                    val comic = comicManager.load(ref.cid) ?: continue
+                    comics.add(comic)
                 }
                 list.add(Pair.create(tag, comics))
             }

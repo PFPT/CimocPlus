@@ -1,7 +1,7 @@
 package com.haleydu.cimoc.source
 
 import com.haleydu.cimoc.core.Manga
-import com.haleydu.cimoc.core.Manga.getResponseBody
+import com.haleydu.cimoc.core.Manga.Companion.getResponseBody
 import com.haleydu.cimoc.model.Chapter
 import com.haleydu.cimoc.model.Comic
 import com.haleydu.cimoc.model.ImageUrl

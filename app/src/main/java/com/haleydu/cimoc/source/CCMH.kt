@@ -77,7 +77,7 @@ class CCMH(source: Source?) : MangaParser() {
         val cover = body.src(".cover > img")
         val author = body.textWithSplit(".other", "\\s+|：", 8)
         val update = body.textWithSplit(".other", "\\s+|：", 12)
-            .replace("[", "").replace("]", "")
+            ?.replace("[", "")?.replace("]", "") ?: ""
         val status = isFinish(body.textWithSplit(".other", "\\s+|：", 10))
         comic.setInfo(title, cover, update, intro, author, status)
         return comic

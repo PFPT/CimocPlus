@@ -16,10 +16,11 @@ object Local {
     private var chapterPattern: Pattern? = null
 
     @JvmStatic
-    fun scan(root: DocumentFile): List<Pair<Comic, ArrayList<Task>>> {
+    fun scan(root: DocumentFile?): List<Pair<Comic, ArrayList<Task>>> {
+        val dir = root ?: return emptyList()
         val result = ArrayList<Pair<Comic, ArrayList<Task>>>()
 
-        val info = ScanInfo(root)
+        val info = ScanInfo(dir)
         countPicture(info)
         if (info.count > 5) {
             val pair = Pair.create(buildComic(info.dir, info.cover), ArrayList<Task>())
@@ -27,7 +28,7 @@ object Local {
             result.add(pair)
         } else {
             val list = LinkedList<DocumentFile>()
-            list.add(root)
+            list.add(dir)
 
             while (!list.isEmpty()) {
                 val dir = list[0]
@@ -51,12 +52,13 @@ object Local {
     }
 
     @JvmStatic
-    fun images(dir: DocumentFile, chapter: Chapter): List<ImageUrl> {
-        val files = dir.listFiles(
+    fun images(dir: DocumentFile?, chapter: Chapter): List<ImageUrl> {
+        val folder = dir ?: throw RuntimeException()
+        val files = folder.listFiles(
             DocumentFile.DocumentFileFilter { file -> file.isFile && StringUtils.endWith(file.name, "jpg", "png", "jpeg") },
             Comparator { lhs, rhs -> lhs.name.compareTo(rhs.name) }
         )
-        val list = Storage.buildImageUrlFromDocumentFile(files, chapter.title, chapter.count, chapter)
+        val list = Storage.buildImageUrlFromDocumentFile(files, chapter.title ?: "", chapter.count, chapter)
         if (list.isNotEmpty()) {
             return list
         }
@@ -117,7 +119,7 @@ object Local {
 
     private fun buildComic(dir: DocumentFile, cover: String?): Comic {
         return Comic(
-            null, Locality.TYPE, dir.uri.toString(), dir.name, cover,
+            null, Locality.TYPE, dir.uri.toString(), dir.name, cover ?: "",
             false, true, null, null, null, null, null, null, null, null, null, null, null
         )
     }

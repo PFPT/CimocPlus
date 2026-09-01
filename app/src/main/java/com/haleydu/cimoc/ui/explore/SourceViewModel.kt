@@ -139,7 +139,7 @@ class SourceViewModel @Inject constructor(
 
     fun logs(): String = jsConsole.dump()
 
-    fun hasCategory(type: Int): Boolean = sourceManager.getParser(type).category != null
+    fun hasCategory(type: Int): Boolean = sourceManager.getParser(type).getCategory() != null
 
     companion object {
         private val GITHUB_BLOB = Regex(

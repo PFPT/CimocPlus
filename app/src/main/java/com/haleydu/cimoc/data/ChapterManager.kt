@@ -29,8 +29,9 @@ class ChapterManager @Inject constructor(
         return mChapterDao.getChapter(path, title)
     }
 
-    fun load(id: Long): Chapter? {
-        return mChapterDao.load(id)
+    fun load(id: Long?): Chapter? {
+        val key = id ?: return null
+        return mChapterDao.load(key)
     }
 
     fun cancelHighlight() {

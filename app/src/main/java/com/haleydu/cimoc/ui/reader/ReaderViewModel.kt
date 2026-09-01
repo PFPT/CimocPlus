@@ -188,7 +188,7 @@ class ReaderViewModel @Inject constructor(
         val chapters = if (array.isNotEmpty()) {
             array
         } else {
-            val sourceComic = (current.source.toString() + "000" + current.id).toLong()
+            val sourceComic = (current.source.toString() + "000" + (current.id ?: "00")).toLong()
             chapterManager.getListChapter(sourceComic).toTypedArray()
         }
         if (chapters.isEmpty()) {
@@ -363,19 +363,19 @@ class ReaderViewModel @Inject constructor(
             }
             return Local.images(dir, chapter)
         }
-        if (chapter.isComplete) {
+        if (chapter.complete) {
             return Download.images(
                 app.documentFile,
                 current,
                 chapter,
-                sourceManager.getParser(current.source).title
+                sourceManager.getParser(current.source).getTitle()
             )
         }
         return mangaService.getChapterImage(
             chapter,
             sourceManager.getParser(current.source),
             current.cid ?: "",
-            chapter.path
+            chapter.path ?: ""
         )
     }
 
@@ -393,7 +393,7 @@ class ReaderViewModel @Inject constructor(
     }
 
     private fun buildPictureName(comicTitle: String?, title: String, page: Int, url: String): String {
-        var suffix = StringUtils.split(url, "\\.", -1)
+        var suffix = StringUtils.split(url, "\\.", -1) ?: ""
         var suffixOriginal = suffix.split("\\?")[0].lowercase()
         if (!pictureUtils.isPictureFormat(suffixOriginal)) {
             suffixOriginal = "jpg"

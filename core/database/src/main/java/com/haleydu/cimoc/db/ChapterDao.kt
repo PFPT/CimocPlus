@@ -10,10 +10,10 @@ import com.haleydu.cimoc.model.Chapter
 @Dao
 interface ChapterDao {
     @Query("SELECT * FROM CHAPTER WHERE SOURCE_COMIC = :sourceComic")
-    fun getListChapter(sourceComic: Long): List<Chapter>
+    fun getListChapter(sourceComic: Long?): List<Chapter>
 
     @Query("SELECT * FROM CHAPTER WHERE PATH = :path AND TITLE = :title")
-    fun getChapter(path: String, title: String): List<Chapter>
+    fun getChapter(path: String?, title: String?): List<Chapter>
 
     @Query("SELECT * FROM CHAPTER WHERE _id = :id")
     fun load(id: Long): Chapter?

@@ -439,7 +439,7 @@ abstract class ReaderActivity : BaseActivity(), OnTapGestureListener,
         mSourceBtn?.visibility = if (local) View.GONE else View.VISIBLE
         prefetchAround((progress - 1).coerceAtLeast(0))
         if (source == Tencent.TYPE && list.isNotEmpty() &&
-            (list.size == 1 || list.any { it.isPreview })
+            (list.size == 1 || list.any { it.preview })
         ) {
             HintUtils.showToast(this, R.string.reader_tencent_preview)
         }
@@ -939,9 +939,9 @@ abstract class ReaderActivity : BaseActivity(), OnTapGestureListener,
         val urls = ArrayList<String>()
         for (i in (position + 1)..last) {
             val image = mReaderAdapter.getItem(i) ?: continue
-            if (image.isLazy) {
-                if (!image.isLoading) {
-                    image.isLoading = true
+            if (image.lazy) {
+                if (!image.loading) {
+                    image.loading = true
                     vm.lazyLoad(image)
                 }
                 continue

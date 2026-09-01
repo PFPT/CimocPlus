@@ -75,9 +75,8 @@ abstract class BaseAdapter<T>(
         notifyDataSetChanged()
     }
 
-    fun getDateSet(): List<T> {
-        return mDataSet
-    }
+    val dateSet: List<T>
+        get() = mDataSet
 
     fun setData(collection: Collection<T>) {
         mDataSet.clear()
@@ -125,7 +124,7 @@ abstract class BaseAdapter<T>(
         return FastClick.isClickValid()
     }
 
-    interface OnItemClickListener {
+    fun interface OnItemClickListener {
         fun onItemClick(view: View, position: Int)
     }
 
@@ -133,5 +132,5 @@ abstract class BaseAdapter<T>(
         fun onItemLongClick(view: View, position: Int): Boolean
     }
 
-    protected open class BaseViewHolder(view: View) : RecyclerView.ViewHolder(view)
+    open class BaseViewHolder(view: View) : RecyclerView.ViewHolder(view)
 }

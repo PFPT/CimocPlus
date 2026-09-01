@@ -105,7 +105,7 @@ class ExploreFragment : BaseFragment(), BaseAdapter.OnItemClickListener, ThemeRe
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 if (updatingFilters || parent == null) return
                 val category = vm.category()
-                if (category != null && !category.isComposite) {
+                if (category != null && !category.isComposite()) {
                     for (spinner in filterSpinners) {
                         spinner.isEnabled = position == 0 || parent === spinner
                     }
@@ -234,7 +234,7 @@ class ExploreFragment : BaseFragment(), BaseAdapter.OnItemClickListener, ThemeRe
     }
 
     override fun onItemClick(view: View, position: Int) {
-        val comic = gridAdapter.comicAt(position)
+        val comic = gridAdapter.comicAt(position) ?: return
         openComic(comic.source, comic.cid, view)
     }
 

@@ -200,7 +200,7 @@ class MangaPostprocessor @JvmOverloads constructor(
         return SimpleCacheKey(
             StringUtils.format(
                 "%s-post-%d-%d-%b-%b-%b-%b",
-                mImage.getUrl(),
+                mImage.url,
                 mImage.id,
                 mImage.state,
                 isPaging,
@@ -265,7 +265,7 @@ class MangaPostprocessor @JvmOverloads constructor(
     }
 
     fun decodeJMTTImage(sourceBitmap: Bitmap, reference: CloseableReference<Bitmap>) {
-        val url = mImage.getUrl()
+        val url = mImage.url
         val scrambleId = 220980
         if (url.contains("media/photos") &&
             url.substring(url.indexOf("photos/") + 7, url.lastIndexOf("/")).toInt() > scrambleId

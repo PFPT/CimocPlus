@@ -57,8 +57,8 @@ class ImageUrl {
         this(id, comicChapter ?: 0L, num, urls, chapter, state, 0, 0, lazy, false, false, false)
 
     @Ignore
-    constructor(id: Long?, comicChapter: Long?, num: Int, url: String, lazy: Boolean) :
-        this(id, comicChapter ?: 0L, num, arrayOf(url), null, STATE_NULL, 0, 0, lazy, false, false, false)
+    constructor(id: Long?, comicChapter: Long?, num: Int, url: String?, lazy: Boolean) :
+        this(id, comicChapter ?: 0L, num, arrayOf(url ?: ""), null, STATE_NULL, 0, 0, lazy, false, false, false)
 
     @Ignore
     constructor(
@@ -89,15 +89,15 @@ class ImageUrl {
         this.download = download
     }
 
-    fun getUrl(): String {
-        val list = urls
-        if (list.isNullOrEmpty()) return ""
-        return list[0]
-    }
-
-    fun setUrl(url: String) {
-        urls = arrayOf(url)
-    }
+    var url: String
+        get() {
+            val list = urls
+            if (list.isNullOrEmpty()) return ""
+            return list[0]
+        }
+        set(value) {
+            urls = arrayOf(value)
+        }
 
     fun getSize(): Long = height.toLong() * width.toLong()
 

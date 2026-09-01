@@ -62,7 +62,7 @@ class BaoZiMH(
                 cover = ampCover
             }
         } else {
-            cover = absImage(cover)
+            cover = absImage(cover) ?: cover
         }
         var intro = parsed.intro
         if (intro.isNullOrEmpty()) {
@@ -320,7 +320,7 @@ class BaoZiMH(
             }
             value = value.trim()
             if (attr == "srcset") {
-                value = firstSrcsetUrl(value)
+                value = firstSrcsetUrl(value) ?: continue
                 if (value.isNullOrEmpty()) {
                     continue
                 }

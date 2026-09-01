@@ -24,11 +24,9 @@ class MiniComic(comic: Comic) {
 
     override fun hashCode(): Int = id?.hashCode() ?: super.hashCode()
 
-    fun isFinish(): Boolean? = finish
-
-    fun setFinish(finish: Boolean) {
-        this.finish = finish
-    }
+    var isFinish: Boolean?
+        get() = finish
+        set(value) { finish = value }
 
     companion object {
         @JvmStatic

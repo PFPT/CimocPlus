@@ -67,3 +67,9 @@ interface Parser {
 
     fun getComicId(uri: Uri): String?
 }
+
+val Parser.title: String
+    get() = getTitle()
+
+val Parser.header: Headers?
+    get() = getHeader()

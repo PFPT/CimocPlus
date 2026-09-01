@@ -145,11 +145,12 @@ class DownloadService : Service() {
     }
 
     @Synchronized
-    fun removeDownload(id: Long) {
-        val pair = mWorkerArray.get(id)
+    fun removeDownload(id: Long?) {
+        val key = id ?: return
+        val pair = mWorkerArray.get(key)
         if (pair != null) {
             pair.second.cancel(true)
-            mWorkerArray.remove(id)
+            mWorkerArray.remove(key)
         }
     }
 
@@ -317,9 +318,8 @@ class DownloadService : Service() {
     }
 
     inner class DownloadServiceBinder : Binder() {
-        fun getService(): DownloadService {
-            return this@DownloadService
-        }
+        val service: DownloadService
+            get() = this@DownloadService
     }
 
     companion object {

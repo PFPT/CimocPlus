@@ -73,13 +73,12 @@ class SliderPreference : Option, View.OnClickListener {
         mSummaryView.text = mValue.toString()
     }
 
-    fun getValue(): Int {
-        return mValue
-    }
-
-    fun setValue(value: Int) {
-        mPreferenceManager.putInt(mPreferenceKey, value)
-        mValue = value
-        mSummaryView.text = mValue.toString()
-    }
+    var value: Int
+        get() = mValue
+        set(value) {
+            val key = mPreferenceKey ?: return
+            mPreferenceManager.putInt(key, value)
+            mValue = value
+            mSummaryView.text = mValue.toString()
+        }
 }

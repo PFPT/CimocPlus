@@ -57,7 +57,7 @@ interface ComicDao {
     fun load(id: Long): Comic?
 
     @Query("SELECT * FROM COMIC WHERE SOURCE = :source AND CID = :cid LIMIT 1")
-    fun load(source: Int, cid: String): Comic?
+    fun load(source: Int, cid: String?): Comic?
 
     @Query("SELECT * FROM COMIC WHERE HISTORY IS NOT NULL ORDER BY HISTORY DESC LIMIT 1")
     fun loadLast(): Comic?

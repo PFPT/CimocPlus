@@ -95,7 +95,7 @@ class FavoriteFragment : GridFragment() {
             DIALOG_REQUEST_UPDATE -> checkUpdate()
             DIALOG_REQUEST_DELETE -> {
                 vm.unfavoriteComic(mSavedId)
-                HintUtils.showToast(activity, R.string.common_execute_success)
+                HintUtils.showToast(requireActivity(), R.string.common_execute_success)
             }
         }
     }
@@ -108,14 +108,14 @@ class FavoriteFragment : GridFragment() {
         if (notification == null) {
             vm.checkUpdate()
             notification = NotificationWrapper(
-                activity,
+                requireActivity(),
                 NOTIFICATION_CHECK_UPDATE,
                 R.drawable.ic_sync_white_24dp,
                 true
             )
             notification?.post(getString(R.string.favorite_check_update_doing), 0, 0)
         } else {
-            HintUtils.showToast(activity, R.string.favorite_check_update_doing)
+            HintUtils.showToast(requireActivity(), R.string.favorite_check_update_doing)
         }
     }
 

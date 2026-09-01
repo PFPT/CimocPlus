@@ -76,9 +76,8 @@ class GridAdapter @JvmOverloads constructor(
         scope.launch { submitData(PagingData.from(items.toList())) }
     }
 
-    fun comicAt(position: Int): MiniComic {
+    fun comicAt(position: Int): MiniComic? {
         return peek(position) ?: items.getOrNull(position)
-            ?: throw IndexOutOfBoundsException("position $position")
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -99,9 +98,11 @@ class GridAdapter @JvmOverloads constructor(
     }
 
     override fun onBindViewHolder(holder: Holder, position: Int) {
-        val comic = comicAt(position)
+        val comic = comicAt(position) ?: return
         holder.binding.itemGridTitle.text = comic.title
-        holder.binding.itemGridSubtitle.text = titleGetter?.getTitle(comic.source).orEmpty()
+        holder.binding.itemGridSubtitle.text = runCatching {
+            titleGetter?.getTitle(comic.source)
+        }.getOrNull().orEmpty()
         holder.binding.itemGridImage.transitionName = "comic_cover_${comic.source}_${comic.cid}"
         bindCover(holder, comic)
         holder.binding.itemGridSymbol.visibility =
@@ -303,11 +304,14 @@ class GridAdapter @JvmOverloads constructor(
             }
         } catch (_: Exception) {
         }
-        val controller = builderProvider.get(comic.source)
-            .setOldController(holder.binding.itemGridImage.controller)
-            .setImageRequest(request)
-            .build()
-        holder.binding.itemGridImage.controller = controller
+        try {
+            val controller = builderProvider.get(comic.source)
+                .setOldController(holder.binding.itemGridImage.controller)
+                .setImageRequest(request)
+                .build()
+            holder.binding.itemGridImage.controller = controller
+        } catch (_: Exception) {
+        }
     }
 
     private fun replaceItems(list: List<MiniComic>?) {

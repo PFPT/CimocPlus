@@ -23,7 +23,7 @@ class RecommendAdapter(
 
     private val cardAdapter = GridAdapter(context, cardWidthDp = CARD_WIDTH_DP).apply {
         setOnItemClickListener { _, position ->
-            onComicClick(comicAt(position))
+            onComicClick(comicAt(position) ?: return@setOnItemClickListener)
         }
     }
 

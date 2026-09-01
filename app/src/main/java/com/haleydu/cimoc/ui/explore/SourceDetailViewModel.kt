@@ -16,6 +16,6 @@ class SourceDetailViewModel @Inject constructor(
     fun load(type: Int): Detail {
         val source = sourceManager.load(type)
         val count = comicManager.countBySource(type)
-        return Detail(type, source.title, count)
+        return Detail(type, source?.title.orEmpty(), count)
     }
 }

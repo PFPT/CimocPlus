@@ -8,6 +8,7 @@ import com.haleydu.cimoc.core.Download
 import com.haleydu.cimoc.core.Storage
 import com.haleydu.cimoc.data.ComicManager
 import com.haleydu.cimoc.data.TaskManager
+import com.haleydu.cimoc.model.Comic
 import com.haleydu.cimoc.model.MiniComic
 import com.haleydu.cimoc.model.Task
 import com.haleydu.cimoc.event.AppEventBus
@@ -44,13 +45,14 @@ class SettingsViewModel @Inject constructor(
         Fresco.getImagePipeline().clearDiskCaches()
     }
 
-    fun moveFiles(dst: DocumentFile) {
+    fun moveFiles(dst: DocumentFile?) {
+        val dest = dst ?: return
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 Storage.moveRootDir(
                     app.contentResolver,
                     app.documentFile,
-                    dst
+                    dest
                 ) { msg -> AppEventBus.post(AppEvent(AppEvent.EVENT_DIALOG_PROGRESS, msg)) }
                 _events.emit(Event.MoveSuccess)
             } catch (e: Exception) {
@@ -64,17 +66,19 @@ class SettingsViewModel @Inject constructor(
             try {
                 val scanned = Download.scan(app.contentResolver, app.documentFile)
                 for (pair in scanned) {
-                    var comic = comicManager.load(pair.first.source, pair.first.cid)
-                    if (comic == null) {
+                    val existing = comicManager.load(pair.first.source, pair.first.cid)
+                    val comic: Comic
+                    if (existing == null) {
                         comicManager.insert(pair.first)
                         updateKey(pair.first.id, pair.second)
                         taskManager.insertInTx(pair.second)
                         comic = pair.first
                     } else {
-                        comic.download = System.currentTimeMillis()
-                        comicManager.update(comic)
-                        updateKey(comic.id, pair.second)
+                        existing.download = System.currentTimeMillis()
+                        comicManager.update(existing)
+                        updateKey(existing.id, pair.second)
                         taskManager.insertIfNotExist(pair.second)
+                        comic = existing
                     }
                     AppEventBus.post(AppEvent(AppEvent.EVENT_TASK_INSERT, MiniComic(comic)))
                     AppEventBus.post(AppEvent(AppEvent.EVENT_DIALOG_PROGRESS, comic.title))
@@ -86,9 +90,10 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    private fun updateKey(key: Long, list: List<Task>) {
+    private fun updateKey(key: Long?, list: List<Task>) {
+        val id = key ?: return
         for (task in list) {
-            task.key = key
+            task.key = id
         }
     }
 }

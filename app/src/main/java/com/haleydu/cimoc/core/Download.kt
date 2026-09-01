@@ -33,12 +33,12 @@ object Download {
     private const val FILE_INDEX = "index.cdif"
     private const val NO_MEDIA = ".nomedia"
 
-    private fun createNoMedia(root: DocumentFile) {
+    private fun createNoMedia(root: DocumentFile?) {
         val home = DocumentUtils.getOrCreateSubDirectory(root, DOWNLOAD)
         DocumentUtils.getOrCreateFile(home, NO_MEDIA)
     }
 
-    private fun createComicIndex(root: DocumentFile, comic: Comic): DocumentFile? {
+    private fun createComicIndex(root: DocumentFile?, comic: Comic): DocumentFile? {
         val home = DocumentUtils.getOrCreateSubDirectory(root, DOWNLOAD)
         val source = DocumentUtils.getOrCreateSubDirectory(home, comic.source.toString())
         val dir = DocumentUtils.getOrCreateSubDirectory(source, comic.cid)
@@ -49,7 +49,7 @@ object Download {
     }
 
     @JvmStatic
-    fun updateComicIndex(resolver: ContentResolver, root: DocumentFile, list: List<Chapter>, comic: Comic) {
+    fun updateComicIndex(resolver: ContentResolver, root: DocumentFile?, list: List<Chapter>, comic: Comic) {
         try {
             createNoMedia(root)
             val jsonString = getJsonFromComic(list, comic)
@@ -81,7 +81,7 @@ object Download {
     }
 
     @JvmStatic
-    fun updateChapterIndex(resolver: ContentResolver, root: DocumentFile, task: Task): DocumentFile? {
+    fun updateChapterIndex(resolver: ContentResolver, root: DocumentFile?, task: Task): DocumentFile? {
         try {
             val jsonString = getJsonFromChapter(task.title, task.path)
             val dir1 = DocumentUtils.getOrCreateSubDirectory(root, DOWNLOAD)
@@ -112,7 +112,7 @@ object Download {
         return `object`.toString()
     }
 
-    private fun getComicDir(root: DocumentFile, comic: Comic, title: String): DocumentFile? {
+    private fun getComicDir(root: DocumentFile?, comic: Comic, title: String): DocumentFile? {
         var result = DocumentUtils.findFile(root, DOWNLOAD, comic.source.toString(), comic.cid)
         if (result == null) {
             result = DocumentUtils.findFile(root, DOWNLOAD, title, comic.title)
@@ -121,7 +121,7 @@ object Download {
     }
 
     @JvmStatic
-    fun getComicIndex(resolver: ContentResolver, root: DocumentFile, comic: Comic, title: String): List<String>? {
+    fun getComicIndex(resolver: ContentResolver, root: DocumentFile?, comic: Comic, title: String): List<String>? {
         val dir = getComicDir(root, comic, title)
         if (dir != null) {
             val file = dir.findFile(FILE_INDEX)
@@ -155,7 +155,7 @@ object Download {
     }
 
     @JvmStatic
-    fun getChapterDir(root: DocumentFile, comic: Comic, chapter: Chapter, title: String): DocumentFile? {
+    fun getChapterDir(root: DocumentFile?, comic: Comic, chapter: Chapter, title: String): DocumentFile? {
         var result = DocumentUtils.findFile(
             root, DOWNLOAD,
             comic.source.toString(),
@@ -163,19 +163,19 @@ object Download {
             DecryptionUtils.urlDecrypt(chapter.path!!.replace("[:/(\\\\)(\\?)<>\"(\\|)(\\.)]".toRegex(), "-"))
         )
         if (result == null) {
-            result = DocumentUtils.findFile(root, DOWNLOAD, title, comic.title, chapter.title)
+            result = DocumentUtils.findFile(root, DOWNLOAD, title, comic.title, chapter.title ?: "")
         }
         return result
     }
 
     @JvmStatic
-    fun images(root: DocumentFile, comic: Comic, chapter: Chapter, title: String): List<ImageUrl> {
+    fun images(root: DocumentFile?, comic: Comic, chapter: Chapter, title: String): List<ImageUrl> {
         val dir = getChapterDir(root, comic, chapter, title)
         val files = dir!!.listFiles(
             DocumentFile.DocumentFileFilter { file -> !file.name.endsWith("cdif") },
             Comparator { lhs, rhs -> lhs.name.compareTo(rhs.name) }
         )
-        val list = Storage.buildImageUrlFromDocumentFile(files, chapter.path, chapter.count, chapter)
+        val list = Storage.buildImageUrlFromDocumentFile(files, chapter.path ?: "", chapter.count, chapter)
         if (list.isNotEmpty()) {
             return list
         }
@@ -183,7 +183,7 @@ object Download {
     }
 
     @JvmStatic
-    fun delete(root: DocumentFile, comic: Comic, list: List<Chapter>, title: String) {
+    fun delete(root: DocumentFile?, comic: Comic, list: List<Chapter>, title: String) {
         for (chapter in list) {
             val dir = getChapterDir(root, comic, chapter, title)
             dir?.delete()
@@ -191,7 +191,7 @@ object Download {
     }
 
     @JvmStatic
-    fun delete(root: DocumentFile, comic: Comic, title: String) {
+    fun delete(root: DocumentFile?, comic: Comic, title: String) {
         val dir = getComicDir(root, comic, title)
         dir?.delete()
     }
@@ -250,10 +250,11 @@ object Download {
     }
 
     @JvmStatic
-    fun scan(resolver: ContentResolver, root: DocumentFile): List<Pair<Comic, List<Task>>> {
+    fun scan(resolver: ContentResolver, root: DocumentFile?): List<Pair<Comic, List<Task>>> {
         val result = LinkedList<Pair<Comic, List<Task>>>()
-        root.refresh()
-        val downloadDir = DocumentUtils.getOrCreateSubDirectory(root, DOWNLOAD)
+        val src = root ?: return result
+        src.refresh()
+        val downloadDir = DocumentUtils.getOrCreateSubDirectory(src, DOWNLOAD)
         if (downloadDir != null) {
             for (sourceDir in downloadDir.listFiles()) {
                 if (sourceDir.isDirectory) {

@@ -5,7 +5,7 @@ import com.haleydu.cimoc.model.Chapter
 import com.haleydu.cimoc.model.Comic
 import com.haleydu.cimoc.model.ImageUrl
 import com.haleydu.cimoc.model.Source
-import com.haleydu.cimoc.parser.Category.CATEGORY_SUBJECT
+import com.haleydu.cimoc.parser.Category.Companion.CATEGORY_SUBJECT
 import com.haleydu.cimoc.parser.MangaCategory
 import com.haleydu.cimoc.parser.MangaParser
 import com.haleydu.cimoc.parser.NodeIterator
@@ -116,7 +116,7 @@ class YYLS(source: Source?) : MangaParser() {
         val body = Node(html)
         for (node in body.list(".nag.cf > div")) {
             var cid = node.href(".thumb > a")
-            cid = StringUtils.match("http://8comic.se(/\\d+)/", cid, 1)
+            cid = StringUtils.match("http://8comic.se(/\\d+)/", cid, 1) ?: continue
             val title = node.attr(".thumb > a", "title")
             val cover = node.src(".thumb > a img")
             val update = ""

@@ -49,7 +49,7 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
     private var scaleFactor = 2.0f
 
     override fun getItemViewType(position: Int): Int {
-        return if (mDataSet[position].isLazy) TYPE_LOADING else TYPE_IMAGE
+        return if (mDataSet[position].lazy) TYPE_LOADING else TYPE_IMAGE
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
@@ -66,9 +66,9 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
         val imageUrl = mDataSet[position]
         val imageHolder = holder as ImageHolder
         imageHolder.dispose()
-        if (imageUrl.isLazy) {
-            if (!imageUrl.isLoading && lazyLoadListener != null) {
-                imageUrl.isLoading = true
+        if (imageUrl.lazy) {
+            if (!imageUrl.loading && lazyLoadListener != null) {
+                imageUrl.loading = true
                 lazyLoadListener?.onLoad(imageUrl)
             }
             return
@@ -95,10 +95,10 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
     }
 
     private fun showLoadFail(holder: ImageHolder, imageUrl: ImageUrl, urls: List<String>) {
-        imageUrl.isSuccess = false
+        imageUrl.success = false
         holder.showError(true)
         holder.onRetry = {
-            if (imageUrl.isSuccess || urls.isEmpty()) {
+            if (imageUrl.success || urls.isEmpty()) {
                 false
             } else {
                 holder.showError(false)
@@ -133,7 +133,7 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
             .transformations(transformation)
         applyHeaders(requestBuilder)
         holder.onRetry = {
-            if (imageUrl.isSuccess) {
+            if (imageUrl.success) {
                 false
             } else {
                 holder.showError(false)
@@ -159,7 +159,7 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
                     }
                     val bitmap = drawableToBitmap(result)
                     if (bitmap != null && !bitmap.isRecycled) {
-                        imageUrl.isSuccess = true
+                        imageUrl.success = true
                         holder.showError(false)
                         pageView.setImage(ImageSource.bitmap(bitmap))
                     } else {
@@ -190,7 +190,7 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
                         if (!isBound(holder, imageUrl)) {
                             return@target
                         }
-                        imageUrl.isSuccess = true
+                        imageUrl.success = true
                         holder.showError(false)
                         imageView.setImageDrawable(result)
                         val bitmap = drawableToBitmap(result)
@@ -398,17 +398,17 @@ class ReaderAdapter(context: Context, list: MutableList<ImageUrl>) : BaseAdapter
     fun update(id: Long, url: String?) {
         for (i in mDataSet.indices) {
             val imageUrl = mDataSet[i]
-            if (imageUrl.id == id && imageUrl.isLoading) {
+            if (imageUrl.id == id && imageUrl.loading) {
                 if (url == null) {
-                    imageUrl.isLoading = false
-                    imageUrl.isLazy = false
-                    imageUrl.isSuccess = false
+                    imageUrl.loading = false
+                    imageUrl.lazy = false
+                    imageUrl.success = false
                     notifyItemChanged(i)
                     return
                 }
                 imageUrl.url = url
-                imageUrl.isLoading = false
-                imageUrl.isLazy = false
+                imageUrl.loading = false
+                imageUrl.lazy = false
                 notifyItemChanged(i)
                 break
             }

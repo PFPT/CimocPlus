@@ -46,19 +46,19 @@ class Node {
         return element
     }
 
-    fun text(): String? {
+    fun text(): String {
         return try {
             element.text().trim()
         } catch (e: Exception) {
-            null
+            ""
         }
     }
 
-    fun text(cssQuery: String): String? {
+    fun text(cssQuery: String): String {
         return try {
             element.select(cssQuery).first().text().trim()
         } catch (e: Exception) {
-            null
+            ""
         }
     }
 
@@ -72,7 +72,7 @@ class Node {
 
     fun hrefWithLastSplit(): String {
         val string = href()
-        val arr = string!!.split("/".toRegex()).toTypedArray()
+        val arr = string.split("/".toRegex()).toTypedArray()
         return arr[arr.size - 1]
     }
 
@@ -80,19 +80,19 @@ class Node {
         return StringUtils.split(text(cssQuery), regex, index)
     }
 
-    fun attr(attr: String): String? {
+    fun attr(attr: String): String {
         return try {
             element.attr(attr).trim()
         } catch (e: Exception) {
-            null
+            ""
         }
     }
 
-    fun attr(cssQuery: String, attr: String): String? {
+    fun attr(cssQuery: String, attr: String): String {
         return try {
             element.select(cssQuery).first().attr(attr).trim()
         } catch (e: Exception) {
-            null
+            ""
         }
     }
 
@@ -120,23 +120,23 @@ class Node {
         return StringUtils.split(attr(cssQuery, attr), regex, index)
     }
 
-    fun src(): String? {
+    fun src(): String {
         return attr("src")
     }
 
-    fun src(cssQuery: String): String? {
+    fun src(cssQuery: String): String {
         return attr(cssQuery, "src")
     }
 
-    fun dataUrl(cssQuery: String): String? {
+    fun dataUrl(cssQuery: String): String {
         return attr(cssQuery, "data-url")
     }
 
-    fun href(): String? {
+    fun href(): String {
         return attr("href")
     }
 
-    fun href(cssQuery: String): String? {
+    fun href(cssQuery: String): String {
         return attr(cssQuery, "href")
     }
 

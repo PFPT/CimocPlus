@@ -65,7 +65,7 @@ class ResultActivity : BackActivity(), BaseAdapter.OnItemClickListener, DialogCa
         adapter.setTitleGetter(vm.titleGetter())
         binding.resultRecyclerView.setHasFixedSize(true)
         binding.resultRecyclerView.layoutManager = layoutManager
-        binding.resultRecyclerView.addItemDecoration(adapter.itemDecoration)
+        binding.resultRecyclerView.addItemDecoration(adapter.getItemDecoration())
         binding.resultRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 if (layoutManager.findLastVisibleItemPosition() >= adapter.itemCount - 4 && dy > 0) {

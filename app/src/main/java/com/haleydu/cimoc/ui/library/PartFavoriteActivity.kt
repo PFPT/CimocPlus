@@ -75,7 +75,7 @@ class PartFavoriteActivity : BackActivity(), DialogCaller, BaseAdapter.OnItemCli
             @Suppress("UNCHECKED_CAST")
             val list = event.getData(1) as List<Long>
             if (list.contains(id)) {
-                onComicAdd(MiniComic(vm.loadComic(comicId)))
+                onComicAdd(MiniComic(vm.loadComic(comicId) ?: return@collectOnStart))
             } else {
                 onComicRemove(comicId)
             }

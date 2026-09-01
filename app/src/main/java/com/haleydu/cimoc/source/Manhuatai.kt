@@ -8,7 +8,7 @@ import com.haleydu.cimoc.model.Chapter
 import com.haleydu.cimoc.model.Comic
 import com.haleydu.cimoc.model.ImageUrl
 import com.haleydu.cimoc.model.Source
-import com.haleydu.cimoc.parser.Category.CATEGORY_SUBJECT
+import com.haleydu.cimoc.parser.Category.Companion.CATEGORY_SUBJECT
 import com.haleydu.cimoc.parser.JsonIterator
 import com.haleydu.cimoc.parser.MangaCategory
 import com.haleydu.cimoc.parser.MangaParser
@@ -168,7 +168,7 @@ class Manhuatai(
         }
         val body = Node(html)
         for (node in body.list("a.sdiv")) {
-            val cid = node.hrefWithSplit(0)
+            val cid = node.hrefWithSplit(0) ?: continue
             val title = node.attr("title")
             var cover = node.getChild("img").attr("data-url")
             var node1: Node? = null

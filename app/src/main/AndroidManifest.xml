@@ -28,7 +28,7 @@
             android:value="true" />
 
         <activity
-            android:name=".ui.main.MainActivity"
+            android:name=".app.CimocComposeActivity"
             android:exported="true"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:windowSoftInputMode="adjustResize">
@@ -38,6 +38,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".ui.main.MainActivity"
+            android:exported="false"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ui.search.ResultActivity"
             android:configChanges="orientation|keyboardHidden|screenSize" />

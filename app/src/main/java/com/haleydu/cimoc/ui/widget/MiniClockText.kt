@@ -52,6 +52,6 @@ class MiniClockText : AppCompatTextView {
     }
 
     companion object {
-        const val FORMAT_24_HOUR: CharSequence = "HH:mm"
+        val FORMAT_24_HOUR: CharSequence = "HH:mm"
     }
 }

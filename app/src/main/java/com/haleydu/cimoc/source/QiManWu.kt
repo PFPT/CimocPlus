@@ -81,8 +81,8 @@ class QiManWu(source: Source?) : MangaParser() {
 
     override fun getChapterRequest(html: String, cid: String): Request {
         val url = "http://qiman6.com/bookchapter/"
-        val id = Objects.requireNonNull(StringUtils.match(" data: \\{ \"id\":(.*?),", html, 1)).trim()
-        val id2 = Objects.requireNonNull(StringUtils.match(", \"id2\":(.*?)\\},", html, 1)).trim()
+        val id = StringUtils.match(" data: \\{ \"id\":(.*?),", html, 1)?.trim() ?: ""
+        val id2 = StringUtils.match(", \"id2\":(.*?)\\},", html, 1)?.trim() ?: ""
         val body: RequestBody = FormBody.Builder().add("id", id).add("id2", id2).build()
         return Request.Builder().url(url).post(body)
             .addHeader("Referer", baseUrl)

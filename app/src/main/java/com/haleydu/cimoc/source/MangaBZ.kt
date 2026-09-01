@@ -127,7 +127,7 @@ class MangaBZ(source: Source?) : MangaParser() {
         return list
     }
 
-    override fun getLazyRequest(url: String?): Request? {
+    override fun getLazyRequest(url: String): Request? {
         val dateFmt = "yyyy-MM-dd+HH:mm:ss"
         val dateStr =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -147,16 +147,16 @@ class MangaBZ(source: Source?) : MangaParser() {
                 .url(url + dateStr).build()
     }
 
-    override fun parseLazy(html: String?, url: String?): String? {
+    override fun parseLazy(html: String, url: String): String? {
         val image = DecryptionUtils.evalDecrypt(html).split(',').get(0)
         return image
     }
 
-    override fun getCheckRequest(cid: String?): Request? {
-        return getInfoRequest(cid!!)
+    override fun getCheckRequest(cid: String): Request? {
+        return getInfoRequest(cid)
     }
 
-    override fun parseCheck(html: String?): String? {
+    override fun parseCheck(html: String): String? {
         return StringUtils.match("(..月..號 | ....-..-..)",
                 Node(html).text(".detail-list-form-title"), 1)
     }

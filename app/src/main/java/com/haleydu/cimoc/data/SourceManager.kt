@@ -232,7 +232,7 @@ class SourceManager @Inject constructor(
             return try {
                 getParser(type).getHeader()
             } catch (_: Exception) {
-                Headers.of()
+                Headers.headersOf()
             }
         }
     }

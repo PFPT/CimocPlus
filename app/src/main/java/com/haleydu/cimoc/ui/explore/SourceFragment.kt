@@ -32,7 +32,7 @@ class SourceFragment : RecyclerViewFragment(), ThemeResponsive, SourceAdapter.On
     private lateinit var mSourceAdapter: SourceAdapter
 
     override fun initAdapter(): BaseAdapter<*> {
-        mSourceAdapter = SourceAdapter(activity, ArrayList())
+        mSourceAdapter = SourceAdapter(requireActivity(), ArrayList())
         mSourceAdapter.setOnItemCheckedListener(this)
         return mSourceAdapter
     }
@@ -45,7 +45,7 @@ class SourceFragment : RecyclerViewFragment(), ThemeResponsive, SourceAdapter.On
         addMenu(R.menu.menu_source) { item ->
             when (item.itemId) {
                 R.id.comic_search -> {
-                    startActivity(Intent(activity, SearchActivity::class.java))
+                    startActivity(Intent(requireActivity(), SearchActivity::class.java))
                     true
                 }
                 R.id.comic_inverseSelection -> {
@@ -95,10 +95,10 @@ class SourceFragment : RecyclerViewFragment(), ThemeResponsive, SourceAdapter.On
         vm.invalidTypes.collectOnStart(viewLifecycleOwner) { mSourceAdapter.setInvalidTypes(it) }
         vm.fail.collectOnStart(viewLifecycleOwner) { onSourceLoadFail() }
         vm.importSuccess.collectOnStart(viewLifecycleOwner) {
-            HintUtils.showToast(activity, R.string.source_import_success)
+            HintUtils.showToast(requireActivity(), R.string.source_import_success)
         }
         vm.importFail.collectOnStart(viewLifecycleOwner) {
-            HintUtils.showToast(activity, it)
+            HintUtils.showToast(requireActivity(), it)
         }
         vm.load()
     }
@@ -114,7 +114,7 @@ class SourceFragment : RecyclerViewFragment(), ThemeResponsive, SourceAdapter.On
     }
 
     override fun onItemLongClick(view: View, position: Int): Boolean {
-        startActivity(SourceDetailActivity.createIntent(activity, mSourceAdapter.getItem(position).type))
+        startActivity(SourceDetailActivity.createIntent(requireActivity(), mSourceAdapter.getItem(position).type))
         return true
     }
 
@@ -131,7 +131,7 @@ class SourceFragment : RecyclerViewFragment(), ThemeResponsive, SourceAdapter.On
 
     fun onSourceLoadFail() {
         hideProgressBar()
-        HintUtils.showToast(activity, R.string.common_data_load_fail)
+        HintUtils.showToast(requireActivity(), R.string.common_data_load_fail)
     }
 
     override fun onThemeChange(@ColorRes primary: Int, @ColorRes accent: Int) {

@@ -29,6 +29,9 @@ abstract class MangaParser : Parser {
     @Throws(JSONException::class)
     open override fun parseChapter(html: String): List<Chapter>? = null
 
+    @Throws(JSONException::class)
+    open override fun parseChapter(html: String, comic: Comic, sourceComic: Long): List<Chapter>? = parseChapter(html)
+
     @Throws(Manga.NetworkErrorException::class, JSONException::class)
     open override fun parseImages(html: String): List<ImageUrl>? = null
 
@@ -36,6 +39,8 @@ abstract class MangaParser : Parser {
     open override fun parseImages(html: String, chapter: Chapter): List<ImageUrl>? = parseImages(html)
 
     open override fun getChapterRequest(html: String, cid: String): Request? = null
+
+    open override fun getImagesRequest(cid: String, path: String): Request? = null
 
     open override fun getLazyRequest(url: String): Request? = null
 
@@ -87,7 +92,7 @@ abstract class MangaParser : Parser {
     open override fun getComicId(uri: Uri): String? {
         for (uf in filter) {
             if (uri.host!!.indexOf(uf.Filter) != -1) {
-                return StringUtils.match(uf.Regex, uri.path, uf.Group)
+                return StringUtils.match(uf.Regex, uri.path ?: "", uf.Group)
             }
         }
         return null

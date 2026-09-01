@@ -118,7 +118,7 @@ class BuKa(source: Source?) : MangaParser() {
                 do {
                     val comicChapter = chapter.id
                     val id = (comicChapter.toString() + "000" + i).toLong()
-                    list.add(ImageUrl(id, comicChapter, ++i, StringUtils.match("http.*jpg", m.group(0), 0), false))
+                    list.add(ImageUrl(id, comicChapter, ++i, StringUtils.match("http.*jpg", m.group(0), 0) ?: "", false))
                 } while (m.find())
             } catch (e: Exception) {
                 e.printStackTrace()

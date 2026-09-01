@@ -5,10 +5,10 @@ import com.haleydu.cimoc.model.Chapter
 import com.haleydu.cimoc.model.Comic
 import com.haleydu.cimoc.model.ImageUrl
 import com.haleydu.cimoc.model.Source
-import com.haleydu.cimoc.parser.Category.CATEGORY_ORDER
-import com.haleydu.cimoc.parser.Category.CATEGORY_PROGRESS
-import com.haleydu.cimoc.parser.Category.CATEGORY_READER
-import com.haleydu.cimoc.parser.Category.CATEGORY_SUBJECT
+import com.haleydu.cimoc.parser.Category.Companion.CATEGORY_ORDER
+import com.haleydu.cimoc.parser.Category.Companion.CATEGORY_PROGRESS
+import com.haleydu.cimoc.parser.Category.Companion.CATEGORY_READER
+import com.haleydu.cimoc.parser.Category.Companion.CATEGORY_SUBJECT
 import com.haleydu.cimoc.parser.MangaCategory
 import com.haleydu.cimoc.parser.MangaParser
 import com.haleydu.cimoc.parser.NodeIterator
@@ -113,7 +113,7 @@ class U17(source: Source?) : MangaParser() {
         return getInfoRequest(cid)
     }
 
-    override fun parseCheck(html: String): String {
+    override fun parseCheck(html: String): String? {
         return Node(html).textWithSubstring("div.main > div.chapterlist > div.chapterlist_box > div.bot > div.fl > span", 7)
     }
 

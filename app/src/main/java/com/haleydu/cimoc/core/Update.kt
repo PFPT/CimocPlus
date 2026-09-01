@@ -29,7 +29,7 @@ class Update {
 
         val btnCancel = view.findViewById<Button>(R.id.btnCancel)
         btnCancel.setOnClickListener {
-            AppDialog.dismissDialog()
+            AppDialog.INSTANCE.dismissDialog()
         }
         val btnOK = view.findViewById<Button>(R.id.btnOK)
         btnOK.setOnClickListener {
@@ -42,10 +42,10 @@ class Update {
                 .build(getContext())
 
             mAppUpdater!!.setHttpManager(OkHttpManager.getInstance()).start()
-            AppDialog.dismissDialog()
+            AppDialog.INSTANCE.dismissDialog()
         }
 
-        AppDialog.showDialog(getContext(), view)
+        AppDialog.INSTANCE.showDialog(getContext(), view)
     }
 
     fun getContext(): Context = App.getActivity()

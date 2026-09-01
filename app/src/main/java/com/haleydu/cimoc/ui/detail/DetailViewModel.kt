@@ -83,7 +83,7 @@ class DetailViewModel @Inject constructor(
 
     fun parserHeader(): Headers? {
         val current = comic ?: return null
-        return sourceManager.getParser(current.source).header
+        return sourceManager.getParser(current.source).getHeader()
     }
 
     fun enabledSourceTypes(): IntArray {
@@ -249,6 +249,7 @@ class DetailViewModel @Inject constructor(
                 e.printStackTrace()
                 noteFailure(current.source, SourceHealthManager.KIND_PARSE)
                 publishComic(current)
+                _events.emit(Event.ParseError)
             }
         }
     }
@@ -343,7 +344,7 @@ class DetailViewModel @Inject constructor(
                     comicManager.runInTx {
                         comicManager.updateOrInsert(current)
                         for (task in tasks) {
-                            task.key = current.id
+                            task.key = current.id ?: 0L
                             taskManager.insert(task)
                         }
                     }
@@ -366,13 +367,12 @@ class DetailViewModel @Inject constructor(
     fun refreshFromUpdate() {
         syncOrderFromPref()
         val current = comic ?: return
-        if (current.id != null) {
-            val loaded = comicManager.load(current.id) ?: return
-            current.page = loaded.page
-            current.last = loaded.last
-            current.chapter = loaded.chapter
-            _uiState.update { it.copy(comic = current, last = current.last) }
-        }
+        val comicId = current.id ?: return
+        val loaded = comicManager.load(comicId) ?: return
+        current.page = loaded.page
+        current.last = loaded.last
+        current.chapter = loaded.chapter
+        _uiState.update { it.copy(comic = current, last = current.last) }
     }
 
     private fun syncOrderFromPref() {

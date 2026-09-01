@@ -55,7 +55,10 @@ class ComicManager @Inject constructor(
 
     fun countBySource(type: Int): Long = mComicDao.countBySource(type)
 
-    fun load(id: Long): Comic? = mComicDao.load(id)
+    fun load(id: Long?): Comic? {
+        val key = id ?: return null
+        return mComicDao.load(key)
+    }
 
     fun load(source: Int, cid: String?): Comic? = mComicDao.load(source, cid)
 

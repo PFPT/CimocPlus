@@ -122,7 +122,7 @@ class JsMangaParser(
     override fun parseImages(html: String): List<ImageUrl> = emptyList()
 
     override fun parseImages(html: String, chapter: Chapter): List<ImageUrl> {
-        return imageList(chapter.path, chapter.path, chapter)
+        return imageList(chapter.path ?: "", chapter.path ?: "", chapter)
     }
 
     override fun getCheckRequest(cid: String): Request? = null

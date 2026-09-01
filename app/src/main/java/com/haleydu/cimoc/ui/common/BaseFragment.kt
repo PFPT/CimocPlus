@@ -40,9 +40,8 @@ abstract class BaseFragment : Fragment(), AppGetter {
         initData()
     }
 
-    override fun getAppInstance(): App {
-        return requireActivity().application as App
-    }
+    override val appInstance: App
+        get() = requireActivity().application as App
 
     protected open fun bindViews(view: View) {
         mProgressBar = view.findViewById(R.id.custom_progress_bar)

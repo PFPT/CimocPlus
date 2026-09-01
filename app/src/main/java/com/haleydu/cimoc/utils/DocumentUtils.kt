@@ -16,7 +16,8 @@ import java.io.OutputStreamWriter
 object DocumentUtils {
 
     @JvmStatic
-    fun getOrCreateFile(parent: DocumentFile, displayName: String): DocumentFile? {
+    fun getOrCreateFile(parent: DocumentFile?, displayName: String): DocumentFile? {
+        if (parent == null) return null
         val file = parent.findFile(displayName)
         if (file != null) {
             if (file.isFile) {
@@ -74,7 +75,8 @@ object DocumentUtils {
     }
 
     @JvmStatic
-    fun getOrCreateSubDirectory(parent: DocumentFile, displayName: String): DocumentFile? {
+    fun getOrCreateSubDirectory(parent: DocumentFile?, displayName: String): DocumentFile? {
+        if (parent == null) return null
         val file = parent.findFile(displayName)
         if (file != null) {
             if (file.isDirectory) {
@@ -86,7 +88,8 @@ object DocumentUtils {
     }
 
     @JvmStatic
-    fun readLineFromFile(resolver: ContentResolver, file: DocumentFile): String? {
+    fun readLineFromFile(resolver: ContentResolver, file: DocumentFile?): String? {
+        if (file == null) return null
         var input: java.io.InputStream? = null
         var reader: BufferedReader? = null
         try {
@@ -126,11 +129,12 @@ object DocumentUtils {
 
     @JvmStatic
     @Throws(IOException::class)
-    fun writeStringToFile(resolver: ContentResolver, file: DocumentFile, data: String) {
+    fun writeStringToFile(resolver: ContentResolver, file: DocumentFile?, data: String) {
+        val target = file ?: throw IOException()
         var output: java.io.OutputStream? = null
         var writer: BufferedWriter? = null
         try {
-            output = resolver.openOutputStream(file.uri)
+            output = resolver.openOutputStream(target.uri)
             if (output != null) {
                 writer = BufferedWriter(OutputStreamWriter(output))
                 writer.write(data)
@@ -145,11 +149,12 @@ object DocumentUtils {
 
     @JvmStatic
     @Throws(IOException::class)
-    fun writeBinaryToFile(resolver: ContentResolver, file: DocumentFile, input: InputStream) {
+    fun writeBinaryToFile(resolver: ContentResolver, file: DocumentFile?, input: InputStream) {
+        val target = file ?: throw IOException()
         var inputStream: BufferedInputStream? = null
         var outputStream: BufferedOutputStream? = null
         try {
-            val output = resolver.openOutputStream(file.uri)
+            val output = resolver.openOutputStream(target.uri)
             if (output != null) {
                 inputStream = BufferedInputStream(input, 8192)
                 outputStream = BufferedOutputStream(output, 8192)

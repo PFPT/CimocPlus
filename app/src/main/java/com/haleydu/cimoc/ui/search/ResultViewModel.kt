@@ -133,12 +133,12 @@ class ResultViewModel @Inject constructor(
         val parser = sourceManager.getParser(first.source)
         first.state = STATE_DOING
         if (first.page == 0) {
-            if (parser.title == "扑飞漫画") {
+            if (parser.getTitle() == "扑飞漫画") {
                 keywordTemp = keyword
                 keyword = keyword.replace("_%d", "")
             }
         } else {
-            if (parser.title == "扑飞漫画") {
+            if (parser.getTitle() == "扑飞漫画") {
                 keyword = keywordTemp ?: keyword
             }
         }

@@ -13,7 +13,7 @@ interface TagDao {
     fun list(): List<Tag>
 
     @Query("SELECT * FROM TAG WHERE TITLE = :title LIMIT 1")
-    fun load(title: String): Tag?
+    fun load(title: String?): Tag?
 
     @Insert
     fun insert(tag: Tag): Long

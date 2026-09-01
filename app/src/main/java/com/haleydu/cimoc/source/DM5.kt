@@ -7,10 +7,10 @@ import com.haleydu.cimoc.model.Chapter
 import com.haleydu.cimoc.model.Comic
 import com.haleydu.cimoc.model.ImageUrl
 import com.haleydu.cimoc.model.Source
-import com.haleydu.cimoc.parser.Category.CATEGORY_AREA
-import com.haleydu.cimoc.parser.Category.CATEGORY_ORDER
-import com.haleydu.cimoc.parser.Category.CATEGORY_PROGRESS
-import com.haleydu.cimoc.parser.Category.CATEGORY_SUBJECT
+import com.haleydu.cimoc.parser.Category.Companion.CATEGORY_AREA
+import com.haleydu.cimoc.parser.Category.Companion.CATEGORY_ORDER
+import com.haleydu.cimoc.parser.Category.Companion.CATEGORY_PROGRESS
+import com.haleydu.cimoc.parser.Category.Companion.CATEGORY_SUBJECT
 import com.haleydu.cimoc.parser.JsonIterator
 import com.haleydu.cimoc.parser.MangaCategory
 import com.haleydu.cimoc.parser.MangaParser
@@ -124,7 +124,7 @@ class DM5(source: Source?, private val sourceConfigManager: SourceConfigManager)
                         result = calendar.get(Calendar.YEAR).toString() + "-" + rs[0] + "-" + rs[1]
                     }
                 }
-                update = result
+                update = result ?: update
             }
         }
         val author = body.text("div.banner_detail_form > div.info > p.subtitle > a")
@@ -217,7 +217,7 @@ class DM5(source: Source?, private val sourceConfigManager: SourceConfigManager)
                         result = calendar.get(Calendar.YEAR).toString() + "-" + rs[0] + "-" + rs[1]
                     }
                 }
-                update = result
+                update = result ?: update
             }
         }
         return update

@@ -123,7 +123,7 @@ class OkHttpNetworkFetcher(
     }
 
     private fun handleException(call: Call, e: Exception, callback: NetworkFetcher.Callback) {
-        if (call.isCanceled) {
+        if (call.isCanceled()) {
             callback.onCancellation()
         } else {
             callback.onFailure(e)

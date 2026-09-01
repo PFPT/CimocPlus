@@ -22,7 +22,7 @@ class StreamReaderActivity : ReaderActivity() {
         mLoadNext = mPreference.getBoolean(PreferenceManager.PREF_READER_STREAM_LOAD_NEXT, true)
         mReaderAdapter.setReaderMode(ReaderAdapter.READER_STREAM)
         if (mPreference.getBoolean(PreferenceManager.PREF_READER_STREAM_INTERVAL, false)) {
-            mRecyclerView.addItemDecoration(mReaderAdapter.itemDecoration)
+            mRecyclerView.addItemDecoration(mReaderAdapter.getItemDecoration())
         }
         val zoomable = mRecyclerView as ZoomableRecyclerView
         zoomable.setScaleFactor(

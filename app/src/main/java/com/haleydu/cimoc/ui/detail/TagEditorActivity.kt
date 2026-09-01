@@ -103,7 +103,7 @@ class TagEditorActivity : BackActivity() {
         val ids = ArrayList<Long>()
         for (switcher in tags) {
             if (switcher.isEnable) {
-                ids.add(switcher.element.id)
+                ids.add(switcher.element.id ?: continue)
             }
         }
         vm.updateRef(ids)
@@ -117,7 +117,7 @@ class TagEditorActivity : BackActivity() {
 
     companion object {
         @JvmStatic
-        fun createIntent(context: Context, id: Long): Intent {
+        fun createIntent(context: Context, id: Long?): Intent {
             val intent = Intent(context, TagEditorActivity::class.java)
             intent.putExtra(Extra.EXTRA_ID, id)
             return intent
@@ -150,7 +150,7 @@ private fun TagEditorScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            itemsIndexed(tags, key = { _, item -> item.element.id }) { index, switcher ->
+            itemsIndexed(tags, key = { index, item -> item.element.id ?: index }) { index, switcher ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

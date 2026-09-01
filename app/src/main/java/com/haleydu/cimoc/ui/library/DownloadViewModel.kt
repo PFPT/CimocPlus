@@ -59,14 +59,14 @@ class DownloadViewModel @Inject constructor(
         }
     }
 
-    fun loadComic(id: Long): Comic = comicManager.load(id)
+    fun loadComic(id: Long): Comic? = comicManager.load(id)
 
     fun deleteComic(id: Long) {
         viewModelScope.launch {
             try {
                 val result = withContext(Dispatchers.IO) {
                     val comic = comicManager.callInTx<Comic> {
-                        val loaded = comicManager.load(id)
+                        val loaded = comicManager.load(id) ?: throw IllegalStateException()
                         taskManager.deleteByComicId(id)
                         loaded.download = null
                         comicManager.updateOrDelete(loaded)
@@ -75,7 +75,7 @@ class DownloadViewModel @Inject constructor(
                     Download.delete(
                         app.documentFile,
                         comic,
-                        sourceManager.getParser(comic.source).title
+                        sourceManager.getParser(comic.source).getTitle()
                     )
                     id
                 }

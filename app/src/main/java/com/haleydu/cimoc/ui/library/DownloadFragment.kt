@@ -25,7 +25,7 @@ class DownloadFragment : GridFragment() {
     private var isDownload = false
 
     override fun initView() {
-        isDownload = ServiceUtils.isServiceRunning(activity, DownloadService::class.java)
+        isDownload = ServiceUtils.isServiceRunning(requireActivity(), DownloadService::class.java)
         super.initView()
     }
 
@@ -71,14 +71,14 @@ class DownloadFragment : GridFragment() {
                 }
             }
             DIALOG_REQUEST_SWITCH -> if (isDownload) {
-                ServiceUtils.stopService(activity, DownloadService::class.java)
-                HintUtils.showToast(activity, R.string.download_stop_success)
+                ServiceUtils.stopService(requireActivity(), DownloadService::class.java)
+                HintUtils.showToast(requireActivity(), R.string.download_stop_success)
             } else {
                 showProgressDialog()
                 vm.loadTask()
             }
             DIALOG_REQUEST_DELETE -> if (isDownload) {
-                HintUtils.showToast(activity, R.string.download_ask_stop)
+                HintUtils.showToast(requireActivity(), R.string.download_ask_stop)
             } else {
                 showProgressDialog()
                 vm.deleteComic(mSavedId)
@@ -100,7 +100,7 @@ class DownloadFragment : GridFragment() {
     }
 
     override fun onItemClick(view: View, position: Int) {
-        val comic = mGridAdapter.comicAt(position)
+        val comic = mGridAdapter.comicAt(position) ?: return
         startActivity(TaskActivity.createIntent(requireActivity(), comic.id))
     }
 
@@ -117,7 +117,7 @@ class DownloadFragment : GridFragment() {
     fun onDownloadDeleteSuccess(id: Long) {
         hideProgressDialog()
         mGridAdapter.removeItemById(id)
-        HintUtils.showToast(activity, R.string.common_execute_success)
+        HintUtils.showToast(requireActivity(), R.string.common_execute_success)
     }
 
     fun onDownloadStart() {
@@ -136,10 +136,10 @@ class DownloadFragment : GridFragment() {
 
     fun onTaskLoadSuccess(list: ArrayList<Task>) {
         if (list.isEmpty()) {
-            HintUtils.showToast(activity, R.string.download_task_empty)
+            HintUtils.showToast(requireActivity(), R.string.download_task_empty)
         } else {
-            DownloadService.start(requireActivity(), DownloadService.createIntent(activity, list))
-            HintUtils.showToast(activity, R.string.download_start_success)
+            DownloadService.start(requireActivity(), DownloadService.createIntent(requireActivity(), list))
+            HintUtils.showToast(requireActivity(), R.string.download_start_success)
         }
         hideProgressDialog()
     }

@@ -69,14 +69,14 @@ class TaskViewModel @Inject constructor(
             try {
                 val current = comic ?: throw IllegalStateException()
                 val list = withContext(Dispatchers.IO) {
-                    val tasks = taskManager.list(id)
+                    val tasks = taskManager.list(id).toMutableList()
                     updateTaskList(tasks)
                     if (!current.local) {
                         val sList = Download.getComicIndex(
                             app.contentResolver,
                             app.documentFile,
                             current,
-                            sourceManager.getParser(current.source).title
+                            sourceManager.getParser(current.source).getTitle()
                         )
                         if (sList != null) {
                             tasks.sortWith { lhs, rhs ->
@@ -111,14 +111,14 @@ class TaskViewModel @Inject constructor(
                             Download.delete(
                                 app.documentFile,
                                 current,
-                                sourceManager.getParser(current.source).title
+                                sourceManager.getParser(current.source).getTitle()
                             )
                         } else {
                             Download.delete(
                                 app.documentFile,
                                 current,
                                 list,
-                                sourceManager.getParser(current.source).title
+                                sourceManager.getParser(current.source).getTitle()
                             )
                         }
                     }
@@ -150,7 +150,7 @@ class TaskViewModel @Inject constructor(
                 Download.delete(
                     app.documentFile,
                     current,
-                    sourceManager.getParser(current.source).title
+                    sourceManager.getParser(current.source).getTitle()
                 )
             }
         }
@@ -168,12 +168,13 @@ class TaskViewModel @Inject constructor(
         }
         comicManager.update(current)
         AppEventBus.post(AppEvent(AppEvent.EVENT_COMIC_READ, MiniComic(current), false))
-        return current.id
+        return current.id ?: -1
     }
 
     fun refreshLast() {
         val current = comic ?: return
-        val loaded = comicManager.load(current.id) ?: return
+        val id = current.id ?: return
+        val loaded = comicManager.load(id) ?: return
         current.page = loaded.page
         current.last = loaded.last
     }

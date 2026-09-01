@@ -2,9 +2,9 @@ package com.haleydu.cimoc.event
 
 import androidx.annotation.IntDef
 
-class AppEvent(@EventType val type: Int, vararg data: Any?) {
+class AppEvent(@EventType val type: Int, vararg payload: Any?) {
 
-    private val data: Array<out Any?> = data
+    val data: Array<out Any?> = payload
 
     fun getData(): Any? = getData(0)
 

@@ -151,7 +151,7 @@ class SearchFragment : BaseFragment(), DialogCaller, ThemeResponsive, TextView.O
             }
         }
         if (list.isEmpty()) {
-            HintUtils.showToast(activity, R.string.search_source_none)
+            HintUtils.showToast(requireActivity(), R.string.search_source_none)
             return
         }
         vm.addHistory(keyword)
@@ -240,7 +240,7 @@ class SearchFragment : BaseFragment(), DialogCaller, ThemeResponsive, TextView.O
 
     private fun onSourceLoadFail() {
         hideProgressBar()
-        HintUtils.showToast(activity, R.string.search_source_load_fail)
+        HintUtils.showToast(requireActivity(), R.string.search_source_load_fail)
     }
 
     companion object {

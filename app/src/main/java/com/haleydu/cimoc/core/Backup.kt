@@ -53,23 +53,27 @@ object Backup {
     private const val JSON_KEY_COMIC_HISTORY = "history"
 
     @JvmStatic
-    fun loadFavorite(root: DocumentFile): Array<String> {
-        return load(root, SUFFIX_CIMOC, SUFFIX_CFBF)
+    fun loadFavorite(root: DocumentFile?): Array<String> {
+        val r = root ?: throw RuntimeException()
+        return load(r, SUFFIX_CIMOC, SUFFIX_CFBF)
     }
 
     @JvmStatic
-    fun loadTag(root: DocumentFile): Array<String> {
-        return load(root, SUFFIX_CTBF)
+    fun loadTag(root: DocumentFile?): Array<String> {
+        val r = root ?: throw RuntimeException()
+        return load(r, SUFFIX_CTBF)
     }
 
     @JvmStatic
-    fun loadSettings(root: DocumentFile): Array<String> {
-        return load(root, SUFFIX_CSBF)
+    fun loadSettings(root: DocumentFile?): Array<String> {
+        val r = root ?: throw RuntimeException()
+        return load(r, SUFFIX_CSBF)
     }
 
     @JvmStatic
-    fun loadClearBackup(root: DocumentFile): Array<String> {
-        return load(root, SUFFIX_CIMOC, SUFFIX_CFBF, SUFFIX_CTBF, SUFFIX_CSBF)
+    fun loadClearBackup(root: DocumentFile?): Array<String> {
+        val r = root ?: throw RuntimeException()
+        return load(r, SUFFIX_CIMOC, SUFFIX_CFBF, SUFFIX_CTBF, SUFFIX_CSBF)
     }
 
     private fun load(root: DocumentFile, vararg suffix: String): Array<String> {
@@ -85,7 +89,7 @@ object Backup {
     }
 
     @JvmStatic
-    fun saveComicAuto(resolver: ContentResolver, root: DocumentFile, list: List<Comic>) {
+    fun saveComicAuto(resolver: ContentResolver, root: DocumentFile?, list: List<Comic>) {
         val dir = DocumentUtils.getOrCreateSubDirectory(root, BACKUP)
         if (dir != null) {
             try {
@@ -101,7 +105,7 @@ object Backup {
     }
 
     @JvmStatic
-    fun saveComic(resolver: ContentResolver, root: DocumentFile, list: List<Comic>): Int {
+    fun saveComic(resolver: ContentResolver, root: DocumentFile?, list: List<Comic>): Int {
         val dir = DocumentUtils.getOrCreateSubDirectory(root, BACKUP)
         if (dir != null) {
             try {
@@ -120,7 +124,7 @@ object Backup {
     }
 
     @JvmStatic
-    fun saveTag(resolver: ContentResolver, root: DocumentFile, list: List<Pair<Tag, List<Comic>>>): Int {
+    fun saveTag(resolver: ContentResolver, root: DocumentFile?, list: List<Pair<Tag, List<Comic>>>): Int {
         val dir = DocumentUtils.getOrCreateSubDirectory(root, BACKUP)
         if (dir != null) {
             try {
@@ -139,7 +143,7 @@ object Backup {
     }
 
     @JvmStatic
-    fun saveSetting(resolver: ContentResolver, root: DocumentFile, settingMap: Map<*, *>): Int {
+    fun saveSetting(resolver: ContentResolver, root: DocumentFile?, settingMap: Map<*, *>): Int {
         val dir = DocumentUtils.getOrCreateSubDirectory(root, BACKUP)
         if (dir != null) {
             try {
@@ -199,17 +203,18 @@ object Backup {
         return `object`
     }
 
-    private fun readBackupFile(resolver: ContentResolver, root: DocumentFile, filename: String): String? {
+    private fun readBackupFile(resolver: ContentResolver, root: DocumentFile?, filename: String?): String? {
+        val name = filename ?: return null
         val dir = DocumentUtils.getOrCreateSubDirectory(root, BACKUP)
         if (dir != null) {
-            val file = dir.findFile(filename)
+            val file = dir.findFile(name)
             return DocumentUtils.readLineFromFile(resolver, file)
         }
         return null
     }
 
     @JvmStatic
-    fun restoreTag(resolver: ContentResolver, root: DocumentFile, filename: String): List<Pair<Tag, List<Comic>>> {
+    fun restoreTag(resolver: ContentResolver, root: DocumentFile?, filename: String?): List<Pair<Tag, List<Comic>>> {
         val result = LinkedList<Pair<Tag, List<Comic>>>()
         val jsonString = readBackupFile(resolver, root, filename)
         try {
@@ -230,13 +235,14 @@ object Backup {
     }
 
     @JvmStatic
-    fun restoreComic(resolver: ContentResolver, root: DocumentFile, filename: String): List<Comic> {
+    fun restoreComic(resolver: ContentResolver, root: DocumentFile?, filename: String?): List<Comic> {
         val list = LinkedList<Comic>()
         val jsonString = readBackupFile(resolver, root, filename)
+        val name = filename ?: return list
         try {
-            if (filename.endsWith(SUFFIX_CIMOC)) {
+            if (name.endsWith(SUFFIX_CIMOC)) {
                 list.addAll(loadComicArray(JSONArray(jsonString), SUFFIX_CIMOC))
-            } else if (filename.endsWith(SUFFIX_CFBF)) {
+            } else if (name.endsWith(SUFFIX_CFBF)) {
                 val `object` = JSONObject(jsonString)
                 list.addAll(loadComicArray(`object`.getJSONArray(JSON_KEY_COMIC_ARRAY), SUFFIX_CFBF))
             }
@@ -247,17 +253,17 @@ object Backup {
     }
 
     @JvmStatic
-    fun clearBackup(root: DocumentFile): Int {
+    fun clearBackup(root: DocumentFile?): Int {
         val dir = DocumentUtils.getOrCreateSubDirectory(root, BACKUP)
         if (dir != null) dir.delete()
         return 1
     }
 
     @JvmStatic
-    fun restoreSetting(resolver: ContentResolver, root: DocumentFile, filename: String): Map<String, *> {
+    fun restoreSetting(resolver: ContentResolver, root: DocumentFile?, filename: String?): Map<String, *> {
         val jsonString = readBackupFile(resolver, root, filename)
         val entries = JSON.parseObject(jsonString, object : TypeReference<Map<String, *>>() {})
-        if (filename.endsWith(SUFFIX_CSBF)) {
+        if (filename != null && filename.endsWith(SUFFIX_CSBF)) {
             for (entry in entries.entries) {
                 EntryPointAccessors.fromApplication(App.getAppContext(), AppEntryPoint::class.java)
                     .preferenceManager()

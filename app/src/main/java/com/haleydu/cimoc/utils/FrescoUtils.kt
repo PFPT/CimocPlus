@@ -314,12 +314,9 @@ object FrescoUtils {
         override fun onStagingAreaHit(cacheKey: CacheKey) {}
         override fun onStagingAreaMiss(cacheKey: CacheKey) {}
         override fun onDiskCacheHit(cacheKey: CacheKey) {}
-        override fun onDiskCacheMiss() {}
-        override fun onDiskCacheGetFail() {}
-        override fun onDiskCachePut() {}
-        fun onDiskCacheMiss(cacheKey: CacheKey) {}
-        fun onDiskCacheGetFail(cacheKey: CacheKey) {}
-        fun onDiskCachePut(cacheKey: CacheKey) {}
+        override fun onDiskCacheMiss(cacheKey: CacheKey) {}
+        override fun onDiskCacheGetFail(cacheKey: CacheKey) {}
+        override fun onDiskCachePut(cacheKey: CacheKey) {}
         override fun registerBitmapMemoryCache(bitmapMemoryCache: MemoryCache<*, *>?) {}
         override fun registerEncodedMemoryCache(encodedMemoryCache: MemoryCache<*, *>?) {}
     }

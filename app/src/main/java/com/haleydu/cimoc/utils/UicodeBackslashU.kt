@@ -29,7 +29,8 @@ object UicodeBackslashU {
     }
 
     @JvmStatic
-    fun unicodeToCn(str: String): String {
+    fun unicodeToCn(str: String?): String {
+        if (str == null) return ""
         val sb = StringBuilder()
         val length = str.length
         var i = 0

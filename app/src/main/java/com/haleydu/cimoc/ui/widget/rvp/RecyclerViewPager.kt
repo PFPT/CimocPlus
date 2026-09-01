@@ -71,12 +71,14 @@ class RecyclerViewPager : RecyclerView {
         super.swapAdapter(mViewPagerAdapter, removeAndRecycleExistingViews)
     }
 
-    override var adapter: Adapter<*>?
-        get() = mViewPagerAdapter?.mAdapter
-        set(value) {
-            mViewPagerAdapter = ensureRecyclerViewPagerAdapter(value)
-            super.adapter = mViewPagerAdapter
-        }
+    override fun getAdapter(): Adapter<*>? {
+        return mViewPagerAdapter?.mAdapter
+    }
+
+    override fun setAdapter(adapter: Adapter<*>?) {
+        mViewPagerAdapter = if (adapter == null) null else ensureRecyclerViewPagerAdapter(adapter)
+        super.setAdapter(mViewPagerAdapter)
+    }
 
     override fun setLayoutManager(layout: LayoutManager?) {
         super.setLayoutManager(layout)

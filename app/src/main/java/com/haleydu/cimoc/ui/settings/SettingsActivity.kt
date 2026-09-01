@@ -64,7 +64,7 @@ class SettingsActivity : BackActivity(), DialogCaller, StorageEditorDialogFragme
 
     override fun initView() {
         super.initView()
-        storagePath = appInstance.documentFile.uri.toString()
+        storagePath = appInstance.documentFile?.uri?.toString() ?: ""
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 vm.events.collect { event ->
@@ -123,7 +123,7 @@ class SettingsActivity : BackActivity(), DialogCaller, StorageEditorDialogFragme
             val flags = data.flags and (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
             contentResolver.takePersistableUriPermission(uri!!, flags)
             tempStorage = uri.toString()
-            vm.moveFiles(DocumentFile.fromTreeUri(this, uri))
+            vm.moveFiles(DocumentFile.fromTreeUri(this, uri) ?: return)
         } else {
             val path = data?.getStringExtra(Extra.EXTRA_PICKER_PATH)
             if (path != null) {

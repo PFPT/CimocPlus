@@ -1,7 +1,7 @@
 package com.haleydu.cimoc.source
 
 import com.google.common.collect.Lists
-import com.haleydu.cimoc.core.Manga.getResponseBody
+import com.haleydu.cimoc.core.Manga.Companion.getResponseBody
 import com.haleydu.cimoc.data.SourceConfigManager
 import com.haleydu.cimoc.model.Chapter
 import com.haleydu.cimoc.model.Comic

@@ -30,7 +30,7 @@ class Manga {
 
         @JvmStatic
         @Throws(NetworkErrorException::class)
-        fun getResponseBody(client: OkHttpClient, request: Request): String {
+        fun getResponseBody(client: OkHttpClient, request: Request?): String {
             return getResponseBody(client, request, true)
         }
 

@@ -14,6 +14,7 @@ import okhttp3.Headers
 import okhttp3.Request
 import java.io.UnsupportedEncodingException
 import java.util.regex.Pattern
+import java.util.LinkedList
 
 class Animx2(source: Source?) : MangaParser() {
 

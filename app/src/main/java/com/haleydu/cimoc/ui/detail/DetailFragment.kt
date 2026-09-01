@@ -128,7 +128,7 @@ class DetailFragment : BaseFragment(), BaseAdapter.OnItemClickListener, BaseAdap
         bind.detailRecyclerView.layoutManager = GridLayoutManager(requireContext(), 3)
         bind.detailRecyclerView.setHasFixedSize(false)
         bind.detailRecyclerView.itemAnimator = null
-        bind.detailRecyclerView.addItemDecoration(detailAdapter.itemDecoration)
+        bind.detailRecyclerView.addItemDecoration(detailAdapter.getItemDecoration())
         bind.detailRecyclerView.adapter = detailAdapter
         bind.detailCover.transitionName = "comic_cover"
         bind.detailCover.setOnLongClickListener {
@@ -263,8 +263,16 @@ class DetailFragment : BaseFragment(), BaseAdapter.OnItemClickListener, BaseAdap
         }
     }
 
-    private fun startReader(path: String) {
+    private fun startReader(path: String?) {
+        if (path.isNullOrEmpty()) {
+            HintUtils.showSnackbar(binding?.detailLayout, getString(R.string.common_parse_error))
+            return
+        }
         val id = vm.updateLast(path)
+        if (id <= 0) {
+            HintUtils.showSnackbar(binding?.detailLayout, getString(R.string.common_parse_error))
+            return
+        }
         detailAdapter.setLast(path)
         val mode = mPreference.getInt(PreferenceManager.PREF_READER_MODE, PreferenceManager.READER_MODE_PAGE)
         startActivity(ReaderActivity.createIntent(requireActivity(), id, ArrayList(detailAdapter.dateSet), mode))
@@ -302,8 +310,9 @@ class DetailFragment : BaseFragment(), BaseAdapter.OnItemClickListener, BaseAdap
         bind.detailAuthor.text = comic.author
         bind.detailIntro.text = comic.intro
         if (comic.finish != null) {
+            val finish = comic.finish == true
             bind.detailStatus.setText(
-                if (comic.finish) R.string.comic_status_finish else R.string.comic_status_continue
+                if (finish) R.string.comic_status_finish else R.string.comic_status_continue
             )
         }
         if (!comic.update.isNullOrEmpty()) {
@@ -321,8 +330,9 @@ class DetailFragment : BaseFragment(), BaseAdapter.OnItemClickListener, BaseAdap
         if (boundCover == key) return
         boundCover = key
         try {
-            imagePipelineFactory = ImagePipelineFactoryBuilder.build(requireContext(), vm.parserHeader(), false, httpClient)
-            val supplier = ControllerBuilderSupplierFactory.get(requireContext(), imagePipelineFactory)
+            val factory = ImagePipelineFactoryBuilder.build(requireContext(), vm.parserHeader(), false, httpClient)
+            imagePipelineFactory = factory
+            val supplier = ControllerBuilderSupplierFactory.get(requireContext(), factory)
             bind.detailCover.controller = supplier.get().setUri(uri).build()
         } catch (_: Exception) {
             boundCover = null

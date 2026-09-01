@@ -90,10 +90,10 @@ class ChapterActivity : BackActivity(), BaseAdapter.OnItemClickListener {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (!isProgressBarShown()) {
+        if (!isProgressBarShown) {
             when (item.itemId) {
                 R.id.chapter_all -> {
-                    for (switcher in mChapterAdapter.getDateSet()) {
+                    for (switcher in mChapterAdapter.dateSet) {
                         switcher.isEnable = true
                     }
                     mChapterAdapter.notifyDataSetChanged()
@@ -123,7 +123,7 @@ class ChapterActivity : BackActivity(), BaseAdapter.OnItemClickListener {
 
     fun onActionButtonClick() {
         val list = ArrayList<Chapter>()
-        for (switcher in mChapterAdapter.getDateSet()) {
+        for (switcher in mChapterAdapter.dateSet) {
             if (!switcher.element.download && switcher.isEnable) {
                 list.add(switcher.element)
             }

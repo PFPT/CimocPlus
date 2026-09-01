@@ -71,7 +71,7 @@ class ExploreViewModel @Inject constructor(
         return sourceManager.getParser(type)
     }
 
-    fun category(): Category? = parser()?.category
+    fun category(): Category? = parser()?.getCategory()
 
     fun setup(initialType: Int) {
         viewModelScope.launch {
@@ -99,7 +99,7 @@ class ExploreViewModel @Inject constructor(
         if (type >= 0) {
             preferenceManager.putInt(PreferenceManager.PREF_EXPLORE_SOURCE, type)
         }
-        val category = if (type < 0) null else sourceManager.getParser(type).category
+        val category = if (type < 0) null else sourceManager.getParser(type).getCategory()
         _unsupported.value = category == null
         _loading.value = false
     }
@@ -107,7 +107,7 @@ class ExploreViewModel @Inject constructor(
     fun applyFilters(args: Array<String?>) {
         val type = _currentType.value
         if (type < 0) return
-        val category = sourceManager.getParser(type).category
+        val category = sourceManager.getParser(type).getCategory()
         if (category == null) {
             _unsupported.value = true
             _comics.value = emptyList()
@@ -116,7 +116,7 @@ class ExploreViewModel @Inject constructor(
             return
         }
         _unsupported.value = false
-        format = category.getFormat(*args)
+        format = category.getFormat(*args.map { it ?: "" }.toTypedArray())
         page = 0
         _ended.value = false
         _comics.value = emptyList()
