@@ -24,6 +24,8 @@ import com.haleydu.cimoc.data.PreferenceManager
 import com.haleydu.cimoc.data.SourceCatalogRefresher
 import com.haleydu.cimoc.data.SourceHealthManager
 import com.haleydu.cimoc.data.SourceManager
+import com.haleydu.cimoc.data.TagManager
+import com.haleydu.cimoc.data.TagRefManager
 import com.haleydu.cimoc.data.TaskManager
 import com.haleydu.cimoc.global.Extra
 import coil3.ImageLoader
@@ -43,6 +45,8 @@ class CimocComposeActivity : AppCompatActivity() {
     @Inject lateinit var sourceCatalogRefresher: SourceCatalogRefresher
     @Inject lateinit var preferenceManager: PreferenceManager
     @Inject lateinit var taskManager: TaskManager
+    @Inject lateinit var tagManager: TagManager
+    @Inject lateinit var tagRefManager: TagRefManager
     @Inject lateinit var imageLoader: ImageLoader
 
     private var backHandler: () -> Boolean = { false }
@@ -63,7 +67,9 @@ class CimocComposeActivity : AppCompatActivity() {
             sourceHealthManager,
             sourceCatalogRefresher,
             taskManager,
-            preferenceManager
+            preferenceManager,
+            tagManager,
+            tagRefManager
         )
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -92,7 +98,8 @@ class CimocComposeActivity : AppCompatActivity() {
                         runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
                     },
                     setImmersive = { applyImmersive(it) },
-                    setKeepScreenOn = { applyKeepScreenOn(it) }
+                    setKeepScreenOn = { applyKeepScreenOn(it) },
+                    setBrightness = { applyBrightness(it) }
                 ),
                 dark = dark,
                 start = start
@@ -125,6 +132,12 @@ class CimocComposeActivity : AppCompatActivity() {
         } else {
             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
+    }
+
+    private fun applyBrightness(value: Float?) {
+        val lp = window.attributes
+        lp.screenBrightness = value ?: WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+        window.attributes = lp
     }
 
     private fun startScreen(): Screen {

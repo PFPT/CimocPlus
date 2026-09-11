@@ -17,7 +17,8 @@ data class CimocActions(
     val onNightChanged: (Boolean) -> Unit = {},
     val openUrl: (String) -> Unit = {},
     val setImmersive: (Boolean) -> Unit = {},
-    val setKeepScreenOn: (Boolean) -> Unit = {}
+    val setKeepScreenOn: (Boolean) -> Unit = {},
+    val setBrightness: (Float?) -> Unit = {}
 )
 
 val LocalCimocActions = staticCompositionLocalOf { CimocActions() }

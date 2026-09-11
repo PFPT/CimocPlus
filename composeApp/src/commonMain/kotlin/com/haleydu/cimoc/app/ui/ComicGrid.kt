@@ -1,19 +1,23 @@
 package com.haleydu.cimoc.app.ui
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -26,6 +30,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,6 +45,7 @@ fun ComicGrid(
     emptyText: String,
     onClick: (ComicItem) -> Unit,
     modifier: Modifier = Modifier,
+    onLongClick: ((ComicItem) -> Unit)? = null,
     onNearEnd: () -> Unit = {}
 ) {
     when {
@@ -69,7 +75,8 @@ fun ComicGrid(
                     ComicCard(
                         comic = comic,
                         sourceTitle = titles[comic.source].orEmpty(),
-                        onClick = { onClick(comic) }
+                        onClick = { onClick(comic) },
+                        onLongClick = onLongClick?.let { handler -> { handler(comic) } }
                     )
                 }
                 if (loading) {
@@ -84,22 +91,57 @@ fun ComicGrid(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ComicCard(comic: ComicItem, sourceTitle: String, onClick: () -> Unit) {
+fun ComicCard(
+    comic: ComicItem,
+    sourceTitle: String,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null
+) {
+    val progress = comic.chapter?.takeIf { it.isNotEmpty() } ?: comic.last?.takeIf { it.isNotEmpty() }
     Card(
-        modifier = Modifier.clickable(onClick = onClick),
+        modifier = Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column {
-            ComicCover(
-                url = comic.cover,
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(160.dp)
+                    .aspectRatio(3f / 4f)
                     .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
-            )
+            ) {
+                ComicCover(
+                    url = comic.cover,
+                    modifier = Modifier.fillMaxSize()
+                )
+                if (comic.highlight) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(6.dp)
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary)
+                    )
+                }
+                if (progress != null) {
+                    Text(
+                        text = progress,
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .fillMaxWidth()
+                            .background(Color.Black.copy(alpha = 0.45f))
+                            .padding(horizontal = 6.dp, vertical = 4.dp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontSize = 11.sp,
+                        color = Color.White
+                    )
+                }
+            }
             Text(
                 text = comic.title,
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),

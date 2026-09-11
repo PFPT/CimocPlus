@@ -78,6 +78,7 @@ class DownloadService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        sInstance = this
         sRunning.set(true)
         val manager = EntryPointAccessors.fromApplication(
             applicationContext,
@@ -125,6 +126,7 @@ class DownloadService : Service() {
     }
 
     override fun onDestroy() {
+        if (sInstance === this) sInstance = null
         sRunning.set(false)
         super.onDestroy()
         if (mNotification != null) {
@@ -325,6 +327,8 @@ class DownloadService : Service() {
     companion object {
         private const val NOTIFICATION_DOWNLOAD = "NOTIFICATION_DOWNLOAD"
         private val sRunning = AtomicBoolean(false)
+        @Volatile
+        private var sInstance: DownloadService? = null
 
         @JvmStatic
         fun createIntent(context: Context, task: Task): Intent {
@@ -348,6 +352,16 @@ class DownloadService : Service() {
         @JvmStatic
         fun isRunning(): Boolean {
             return sRunning.get()
+        }
+
+        @JvmStatic
+        fun pauseTask(id: Long) {
+            sInstance?.removeDownload(id)
+        }
+
+        @JvmStatic
+        fun syncTaskState(list: List<Task>) {
+            sInstance?.initTask(list)
         }
     }
 }

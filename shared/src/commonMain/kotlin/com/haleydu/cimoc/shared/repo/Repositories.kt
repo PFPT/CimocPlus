@@ -2,9 +2,12 @@ package com.haleydu.cimoc.shared.repo
 
 import com.haleydu.cimoc.shared.model.ChapterItem
 import com.haleydu.cimoc.shared.model.ComicItem
+import com.haleydu.cimoc.shared.model.DownloadTaskItem
+import com.haleydu.cimoc.shared.model.ExploreFilter
 import com.haleydu.cimoc.shared.model.LoadResult
 import com.haleydu.cimoc.shared.model.PageImage
 import com.haleydu.cimoc.shared.model.SourceItem
+import com.haleydu.cimoc.shared.model.TagItem
 import kotlinx.coroutines.flow.Flow
 
 interface ComicRepository {
@@ -16,11 +19,15 @@ interface ComicRepository {
     suspend fun listHistoryPage(offset: Int, limit: Int): List<ComicItem>
     suspend fun listDownloadPage(offset: Int, limit: Int): List<ComicItem>
     suspend fun listLocalPage(offset: Int, limit: Int): List<ComicItem>
+    suspend fun listContinuePage(offset: Int, limit: Int): List<ComicItem>
+    suspend fun listFinishPage(offset: Int, limit: Int): List<ComicItem>
+    suspend fun listFavoriteByTagPage(tid: Long, offset: Int, limit: Int): List<ComicItem>
     suspend fun load(id: Long): ComicItem?
     suspend fun loadOrCreate(source: Int, cid: String): ComicItem
     suspend fun favorite(item: ComicItem)
     suspend fun unfavorite(id: Long)
     suspend fun deleteHistory(id: Long)
+    suspend fun clearHighlight(id: Long)
 }
 
 interface SourceRepository {
@@ -38,14 +45,28 @@ interface MangaRepository {
     fun imageHeaders(source: Int): Map<String, String>
     suspend fun markRead(item: ComicItem, path: String): Long
     suspend fun saveProgress(comicId: Long, page: Int)
+    suspend fun checkFavorites(): Int
 }
 
 interface ExploreRepository {
-    suspend fun loadPage(source: Int, page: Int): LoadResult<List<ComicItem>>
+    suspend fun loadFilters(source: Int): List<ExploreFilter>
+    suspend fun loadPage(source: Int, page: Int, args: List<String> = emptyList()): LoadResult<List<ComicItem>>
 }
 
 interface DownloadRepository {
     suspend fun enqueue(item: ComicItem, chapters: List<ChapterItem>): LoadResult<Int>
+    fun observeTasks(): Flow<List<DownloadTaskItem>>
+    suspend fun pause(id: Long)
+    suspend fun retry(id: Long)
+    suspend fun delete(id: Long)
+}
+
+interface TagRepository {
+    suspend fun list(): List<TagItem>
+    suspend fun create(title: String): TagItem?
+    suspend fun delete(id: Long)
+    suspend fun tagsOf(comicId: Long): List<TagItem>
+    suspend fun setTags(comicId: Long, ids: List<Long>)
 }
 
 interface SettingsRepository {
@@ -64,5 +85,6 @@ data class CimocRepositories(
     val manga: MangaRepository,
     val explore: ExploreRepository,
     val downloads: DownloadRepository,
-    val settings: SettingsRepository
+    val settings: SettingsRepository,
+    val tags: TagRepository
 )

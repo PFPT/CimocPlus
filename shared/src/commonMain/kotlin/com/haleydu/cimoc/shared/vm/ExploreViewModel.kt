@@ -1,6 +1,7 @@
 package com.haleydu.cimoc.shared.vm
 
 import com.haleydu.cimoc.shared.model.ComicItem
+import com.haleydu.cimoc.shared.model.ExploreFilter
 import com.haleydu.cimoc.shared.model.LoadResult
 import com.haleydu.cimoc.shared.repo.ExploreRepository
 import com.haleydu.cimoc.shared.repo.SourceRepository
@@ -23,7 +24,9 @@ class ExploreViewModel(
         val page: Int = 0,
         val loading: Boolean = false,
         val ended: Boolean = false,
-        val error: String? = null
+        val error: String? = null,
+        val filters: List<ExploreFilter> = emptyList(),
+        val selected: Map<Int, String> = emptyMap()
     )
 
     private val job = SupervisorJob()
@@ -40,7 +43,39 @@ class ExploreViewModel(
                 page = 0,
                 ended = false,
                 error = null,
-                loading = false
+                loading = true,
+                filters = emptyList(),
+                selected = emptyMap()
+            )
+        }
+        scope.launch {
+            val filters = runCatching { explore.loadFilters(type) }.getOrDefault(emptyList())
+            if (_ui.value.source != type) return@launch
+            val selected = filters.associate { filter ->
+                filter.attr to (filter.options.firstOrNull()?.second ?: "")
+            }
+            _ui.update {
+                it.copy(
+                    filters = filters,
+                    selected = selected,
+                    loading = false
+                )
+            }
+            loadMore()
+        }
+    }
+
+    fun setFilter(attr: Int, value: String) {
+        val state = _ui.value
+        if (state.selected[attr] == value) return
+        _ui.update {
+            it.copy(
+                selected = it.selected + (attr to value),
+                items = emptyList(),
+                page = 0,
+                ended = false,
+                loading = false,
+                error = null
             )
         }
         loadMore()
@@ -50,10 +85,14 @@ class ExploreViewModel(
         val state = _ui.value
         if (state.loading || state.ended || state.source < 0) return
         val next = state.page + 1
+        val source = state.source
+        val selected = state.selected
+        val args = filterArgs(state)
         _ui.update { it.copy(loading = true, error = null) }
         scope.launch {
-            when (val result = explore.loadPage(state.source, next)) {
+            when (val result = explore.loadPage(source, next, args)) {
                 is LoadResult.Ok -> _ui.update {
+                    if (it.source != source || it.selected != selected) return@update it
                     val merged = it.items + result.value
                     it.copy(
                         items = merged,
@@ -64,9 +103,16 @@ class ExploreViewModel(
                     )
                 }
                 is LoadResult.Err -> _ui.update {
+                    if (it.source != source || it.selected != selected) return@update it
                     it.copy(loading = false, error = result.message, ended = it.items.isEmpty())
                 }
             }
         }
+    }
+
+    private fun filterArgs(state: UiState): List<String> {
+        if (state.filters.isEmpty()) return emptyList()
+        val max = state.filters.maxOf { it.attr }
+        return (0..max).map { state.selected[it] ?: "" }
     }
 }

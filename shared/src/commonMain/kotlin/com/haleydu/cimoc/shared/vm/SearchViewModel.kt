@@ -24,6 +24,7 @@ class SearchViewModel(
         val loading: Boolean = false,
         val items: List<ComicItem> = emptyList(),
         val enabledSources: List<SourceItem> = emptyList(),
+        val selectedTypes: Set<Int> = emptySet(),
         val page: Int = 1,
         val ended: Boolean = false,
         val error: String? = null,
@@ -39,7 +40,22 @@ class SearchViewModel(
     fun loadSources() {
         scope.launch {
             val list = runCatching { sources.listEnable() }.getOrDefault(emptyList())
-            _ui.update { it.copy(enabledSources = list) }
+            _ui.update {
+                val enabled = list.map { source -> source.type }.toSet()
+                val selected = if (it.selectedTypes.isEmpty()) {
+                    enabled
+                } else {
+                    it.selectedTypes.filter { type -> type in enabled }.toSet().ifEmpty { enabled }
+                }
+                it.copy(enabledSources = list, selectedTypes = selected)
+            }
+        }
+    }
+
+    fun toggleSource(type: Int) {
+        _ui.update {
+            val next = if (it.selectedTypes.contains(type)) it.selectedTypes - type else it.selectedTypes + type
+            it.copy(selectedTypes = next)
         }
     }
 
@@ -71,7 +87,7 @@ class SearchViewModel(
     }
 
     private suspend fun runSearch(keyword: String, page: Int, append: Boolean) {
-        val types = _ui.value.enabledSources.map { it.type }
+        val types = _ui.value.selectedTypes.toList()
         if (types.isEmpty()) {
             _ui.update { it.copy(loading = false, error = "未选择图源") }
             return

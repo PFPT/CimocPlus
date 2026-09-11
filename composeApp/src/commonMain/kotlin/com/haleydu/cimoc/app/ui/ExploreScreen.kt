@@ -1,14 +1,21 @@
 package com.haleydu.cimoc.app.ui
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -20,6 +27,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.haleydu.cimoc.app.LocalCimocSession
 import com.haleydu.cimoc.app.nav.Screen
 
@@ -44,31 +53,49 @@ fun ExploreScreen(type: Int, onBack: () -> Unit, onOpen: (Screen.Detail) -> Unit
             )
         }
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
-            if (state.loading && state.items.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            } else {
-                ComicGrid(
-                    items = state.items,
-                    titles = mapOf(state.source to state.title),
-                    loading = state.loading,
-                    emptyText = state.error ?: "暂无内容",
-                    onClick = { comic ->
-                        onOpen(
-                            Screen.Detail(
-                                id = comic.id ?: -1L,
-                                source = comic.source,
-                                cid = comic.cid,
-                                title = comic.title,
-                                cover = comic.cover,
-                                author = comic.author
-                            )
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            state.filters.forEach { filter ->
+                val selected = state.selected[filter.attr].orEmpty()
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(filter.options, key = { it.second + it.first }) { option ->
+                        FilterChip(
+                            selected = option.second == selected,
+                            onClick = { vm.setFilter(filter.attr, option.second) },
+                            label = { Text(option.first.ifEmpty { "全部" }, fontSize = 13.sp) }
                         )
-                    },
-                    onNearEnd = { vm.loadMore() }
-                )
+                    }
+                }
+            }
+            Box(Modifier.fillMaxSize()) {
+                if (state.loading && state.items.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    ComicGrid(
+                        items = state.items,
+                        titles = mapOf(state.source to state.title),
+                        loading = state.loading,
+                        emptyText = state.error ?: "暂无内容",
+                        onClick = { comic ->
+                            onOpen(
+                                Screen.Detail(
+                                    id = comic.id ?: -1L,
+                                    source = comic.source,
+                                    cid = comic.cid,
+                                    title = comic.title,
+                                    cover = comic.cover,
+                                    author = comic.author
+                                )
+                            )
+                        },
+                        onNearEnd = { vm.loadMore() }
+                    )
+                }
             }
         }
     }

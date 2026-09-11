@@ -59,6 +59,7 @@ private fun CimocRoot(start: Screen) {
         val current = navigator.lastItem
         val showBottom = current is Screen.Library || current is Screen.Search || current is Screen.Sources || current is Screen.Profile
         val isReader = current is Screen.Reader
+        val keepReader = isReader || current is Screen.SourceHits
         val tab = when (current) {
             is Screen.Library -> Tab.Library
             is Screen.Search -> Tab.Search
@@ -82,9 +83,11 @@ private fun CimocRoot(start: Screen) {
                     { _ -> false }
                 }
             )
-            if (!isReader) {
+            if (!keepReader) {
                 actions.setImmersive(false)
                 actions.setKeepScreenOn(false)
+                actions.setBrightness(null)
+                session.reader.reset()
             }
         }
 

@@ -1,8 +1,12 @@
 package com.haleydu.cimoc.shared.vm
 
 import com.haleydu.cimoc.shared.model.ComicItem
+import com.haleydu.cimoc.shared.model.TagIds
+import com.haleydu.cimoc.shared.model.TagItem
 import com.haleydu.cimoc.shared.repo.ComicRepository
+import com.haleydu.cimoc.shared.repo.MangaRepository
 import com.haleydu.cimoc.shared.repo.SourceRepository
+import com.haleydu.cimoc.shared.repo.TagRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -13,7 +17,9 @@ import kotlinx.coroutines.launch
 
 class LibraryViewModel(
     private val comics: ComicRepository,
-    private val sources: SourceRepository
+    private val sources: SourceRepository,
+    private val manga: MangaRepository,
+    private val tags: TagRepository
 ) {
     enum class Tab { Favorite, History, Download, Local }
 
@@ -22,7 +28,11 @@ class LibraryViewModel(
         val items: List<ComicItem> = emptyList(),
         val loading: Boolean = false,
         val ended: Boolean = false,
-        val titles: Map<Int, String> = emptyMap()
+        val titles: Map<Int, String> = emptyMap(),
+        val tags: List<TagItem> = emptyList(),
+        val tagId: Long = TagIds.ALL,
+        val checking: Boolean = false,
+        val checkMessage: String? = null
     )
 
     private val job = SupervisorJob()
@@ -30,9 +40,45 @@ class LibraryViewModel(
     private val _ui = MutableStateFlow(UiState())
     val ui: StateFlow<UiState> = _ui
 
-    fun load(tab: Tab = _ui.value.tab) {
-        _ui.update { it.copy(tab = tab, items = emptyList(), ended = false, loading = false) }
+    fun load(tab: Tab = _ui.value.tab, tagId: Long = _ui.value.tagId) {
+        _ui.update {
+            it.copy(
+                tab = tab,
+                tagId = if (tab == Tab.Favorite) tagId else TagIds.ALL,
+                items = emptyList(),
+                ended = false,
+                loading = false
+            )
+        }
+        if (tab == Tab.Favorite) loadTags()
         loadMore()
+    }
+
+    fun resume() {
+        load(_ui.value.tab, _ui.value.tagId)
+    }
+
+    fun selectTag(id: Long) {
+        load(Tab.Favorite, id)
+    }
+
+    fun checkFavorites() {
+        if (_ui.value.checking) return
+        _ui.update { it.copy(checking = true, checkMessage = null) }
+        scope.launch {
+            val count = runCatching { manga.checkFavorites() }.getOrNull()
+            val message = when (count) {
+                null -> "检查更新失败"
+                0 -> "已是最新"
+                else -> "发现 ${count} 部更新"
+            }
+            _ui.update { it.copy(checking = false, checkMessage = message) }
+            load(Tab.Favorite, _ui.value.tagId)
+        }
+    }
+
+    fun consumeCheckMessage() {
+        _ui.update { it.copy(checkMessage = null) }
     }
 
     fun loadMore() {
@@ -40,17 +86,23 @@ class LibraryViewModel(
         if (state.loading || state.ended) return
         _ui.update { it.copy(loading = true) }
         val offset = state.items.size
+        val tagId = state.tagId
         scope.launch {
             val page = runCatching {
                 when (state.tab) {
-                    Tab.Favorite -> comics.listFavoritePage(offset, PAGE)
+                    Tab.Favorite -> when (tagId) {
+                        TagIds.ALL -> comics.listFavoritePage(offset, PAGE)
+                        TagIds.CONTINUE -> comics.listContinuePage(offset, PAGE)
+                        TagIds.FINISH -> comics.listFinishPage(offset, PAGE)
+                        else -> comics.listFavoriteByTagPage(tagId, offset, PAGE)
+                    }
                     Tab.History -> comics.listHistoryPage(offset, PAGE)
                     Tab.Download -> comics.listDownloadPage(offset, PAGE)
                     Tab.Local -> comics.listLocalPage(offset, PAGE)
                 }
             }.getOrDefault(emptyList())
             _ui.update {
-                if (it.tab != state.tab) return@update it
+                if (it.tab != state.tab || it.tagId != tagId) return@update it
                 val merged = it.items + page
                 it.copy(
                     items = merged,
@@ -66,7 +118,7 @@ class LibraryViewModel(
         id ?: return
         scope.launch {
             runCatching { comics.unfavorite(id) }
-            load(Tab.Favorite)
+            load(Tab.Favorite, _ui.value.tagId)
         }
     }
 
@@ -75,6 +127,13 @@ class LibraryViewModel(
         scope.launch {
             runCatching { comics.deleteHistory(id) }
             load(Tab.History)
+        }
+    }
+
+    private fun loadTags() {
+        scope.launch {
+            val list = runCatching { tags.list() }.getOrDefault(emptyList())
+            _ui.update { it.copy(tags = list) }
         }
     }
 

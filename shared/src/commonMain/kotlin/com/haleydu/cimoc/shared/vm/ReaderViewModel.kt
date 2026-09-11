@@ -6,6 +6,7 @@ import com.haleydu.cimoc.shared.model.LoadResult
 import com.haleydu.cimoc.shared.model.PageImage
 import com.haleydu.cimoc.shared.model.PrefKeys
 import com.haleydu.cimoc.shared.model.ReaderMode
+import com.haleydu.cimoc.shared.model.chapterStoryDelta
 import com.haleydu.cimoc.shared.repo.ComicRepository
 import com.haleydu.cimoc.shared.repo.MangaRepository
 import com.haleydu.cimoc.shared.repo.SettingsRepository
@@ -44,6 +45,7 @@ class ReaderViewModel(
         val vertical: Boolean = false,
         val invert: Boolean = false,
         val gray: Boolean = false,
+        val brightness: Int = 0,
         val loading: Boolean = false,
         val loadingMore: Boolean = false,
         val error: String? = null
@@ -53,28 +55,59 @@ class ReaderViewModel(
     private val scope = CoroutineScope(job + Dispatchers.Main.immediate)
     private var progressJob: Job? = null
     private var preloadJob: Job? = null
+    private var loadJob: Job? = null
     private var nextCache: Pair<ChapterItem, List<PageImage>>? = null
     private var prevCache: Pair<ChapterItem, List<PageImage>>? = null
     private var lastComicId = 0L
     private var lastPath = ""
     private var lastChapters: List<ChapterItem> = emptyList()
+    private var adjacentLock = false
     private val _ui = MutableStateFlow(UiState())
     val ui: StateFlow<UiState> = _ui
 
     fun load(comicId: Long, path: String, chapters: List<ChapterItem>) {
+        if (
+            lastComicId == comicId &&
+            lastPath == path &&
+            _ui.value.pages.isNotEmpty() &&
+            !_ui.value.loading &&
+            _ui.value.error == null
+        ) {
+            if (chapters.isNotEmpty()) {
+                lastChapters = chapters
+                _ui.update { it.copy(chapters = chapters) }
+            }
+            return
+        }
+        loadJob?.cancel()
+        preloadJob?.cancel()
+        progressJob?.cancel()
         lastComicId = comicId
         lastPath = path
         lastChapters = chapters
-        if (path.isEmpty()) {
-            _ui.update { it.copy(error = "章节无效", loading = false) }
-            return
-        }
         nextCache = null
         prevCache = null
+        adjacentLock = false
+        if (path.isEmpty()) {
+            _ui.update {
+                it.copy(
+                    comic = null,
+                    chapter = null,
+                    pages = emptyList(),
+                    error = "章节无效",
+                    loading = false
+                )
+            }
+            return
+        }
         _ui.update {
             it.copy(
                 loading = true,
                 error = null,
+                comic = null,
+                chapter = null,
+                pages = emptyList(),
+                headers = emptyMap(),
                 chapters = chapters,
                 mode = settings.int(PrefKeys.READER_MODE, ReaderMode.STREAM),
                 auto = settings.bool(PrefKeys.READER_AUTO),
@@ -86,13 +119,17 @@ class ReaderViewModel(
                 vertical = settings.bool(PrefKeys.READER_VERTICAL),
                 invert = settings.bool(PrefKeys.READER_COLOR_INVERT),
                 gray = settings.bool(PrefKeys.READER_COLOR_GRAY),
+                brightness = settings.int(PrefKeys.READER_BRIGHTNESS, 0).coerceIn(0, 100),
                 page = 1,
                 seekPage = null,
-                chapterSheet = false
+                chapterSheet = false,
+                overlay = false,
+                loadingMore = false
             )
         }
-        scope.launch {
+        loadJob = scope.launch {
             val comic = comics.load(comicId)
+            if (!matchesRequest(comicId, path)) return@launch
             if (comic == null) {
                 _ui.update { it.copy(loading = false, error = "漫画不存在") }
                 return@launch
@@ -109,6 +146,20 @@ class ReaderViewModel(
             }
             applyPages(comic, chapter, comic.page.coerceAtLeast(1), replace = true)
         }
+    }
+
+    fun reset(comicId: Long? = null, path: String? = null) {
+        if (comicId != null && path != null && (lastComicId != comicId || lastPath != path)) return
+        loadJob?.cancel()
+        preloadJob?.cancel()
+        progressJob?.cancel()
+        nextCache = null
+        prevCache = null
+        adjacentLock = false
+        lastComicId = 0L
+        lastPath = ""
+        lastChapters = emptyList()
+        _ui.value = UiState()
     }
 
     fun retry() {
@@ -157,6 +208,12 @@ class ReaderViewModel(
         return next
     }
 
+    fun setBrightness(value: Int) {
+        val next = value.coerceIn(0, 100)
+        settings.setInt(PrefKeys.READER_BRIGHTNESS, next)
+        _ui.update { it.copy(brightness = next) }
+    }
+
     fun setPage(index: Int) {
         val page = index.coerceAtLeast(1)
         _ui.update { it.copy(page = page) }
@@ -202,7 +259,8 @@ class ReaderViewModel(
         val chapter = _ui.value.chapters.firstOrNull { it.path == path } ?: return
         lastPath = path
         _ui.update { it.copy(chapterSheet = false, loading = true, error = null) }
-        scope.launch {
+        loadJob?.cancel()
+        loadJob = scope.launch {
             manga.markRead(comic, chapter.path)
             applyPages(comic, chapter, 1, replace = true)
         }
@@ -212,14 +270,13 @@ class ReaderViewModel(
         val state = _ui.value
         val current = state.chapter ?: return
         val list = state.chapters
-        if (list.isEmpty() || state.loadingMore) return
+        if (list.isEmpty() || state.loadingMore || state.loading || adjacentLock) return
         val idx = list.indexOfFirst { it.path == current.path }
-        val target = if (next) {
-            list.getOrNull(if (idx >= 0) idx + 1 else 0)
-        } else {
-            list.getOrNull(if (idx > 0) idx - 1 else 0)
-        } ?: return
+        if (idx < 0) return
+        val delta = chapterStoryDelta(list)
+        val target = list.getOrNull(if (next) idx + delta else idx - delta) ?: return
         val comic = state.comic ?: return
+        adjacentLock = true
         lastPath = target.path
         val cached = if (next) nextCache else prevCache
         if (cached != null && cached.first.path == target.path) {
@@ -235,14 +292,21 @@ class ReaderViewModel(
                     error = if (cached.second.isEmpty()) "暂无图片" else null
                 )
             }
-            scope.launch { manga.markRead(comic, target.path) }
+            scope.launch {
+                manga.markRead(comic, target.path)
+                delay(400)
+                adjacentLock = false
+            }
             preloadNeighbors(comic, target)
             return
         }
         _ui.update { it.copy(loadingMore = true, error = null) }
-        scope.launch {
+        loadJob?.cancel()
+        loadJob = scope.launch {
             manga.markRead(comic, target.path)
             applyPages(comic, target, 1, replace = true)
+            delay(400)
+            adjacentLock = false
         }
     }
 
@@ -254,8 +318,10 @@ class ReaderViewModel(
     }
 
     private suspend fun applyPages(comic: ComicItem, chapter: ChapterItem, page: Int, replace: Boolean) {
+        if (!matchesRequest(comic.id ?: lastComicId, chapter.path)) return
         when (val result = manga.loadPages(comic, chapter)) {
             is LoadResult.Ok -> {
+                if (!matchesRequest(comic.id ?: lastComicId, chapter.path)) return
                 val pages = result.value
                 _ui.update {
                     it.copy(
@@ -270,10 +336,17 @@ class ReaderViewModel(
                 }
                 preloadNeighbors(comic, chapter)
             }
-            is LoadResult.Err -> _ui.update {
-                it.copy(loading = false, loadingMore = false, error = result.message)
+            is LoadResult.Err -> {
+                if (!matchesRequest(comic.id ?: lastComicId, chapter.path)) return
+                _ui.update {
+                    it.copy(loading = false, loadingMore = false, error = result.message)
+                }
             }
         }
+    }
+
+    private fun matchesRequest(comicId: Long, path: String): Boolean {
+        return lastComicId == comicId && lastPath == path
     }
 
     private fun preloadNeighbors(comic: ComicItem, chapter: ChapterItem) {
@@ -282,8 +355,10 @@ class ReaderViewModel(
         preloadJob = scope.launch {
             val list = _ui.value.chapters
             val idx = list.indexOfFirst { it.path == chapter.path }
-            val next = list.getOrNull(idx + 1)
-            val prev = list.getOrNull(if (idx > 0) idx - 1 else -1)
+            if (idx < 0) return@launch
+            val delta = chapterStoryDelta(list)
+            val next = list.getOrNull(idx + delta)
+            val prev = list.getOrNull(idx - delta)
             if (next != null) {
                 val result = manga.loadPages(comic, next)
                 if (result is LoadResult.Ok) nextCache = next to result.value

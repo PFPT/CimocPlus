@@ -1,11 +1,13 @@
 package com.haleydu.cimoc.app
 
 import com.haleydu.cimoc.shared.vm.DetailViewModel
+import com.haleydu.cimoc.shared.vm.DownloadTasksViewModel
 import com.haleydu.cimoc.shared.vm.ExploreViewModel
 import com.haleydu.cimoc.shared.vm.LibraryViewModel
 import com.haleydu.cimoc.shared.vm.ReaderViewModel
 import com.haleydu.cimoc.shared.vm.SearchViewModel
 import com.haleydu.cimoc.shared.vm.SettingsViewModel
+import com.haleydu.cimoc.shared.vm.SourceHitsViewModel
 import com.haleydu.cimoc.shared.vm.SourceListViewModel
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
@@ -19,4 +21,6 @@ class CimocSession : KoinComponent {
     val reader: ReaderViewModel get() = get()
 
     fun detail(): DetailViewModel = get()
+    fun downloadTasks(): DownloadTasksViewModel = get()
+    fun sourceHits(): SourceHitsViewModel = get()
 }

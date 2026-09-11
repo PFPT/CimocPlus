@@ -14,7 +14,9 @@ import com.haleydu.cimoc.app.ui.ProfileScreen
 import com.haleydu.cimoc.app.ui.ReaderScreen
 import com.haleydu.cimoc.app.ui.SearchScreen
 import com.haleydu.cimoc.app.ui.SettingsScreen
+import com.haleydu.cimoc.app.ui.SourceHitsScreen
 import com.haleydu.cimoc.app.ui.SourceScreen
+import com.haleydu.cimoc.app.ui.TaskScreen
 import com.haleydu.cimoc.shared.model.ChapterItem
 
 sealed class Screen : VoyagerScreen {
@@ -100,7 +102,11 @@ sealed class Screen : VoyagerScreen {
             DetailScreen(
                 args = this,
                 onBack = { navigator.pop() },
-                onRead = { destination -> navigator.push(destination) }
+                onRead = { destination -> navigator.push(destination) },
+                onSearchSource = { title, source, cid ->
+                    navigator.push(Screen.SourceHits(title, source, cid))
+                },
+                onOpenTasks = { navigator.push(Screen.DownloadTasks) }
             )
         }
     }
@@ -113,7 +119,39 @@ sealed class Screen : VoyagerScreen {
         override val key: ScreenKey = "reader_${comicId}_$path"
         @Composable override fun Content() {
             val navigator = LocalNavigator.currentOrThrow
-            ReaderScreen(args = this, onBack = { navigator.pop() })
+            ReaderScreen(
+                args = this,
+                onBack = { navigator.pop() },
+                onSearchSource = { title, source, cid ->
+                    navigator.push(Screen.SourceHits(title, source, cid))
+                }
+            )
+        }
+    }
+
+    data object DownloadTasks : Screen() {
+        override val key: ScreenKey = "download_tasks"
+        @Composable override fun Content() {
+            val navigator = LocalNavigator.currentOrThrow
+            TaskScreen(onBack = { navigator.pop() })
+        }
+    }
+
+    data class SourceHits(
+        val title: String,
+        val excludeSource: Int,
+        val excludeCid: String
+    ) : Screen() {
+        override val key: ScreenKey = "source_hits_${excludeSource}_${excludeCid}_$title"
+        @Composable override fun Content() {
+            val navigator = LocalNavigator.currentOrThrow
+            SourceHitsScreen(
+                title = title,
+                excludeSource = excludeSource,
+                excludeCid = excludeCid,
+                onBack = { navigator.pop() },
+                onOpen = { destination -> navigator.push(destination) }
+            )
         }
     }
 }
