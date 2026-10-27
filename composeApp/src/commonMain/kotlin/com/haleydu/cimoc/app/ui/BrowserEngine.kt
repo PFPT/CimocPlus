@@ -19,6 +19,7 @@ interface BrowserHandle {
     fun canForward(): Boolean
     fun currentUrl(): String
     fun title(): String
+    suspend fun looksLikeComic(): Boolean
     suspend fun extract(): WebPageExtract
 }
 

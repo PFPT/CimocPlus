@@ -2,7 +2,11 @@ package com.haleydu.cimoc.app.ui
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
+import android.net.http.SslError
+import android.os.Message
 import android.webkit.CookieManager
+import android.webkit.SslErrorHandler
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -36,8 +40,7 @@ private const val SCROLL_JS = """
 })();
 """
 
-private const val EXTRACT_JS = """
-(function() {
+private const val PAGE_HELPERS = """
   function abs(u) {
     if (!u) return null;
     try { return new URL(u, location.href).href; } catch (e) { return null; }
@@ -48,20 +51,121 @@ private const val EXTRACT_JS = """
   function looksLikeImage(url) {
     return /\.(jpg|jpeg|png|webp|gif|bmp)(\?|#|$)/i.test(url);
   }
-  var seen = {};
-  var urls = [];
-  var nodes = document.querySelectorAll('img');
-  for (var i = 0; i < nodes.length; i++) {
-    var img = nodes[i];
-    var href = abs(pick(img));
-    if (!href || href.indexOf('data:') === 0 || seen[href]) continue;
-    var w = img.naturalWidth || img.width || 0;
-    var h = img.naturalHeight || img.height || 0;
-    if ((w > 0 && w < 200) || (h > 0 && h < 200)) continue;
-    if (w === 0 && h === 0 && !looksLikeImage(href)) continue;
-    seen[href] = 1;
-    urls.push(href);
+  function nodeText(el) {
+    if (!el) return '';
+    var cls = (typeof el.className === 'string') ? el.className : '';
+    var src = '';
+    if (el.getAttribute) {
+      src = (el.getAttribute('src') || '') + ' ' + (el.getAttribute('data-src') || '') + ' ' + (el.getAttribute('alt') || '');
+    }
+    return ((el.id || '') + ' ' + cls + ' ' + src).toLowerCase();
   }
+  function isAdToken(text) {
+    if (!text) return false;
+    if (text.indexOf('广告') >= 0 || text.indexOf('adsbygoogle') >= 0) return true;
+    return /(?:^|[^a-z0-9])(?:ads?|banner|sponsor)(?:[^a-z0-9]|$)/.test(text);
+  }
+  function adLabel(el) {
+    var text = nodeText(el);
+    var parent = el ? el.parentElement : null;
+    var guard = 0;
+    while (parent && guard < 4) {
+      text += ' ' + nodeText(parent);
+      parent = parent.parentElement;
+      guard++;
+    }
+    return text;
+  }
+  function shown(el) {
+    if (!el) return false;
+    var style = window.getComputedStyle(el);
+    return style.display !== 'none' && style.visibility !== 'hidden';
+  }
+  function inChrome(el) {
+    return !!(el && el.closest && el.closest('header, footer, nav, aside'));
+  }
+  function boxSize(img) {
+    return {
+      w: img.naturalWidth || img.width || 0,
+      h: img.naturalHeight || img.height || 0
+    };
+  }
+  function isBanner(img) {
+    var size = boxSize(img);
+    if (size.w <= 0 || size.h <= 0) return false;
+    var vh = window.innerHeight || 800;
+    return (size.w / size.h) > 3.2 && size.h < vh * 0.28;
+  }
+  function tooBig(el) {
+    var rect = el.getBoundingClientRect();
+    var vh = window.innerHeight || 800;
+    var vw = window.innerWidth || 400;
+    return rect.height > vh * 0.6 && rect.width > vw * 0.6;
+  }
+  function comicItems() {
+    var seen = {};
+    var items = [];
+    var nodes = document.querySelectorAll('img');
+    for (var i = 0; i < nodes.length; i++) {
+      var img = nodes[i];
+      if (!shown(img) || inChrome(img) || isAdToken(adLabel(img)) || isBanner(img)) continue;
+      var href = abs(pick(img));
+      if (!href || href.indexOf('data:') === 0 || seen[href]) continue;
+      var size = boxSize(img);
+      if ((size.w > 0 && size.w < 200) || (size.h > 0 && size.h < 200)) continue;
+      if (size.w === 0 && size.h === 0 && !looksLikeImage(href)) continue;
+      seen[href] = 1;
+      items.push({href: href, h: size.h || 0});
+    }
+    return items;
+  }
+  function applyMedian(items) {
+    if (items.length < 4) return items;
+    var heights = [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].h > 0) heights.push(items[i].h);
+    }
+    if (heights.length < 4) return items;
+    heights.sort(function(a, b) { return a - b; });
+    var mid = heights[Math.floor((heights.length - 1) / 2)];
+    var kept = [];
+    for (var j = 0; j < items.length; j++) {
+      var h = items[j].h;
+      if (h <= 0 || h >= mid * 0.45) kept.push(items[j]);
+    }
+    return kept.length > 0 ? kept : items;
+  }
+"""
+
+private const val HIDE_AD_JS = """
+(function() {
+$PAGE_HELPERS
+  var frames = document.querySelectorAll('iframe, ins');
+  for (var i = 0; i < frames.length; i++) {
+    frames[i].style.setProperty('display', 'none', 'important');
+  }
+  var heads = document.querySelectorAll('header img, footer img');
+  for (var j = 0; j < heads.length; j++) {
+    if (isBanner(heads[j])) {
+      heads[j].style.setProperty('display', 'none', 'important');
+    }
+  }
+})();
+"""
+
+private const val DETECT_JS = """
+(function() {
+$PAGE_HELPERS
+  return {ok: comicItems().length >= 3};
+})();
+"""
+
+private const val EXTRACT_JS = """
+(function() {
+$PAGE_HELPERS
+  var items = applyMedian(comicItems());
+  var urls = [];
+  for (var i = 0; i < items.length; i++) urls.push(items[i].href);
   var next = null;
   var rel = document.querySelector('a[rel="next"]');
   if (rel && rel.href) next = abs(rel.href);
@@ -69,6 +173,7 @@ private const val EXTRACT_JS = """
     var links = document.querySelectorAll('a');
     var re = /下一章|下一话|下一頁|下一页|下一集|下章/;
     for (var j = 0; j < links.length; j++) {
+      if (!shown(links[j])) continue;
       var text = (links[j].innerText || '') + ' ' + (links[j].title || '');
       if (re.test(text)) {
         next = abs(links[j].href);
@@ -105,8 +210,9 @@ private class AndroidBrowserHandle : BrowserHandle {
 
     override fun back(): Boolean {
         val view = webView ?: return false
-        if (!view.canGoBack()) return false
-        view.goBack()
+        val steps = realBackSteps(view)
+        if (steps == 0) return false
+        view.goBackOrForward(steps)
         return true
     }
 
@@ -119,13 +225,19 @@ private class AndroidBrowserHandle : BrowserHandle {
         webView?.reload()
     }
 
-    override fun canBack(): Boolean = webView?.canGoBack() == true
+    override fun canBack(): Boolean = webView?.let { realBackSteps(it) != 0 } == true
 
     override fun canForward(): Boolean = webView?.canGoForward() == true
 
     override fun currentUrl(): String = webView?.url ?: pending.orEmpty()
 
     override fun title(): String = webView?.title.orEmpty()
+
+    override suspend fun looksLikeComic(): Boolean {
+        val view = webView ?: return false
+        val obj = parseJsObject(view.eval(DETECT_JS)) ?: return false
+        return obj.optBoolean("ok")
+    }
 
     override suspend fun extract(): WebPageExtract {
         val view = webView ?: return WebPageExtract("", "", emptyList(), null)
@@ -172,7 +284,7 @@ actual fun BrowserWebView(
         modifier = modifier,
         factory = { context ->
             WebView(context).also { web ->
-                web.applyBrowserSettings()
+                web.applyBrowserSettings(multipleWindows = true)
                 web.webViewClient = client(
                     onStarted = { page ->
                         onLoading(true)
@@ -183,6 +295,7 @@ actual fun BrowserWebView(
                         onPage(page, web.title.orEmpty())
                     }
                 )
+                web.webChromeClient = popupClient(web)
                 bridge.attach(web)
             }
         },
@@ -213,7 +326,7 @@ actual fun rememberWebExtractSession(): WebExtractSession {
 }
 
 @SuppressLint("SetJavaScriptEnabled")
-private fun WebView.applyBrowserSettings() {
+private fun WebView.applyBrowserSettings(multipleWindows: Boolean = false) {
     settings.javaScriptEnabled = true
     settings.domStorageEnabled = true
     settings.loadsImagesAutomatically = true
@@ -222,8 +335,38 @@ private fun WebView.applyBrowserSettings() {
     settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
     settings.userAgentString = BrowserUserAgent
     settings.mediaPlaybackRequiresUserGesture = true
+    settings.javaScriptCanOpenWindowsAutomatically = true
+    settings.setSupportMultipleWindows(multipleWindows)
     CookieManager.getInstance().setAcceptCookie(true)
     CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
+}
+
+private fun popupClient(host: WebView): WebChromeClient {
+    return object : WebChromeClient() {
+        override fun onCreateWindow(
+            view: WebView?,
+            isDialog: Boolean,
+            isUserGesture: Boolean,
+            resultMsg: Message?
+        ): Boolean {
+            val parent = view ?: host
+            val transport = resultMsg?.obj as? WebView.WebViewTransport ?: return false
+            val popup = WebView(parent.context)
+            popup.webViewClient = object : WebViewClient() {
+                override fun shouldOverrideUrlLoading(popupView: WebView, request: WebResourceRequest): Boolean {
+                    val target = request.url?.toString().orEmpty()
+                    if (target.startsWith("http://") || target.startsWith("https://")) {
+                        parent.loadUrl(target)
+                    }
+                    popupView.destroy()
+                    return true
+                }
+            }
+            transport.webView = popup
+            resultMsg.sendToTarget()
+            return true
+        }
+    }
 }
 
 private fun client(
@@ -246,9 +389,30 @@ private fun client(
         }
 
         override fun onPageFinished(view: WebView, url: String?) {
+            view.evaluateJavascript(HIDE_AD_JS, null)
             if (!url.isNullOrEmpty()) onFinished(url)
         }
+
+        @SuppressLint("WebViewClientOnReceivedSslError")
+        override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) {
+            handler.proceed()
+        }
     }
+}
+
+private fun realHistoryUrl(url: String?): Boolean {
+    if (url.isNullOrBlank()) return false
+    return !url.startsWith("about:")
+}
+
+private fun realBackSteps(view: WebView): Int {
+    val list = view.copyBackForwardList()
+    var index = list.currentIndex - 1
+    while (index >= 0 && !realHistoryUrl(list.getItemAtIndex(index)?.url)) {
+        index--
+    }
+    if (index < 0) return 0
+    return index - list.currentIndex
 }
 
 private suspend fun WebView.eval(script: String): String? = suspendCancellableCoroutine { cont ->

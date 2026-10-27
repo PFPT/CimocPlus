@@ -88,6 +88,23 @@ android {
     }
 }
 
+afterEvaluate {
+    ["Debug", "Release"].each { variant ->
+        def desugarName = "desugar${variant}FileDependencies"
+        def merge = tasks.findByName("mergeExtDex${variant}")
+        if (merge == null || tasks.findByName(desugarName) == null) {
+            return
+        }
+        def variantDir = variant.substring(0, 1).toLowerCase() + variant.substring(1)
+        def dir = file("${buildDir}/intermediates/external_file_lib_dex_archives/${variantDir}/${desugarName}")
+        def ensure = tasks.register("ensure${desugarName}") {
+            dependsOn(desugarName)
+            doLast { dir.mkdirs() }
+        }
+        merge.dependsOn(ensure)
+    }
+}
+
 tasks.withType(JavaCompile).configureEach {
     options.fork = true
     options.forkOptions.jvmArgs += [

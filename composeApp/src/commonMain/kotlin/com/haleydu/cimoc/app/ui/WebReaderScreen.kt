@@ -1,6 +1,13 @@
 package com.haleydu.cimoc.app.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,6 +25,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.haleydu.cimoc.app.LocalCimocActions
 import com.haleydu.cimoc.app.nav.Screen
 import kotlinx.coroutines.launch
 
@@ -57,46 +66,29 @@ fun WebReaderScreen(args: Screen.WebReader, onBack: () -> Unit) {
             "User-Agent" to BrowserUserAgent
         )
     }
-    PrefetchReaderImages(pages.take(4), headers)
-
-    Column(Modifier.fillMaxSize().background(Color.Black)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().background(Color.Black.copy(alpha = 0.85f)),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回", tint = Color.White)
-            }
-            Text(
-                title,
-                modifier = Modifier.weight(1f),
-                color = Color.White,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                fontSize = 16.sp
-            )
-            TextButton(
-                onClick = {
-                    val previous = history.removeLastOrNull() ?: return@TextButton
-                    title = previous.title
-                    pageUrl = previous.pageUrl
-                    pages = previous.imageUrls
-                    nextUrl = previous.nextUrl
-                    hint = null
-                    scope.launch { listState.scrollToItem(0) }
-                },
-                enabled = history.isNotEmpty() && !loading
-            ) {
-                Text("上一话", color = Color.White)
-            }
+    val prefetchFrom = listState.firstVisibleItemIndex.coerceAtLeast(0)
+    PrefetchReaderImages(pages.drop(prefetchFrom).take(4), headers)
+    val actions = LocalCimocActions.current
+    var overlay by remember { mutableStateOf(false) }
+    DisposableEffect(Unit) {
+        actions.setImmersive(true)
+        actions.setKeepScreenOn(true)
+        onDispose {
+            actions.setImmersive(false)
+            actions.setKeepScreenOn(false)
         }
-        LazyColumn(state = listState, modifier = Modifier.weight(1f)) {
+    }
+
+    Box(Modifier.fillMaxSize().background(Color.Black)) {
+        LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
             itemsIndexed(pages, key = { index, url -> "$index$url" }) { _, url ->
                 ReaderPageCanvas(
                     url = url,
                     headers = headers,
                     fillWidth = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { overlay = !overlay }
                 )
             }
             item(key = "next") {
@@ -122,6 +114,7 @@ fun WebReaderScreen(args: Screen.WebReader, onBack: () -> Unit) {
                                         pageUrl = extracted.pageUrl.ifEmpty { target }
                                         pages = extracted.imageUrls
                                         nextUrl = extracted.nextUrl
+                                        overlay = false
                                         listState.scrollToItem(0)
                                     }
                                 }
@@ -139,6 +132,43 @@ fun WebReaderScreen(args: Screen.WebReader, onBack: () -> Unit) {
                             fontSize = 13.sp
                         )
                     }
+                }
+            }
+        }
+        AnimatedVisibility(
+            visible = overlay,
+            enter = slideInVertically { -it } + fadeIn(),
+            exit = slideOutVertically { -it } + fadeOut(),
+            modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().background(Color.Black.copy(alpha = 0.85f)),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回", tint = Color.White)
+                }
+                Text(
+                    title,
+                    modifier = Modifier.weight(1f),
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = 16.sp
+                )
+                TextButton(
+                    onClick = {
+                        val previous = history.removeLastOrNull() ?: return@TextButton
+                        title = previous.title
+                        pageUrl = previous.pageUrl
+                        pages = previous.imageUrls
+                        nextUrl = previous.nextUrl
+                        hint = null
+                        scope.launch { listState.scrollToItem(0) }
+                    },
+                    enabled = history.isNotEmpty() && !loading
+                ) {
+                    Text("上一话", color = Color.White)
                 }
             }
         }

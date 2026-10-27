@@ -17,6 +17,7 @@ private class DesktopBrowserHandle : BrowserHandle {
     override fun canForward(): Boolean = false
     override fun currentUrl(): String = ""
     override fun title(): String = ""
+    override suspend fun looksLikeComic(): Boolean = false
     override suspend fun extract(): WebPageExtract = WebPageExtract("", "", emptyList(), null)
 }
 

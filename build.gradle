@@ -25,6 +25,30 @@ allprojects {
     buildDir = file("${projectDir}/build.nosync")
 }
 
+subprojects { sub ->
+    sub.afterEvaluate {
+        sub.tasks.configureEach { task ->
+            task.outputs.upToDateWhen {
+                def outs = task.outputs.files.files
+                outs.isEmpty() || outs.every { it.exists() }
+            }
+        }
+        ["debug", "release"].each { variant ->
+            def cap = variant.substring(0, 1).toUpperCase() + variant.substring(1)
+            def packaged = file("${buildDir}/intermediates/packaged_res/${variant}/package${cap}Resources")
+            def packageTask = tasks.findByName("package${cap}Resources")
+            if (packageTask != null) {
+                packageTask.outputs.upToDateWhen { packaged.isDirectory() }
+            }
+            def manifest = file("${buildDir}/intermediates/merged_manifest/${variant}/process${cap}Manifest/AndroidManifest.xml")
+            def manifestTask = tasks.findByName("process${cap}Manifest")
+            if (manifestTask != null) {
+                manifestTask.outputs.upToDateWhen { manifest.isFile() }
+            }
+        }
+    }
+}
+
 task clean(type: Delete) {
     delete rootProject.buildDir
     subprojects { delete it.buildDir }
