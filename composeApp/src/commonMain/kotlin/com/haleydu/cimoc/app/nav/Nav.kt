@@ -11,9 +11,13 @@ import com.haleydu.cimoc.app.ui.DetailScreen
 import com.haleydu.cimoc.app.ui.ExploreScreen
 import com.haleydu.cimoc.app.ui.LibraryScreen
 import com.haleydu.cimoc.app.ui.ProfileScreen
+import com.haleydu.cimoc.app.ui.RankScreen
 import com.haleydu.cimoc.app.ui.ReaderScreen
+import com.haleydu.cimoc.app.ui.BrowserScreen
 import com.haleydu.cimoc.app.ui.SearchScreen
 import com.haleydu.cimoc.app.ui.SettingsScreen
+import com.haleydu.cimoc.app.ui.WebBrowserScreen
+import com.haleydu.cimoc.app.ui.WebReaderScreen
 import com.haleydu.cimoc.app.ui.SourceHitsScreen
 import com.haleydu.cimoc.app.ui.SourceScreen
 import com.haleydu.cimoc.app.ui.TaskScreen
@@ -32,7 +36,29 @@ sealed class Screen : VoyagerScreen {
         override val key: ScreenKey = "search"
         @Composable override fun Content() {
             val navigator = LocalNavigator.currentOrThrow
-            SearchScreen { destination -> navigator.push(destination) }
+            SearchScreen(
+                onOpen = { destination -> navigator.push(destination) },
+                onRank = { navigator.push(Screen.Rank) }
+            )
+        }
+    }
+
+    data object Rank : Screen() {
+        override val key: ScreenKey = "rank"
+        @Composable override fun Content() {
+            val navigator = LocalNavigator.currentOrThrow
+            RankScreen(
+                onBack = { navigator.pop() },
+                onOpen = { destination -> navigator.push(destination) }
+            )
+        }
+    }
+
+    data object Browser : Screen() {
+        override val key: ScreenKey = "browser"
+        @Composable override fun Content() {
+            val navigator = LocalNavigator.currentOrThrow
+            BrowserScreen { destination -> navigator.push(destination) }
         }
     }
 
@@ -137,6 +163,32 @@ sealed class Screen : VoyagerScreen {
         }
     }
 
+    data class WebBrowser(val url: String) : Screen() {
+        override val key: ScreenKey = "web_browser_$url"
+        @Composable override fun Content() {
+            val navigator = LocalNavigator.currentOrThrow
+            WebBrowserScreen(
+                url = url,
+                onBack = { navigator.pop() },
+                onOpenDetail = { destination -> navigator.push(destination) },
+                onOpenReader = { destination -> navigator.push(destination) }
+            )
+        }
+    }
+
+    data class WebReader(
+        val title: String,
+        val pageUrl: String,
+        val imageUrls: List<String>,
+        val nextUrl: String?
+    ) : Screen() {
+        override val key: ScreenKey = "web_reader_${pageUrl.hashCode()}"
+        @Composable override fun Content() {
+            val navigator = LocalNavigator.currentOrThrow
+            WebReaderScreen(args = this, onBack = { navigator.pop() })
+        }
+    }
+
     data class SourceHits(
         val title: String,
         val excludeSource: Int,
@@ -156,4 +208,4 @@ sealed class Screen : VoyagerScreen {
     }
 }
 
-enum class Tab { Library, Search, Sources, Profile }
+enum class Tab { Library, Search, Browser, Sources, Profile }

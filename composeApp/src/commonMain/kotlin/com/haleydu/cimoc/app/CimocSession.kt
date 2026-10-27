@@ -4,6 +4,7 @@ import com.haleydu.cimoc.shared.vm.DetailViewModel
 import com.haleydu.cimoc.shared.vm.DownloadTasksViewModel
 import com.haleydu.cimoc.shared.vm.ExploreViewModel
 import com.haleydu.cimoc.shared.vm.LibraryViewModel
+import com.haleydu.cimoc.shared.vm.RankViewModel
 import com.haleydu.cimoc.shared.vm.ReaderViewModel
 import com.haleydu.cimoc.shared.vm.SearchViewModel
 import com.haleydu.cimoc.shared.vm.SettingsViewModel
@@ -23,4 +24,5 @@ class CimocSession : KoinComponent {
     fun detail(): DetailViewModel = get()
     fun downloadTasks(): DownloadTasksViewModel = get()
     fun sourceHits(): SourceHitsViewModel = get()
+    fun rank(): RankViewModel = get()
 }

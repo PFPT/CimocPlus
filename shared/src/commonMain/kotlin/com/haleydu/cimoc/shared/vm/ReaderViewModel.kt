@@ -10,10 +10,13 @@ import com.haleydu.cimoc.shared.model.chapterStoryDelta
 import com.haleydu.cimoc.shared.repo.ComicRepository
 import com.haleydu.cimoc.shared.repo.MangaRepository
 import com.haleydu.cimoc.shared.repo.SettingsRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -62,6 +65,7 @@ class ReaderViewModel(
     private var lastPath = ""
     private var lastChapters: List<ChapterItem> = emptyList()
     private var adjacentLock = false
+    private val lazyInflight = mutableMapOf<String, Deferred<String?>>()
     private val _ui = MutableStateFlow(UiState())
     val ui: StateFlow<UiState> = _ui
 
@@ -82,6 +86,7 @@ class ReaderViewModel(
         loadJob?.cancel()
         preloadJob?.cancel()
         progressJob?.cancel()
+        cancelLazy()
         lastComicId = comicId
         lastPath = path
         lastChapters = chapters
@@ -153,6 +158,7 @@ class ReaderViewModel(
         loadJob?.cancel()
         preloadJob?.cancel()
         progressJob?.cancel()
+        cancelLazy()
         nextCache = null
         prevCache = null
         adjacentLock = false
@@ -171,9 +177,22 @@ class ReaderViewModel(
         val url = page.displayUrl
         if (url.isEmpty()) return
         scope.launch {
-            val resolved = runCatching { manga.resolveLazy(source, url) }.getOrNull()
+            val deferred = lazyInflight.getOrPut(url) {
+                async { runCatching { manga.resolveLazy(source, url) }.getOrNull() }
+            }
+            val resolved = try {
+                deferred.await()
+            } catch (e: CancellationException) {
+                throw e
+            }
+            if (lazyInflight[url] === deferred) lazyInflight.remove(url)
             if (!resolved.isNullOrEmpty()) onResolved(resolved)
         }
+    }
+
+    private fun cancelLazy() {
+        lazyInflight.values.forEach { it.cancel() }
+        lazyInflight.clear()
     }
 
     fun toggleOverlay() {

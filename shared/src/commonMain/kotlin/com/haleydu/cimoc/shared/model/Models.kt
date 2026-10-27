@@ -44,8 +44,13 @@ data class SourceItem(
     val type: Int,
     val title: String,
     val enable: Boolean,
-    val invalid: Boolean = false
+    val invalid: Boolean = false,
+    val custom: Boolean = false
 )
+
+class SearchStats {
+    var failed: Int = 0
+}
 
 sealed class LoadResult<out T> {
     data class Ok<T>(val value: T) : LoadResult<T>()
@@ -73,6 +78,9 @@ object PrefKeys {
     const val READER_COLOR_GRAY = "pref_reader_color_gray"
     const val CHAPTER_ASCEND = "pref_chapter_ascend_mode"
     const val READER_BRIGHTNESS = "pref_reader_brightness"
+    const val SEARCH_STRICT = "pref_search_strict"
+    const val SEARCH_HISTORY = "pref_search_history"
+    const val RANK_CACHE = "pref_rank_cache"
 }
 
 object ReaderMode {
@@ -116,12 +124,18 @@ data class DownloadTaskItem(
 }
 
 fun chapterStoryDelta(chapters: List<ChapterItem>): Int {
-    val first = chapterNumber(chapters.firstOrNull()?.title)
-    val last = chapterNumber(chapters.lastOrNull()?.title)
-    if (first != null && last != null && first != last) {
-        return if (first > last) -1 else 1
+    var up = 0
+    var down = 0
+    var prev: Int? = null
+    for (chapter in chapters) {
+        val number = chapterNumber(chapter.title) ?: continue
+        val earlier = prev
+        if (earlier != null && number != earlier) {
+            if (number > earlier) up++ else down++
+        }
+        prev = number
     }
-    return 1
+    return if (down > up) -1 else 1
 }
 
 fun unreadChapters(chapters: List<ChapterItem>, lastPath: String?): List<ChapterItem> {
@@ -142,6 +156,5 @@ fun unreadChapters(chapters: List<ChapterItem>, lastPath: String?): List<Chapter
 
 private fun chapterNumber(title: String?): Int? {
     if (title.isNullOrEmpty()) return null
-    val match = Regex("\\d+").find(title) ?: return null
-    return match.value.toIntOrNull()
+    return Regex("\\d+").findAll(title).lastOrNull()?.value?.toIntOrNull()
 }

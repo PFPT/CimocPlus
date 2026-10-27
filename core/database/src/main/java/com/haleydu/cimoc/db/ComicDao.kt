@@ -26,6 +26,27 @@ interface ComicDao {
     @Query("SELECT * FROM COMIC WHERE FAVORITE IS NOT NULL ORDER BY HIGHLIGHT DESC, FAVORITE DESC")
     fun listFavoriteOrdered(): List<Comic>
 
+    @Query("SELECT * FROM COMIC WHERE FAVORITE IS NOT NULL ORDER BY HIGHLIGHT DESC, FAVORITE DESC LIMIT :limit OFFSET :offset")
+    fun listFavoritePage(offset: Int, limit: Int): List<Comic>
+
+    @Query("SELECT * FROM COMIC WHERE HISTORY IS NOT NULL ORDER BY HISTORY DESC LIMIT :limit OFFSET :offset")
+    fun listHistoryPage(offset: Int, limit: Int): List<Comic>
+
+    @Query("SELECT * FROM COMIC WHERE DOWNLOAD IS NOT NULL ORDER BY DOWNLOAD DESC LIMIT :limit OFFSET :offset")
+    fun listDownloadPage(offset: Int, limit: Int): List<Comic>
+
+    @Query("SELECT * FROM COMIC WHERE LOCAL = 1 ORDER BY _id ASC LIMIT :limit OFFSET :offset")
+    fun listLocalPage(offset: Int, limit: Int): List<Comic>
+
+    @Query("SELECT * FROM COMIC WHERE FAVORITE IS NOT NULL AND FINISH = 1 ORDER BY HIGHLIGHT DESC, FAVORITE DESC LIMIT :limit OFFSET :offset")
+    fun listFinishPage(offset: Int, limit: Int): List<Comic>
+
+    @Query("SELECT * FROM COMIC WHERE FAVORITE IS NOT NULL AND FINISH IS NOT 1 ORDER BY HIGHLIGHT DESC, FAVORITE DESC LIMIT :limit OFFSET :offset")
+    fun listContinuePage(offset: Int, limit: Int): List<Comic>
+
+    @Query("SELECT COMIC.* FROM COMIC INNER JOIN TAG_REF ON COMIC._id = TAG_REF.CID WHERE TAG_REF.TID = :tid ORDER BY HIGHLIGHT DESC, FAVORITE DESC LIMIT :limit OFFSET :offset")
+    fun listFavoriteByTagPage(tid: Long, offset: Int, limit: Int): List<Comic>
+
     @Query("SELECT * FROM COMIC WHERE FAVORITE IS NOT NULL ORDER BY HIGHLIGHT DESC, FAVORITE DESC")
     fun pagingFavorite(): PagingSource<Int, Comic>
 

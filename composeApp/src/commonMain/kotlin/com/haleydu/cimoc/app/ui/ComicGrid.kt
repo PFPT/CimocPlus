@@ -71,7 +71,7 @@ fun ComicGrid(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = modifier.fillMaxSize()
             ) {
-                items(items, key = { "${it.source}_${it.cid}_${it.id}" }) { comic ->
+                items(items, key = { "${it.source}_${it.cid}_${it.id}" }, contentType = { "comic" }) { comic ->
                     ComicCard(
                         comic = comic,
                         sourceTitle = titles[comic.source].orEmpty(),

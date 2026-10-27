@@ -78,6 +78,8 @@ class SourceManager @Inject constructor(
 ) {
 
     private val mParserArray = SparseArray<Parser>()
+    private val titleCache = HashMap<Int, String>()
+    private var titlesLoaded = false
 
     fun list(): List<Source> = mSourceDao.list()
 
@@ -85,12 +87,36 @@ class SourceManager @Inject constructor(
 
     fun load(type: Int): Source? = mSourceDao.load(type)
 
-    fun insert(source: Source): Long = mSourceDao.insert(source)
-
-    fun update(source: Source) {
-        mSourceDao.update(source)
+    @Synchronized
+    fun insert(source: Source): Long {
+        val id = mSourceDao.insert(source)
+        titlesLoaded = false
+        titleCache.clear()
+        return id
     }
 
+    @Synchronized
+    fun update(source: Source) {
+        mSourceDao.update(source)
+        titlesLoaded = false
+        titleCache.clear()
+    }
+
+    @Synchronized
+    fun titleOf(type: Int): String {
+        if (!titlesLoaded) {
+            for (source in list()) {
+                titleCache[source.type] = source.title
+            }
+            titlesLoaded = true
+        }
+        titleCache[type]?.let { return it }
+        val title = load(type)?.title.orEmpty()
+        titleCache[type] = title
+        return title
+    }
+
+    @Synchronized
     fun getParser(type: Int): Parser {
         var parser = mParserArray.get(type)
         if (parser == null) {
@@ -190,8 +216,11 @@ class SourceManager @Inject constructor(
         return parser
     }
 
+    @Synchronized
     fun clearParserCache() {
         mParserArray.clear()
+        titlesLoaded = false
+        titleCache.clear()
     }
 
     inner class TitleGetter {

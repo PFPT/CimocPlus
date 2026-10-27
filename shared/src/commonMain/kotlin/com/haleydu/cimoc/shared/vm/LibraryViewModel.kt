@@ -55,7 +55,37 @@ class LibraryViewModel(
     }
 
     fun resume() {
-        load(_ui.value.tab, _ui.value.tagId)
+        val state = _ui.value
+        if (state.items.isEmpty()) {
+            load(state.tab, state.tagId)
+            return
+        }
+        if (state.loading) return
+        _ui.update { it.copy(loading = true) }
+        val tab = state.tab
+        val tagId = state.tagId
+        scope.launch {
+            val page = runCatching { fetchPage(tab, tagId, 0) }.getOrNull()
+            _ui.update {
+                if (it.tab != tab || it.tagId != tagId) return@update it
+                if (page == null) return@update it.copy(loading = false)
+                if (page.isEmpty()) {
+                    return@update it.copy(items = emptyList(), loading = false, ended = true, titles = emptyMap())
+                }
+                val ids = page.mapNotNull { comic -> comic.id }.toSet()
+                val tail = it.items.drop(page.size).filter { comic ->
+                    val id = comic.id
+                    id == null || id !in ids
+                }
+                val merged = page + tail
+                it.copy(
+                    items = merged,
+                    loading = false,
+                    ended = if (tail.isEmpty()) page.size < PAGE else it.ended,
+                    titles = titlesFor(merged)
+                )
+            }
+        }
     }
 
     fun selectTag(id: Long) {
@@ -88,19 +118,7 @@ class LibraryViewModel(
         val offset = state.items.size
         val tagId = state.tagId
         scope.launch {
-            val page = runCatching {
-                when (state.tab) {
-                    Tab.Favorite -> when (tagId) {
-                        TagIds.ALL -> comics.listFavoritePage(offset, PAGE)
-                        TagIds.CONTINUE -> comics.listContinuePage(offset, PAGE)
-                        TagIds.FINISH -> comics.listFinishPage(offset, PAGE)
-                        else -> comics.listFavoriteByTagPage(tagId, offset, PAGE)
-                    }
-                    Tab.History -> comics.listHistoryPage(offset, PAGE)
-                    Tab.Download -> comics.listDownloadPage(offset, PAGE)
-                    Tab.Local -> comics.listLocalPage(offset, PAGE)
-                }
-            }.getOrDefault(emptyList())
+            val page = runCatching { fetchPage(state.tab, tagId, offset) }.getOrDefault(emptyList())
             _ui.update {
                 if (it.tab != state.tab || it.tagId != tagId) return@update it
                 val merged = it.items + page
@@ -108,7 +126,7 @@ class LibraryViewModel(
                     items = merged,
                     loading = false,
                     ended = page.size < PAGE,
-                    titles = merged.associate { comic -> comic.source to sources.sourceTitle(comic.source) }
+                    titles = titlesFor(merged)
                 )
             }
         }
@@ -128,6 +146,30 @@ class LibraryViewModel(
             runCatching { comics.deleteHistory(id) }
             load(Tab.History)
         }
+    }
+
+    private suspend fun fetchPage(tab: Tab, tagId: Long, offset: Int): List<ComicItem> {
+        return when (tab) {
+            Tab.Favorite -> when (tagId) {
+                TagIds.ALL -> comics.listFavoritePage(offset, PAGE)
+                TagIds.CONTINUE -> comics.listContinuePage(offset, PAGE)
+                TagIds.FINISH -> comics.listFinishPage(offset, PAGE)
+                else -> comics.listFavoriteByTagPage(tagId, offset, PAGE)
+            }
+            Tab.History -> comics.listHistoryPage(offset, PAGE)
+            Tab.Download -> comics.listDownloadPage(offset, PAGE)
+            Tab.Local -> comics.listLocalPage(offset, PAGE)
+        }
+    }
+
+    private fun titlesFor(comics: List<ComicItem>): Map<Int, String> {
+        val titles = HashMap<Int, String>()
+        for (comic in comics) {
+            if (comic.source !in titles) {
+                titles[comic.source] = sources.sourceTitle(comic.source)
+            }
+        }
+        return titles
     }
 
     private fun loadTags() {

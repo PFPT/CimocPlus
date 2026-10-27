@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
@@ -57,23 +58,28 @@ private fun CimocRoot(start: Screen) {
     val session = LocalCimocSession.current
     Navigator(start) { navigator ->
         val current = navigator.lastItem
-        val showBottom = current is Screen.Library || current is Screen.Search || current is Screen.Sources || current is Screen.Profile
+        val showBottom = current is Screen.Library || current is Screen.Search || current is Screen.Browser || current is Screen.Sources || current is Screen.Profile
         val isReader = current is Screen.Reader
+        val isWebReader = current is Screen.WebReader
+        val isWebBrowser = current is Screen.WebBrowser
         val keepReader = isReader || current is Screen.SourceHits
         val tab = when (current) {
             is Screen.Library -> Tab.Library
             is Screen.Search -> Tab.Search
+            is Screen.Browser -> Tab.Browser
             is Screen.Sources -> Tab.Sources
             is Screen.Profile -> Tab.Profile
             else -> null
         }
         LaunchedEffect(current, navigator) {
-            actions.bindBack {
-                if (navigator.canPop) {
-                    navigator.pop()
-                    true
-                } else {
-                    false
+            if (!isWebBrowser) {
+                actions.bindBack {
+                    if (navigator.canPop) {
+                        navigator.pop()
+                        true
+                    } else {
+                        false
+                    }
                 }
             }
             actions.bindVolume(
@@ -84,10 +90,12 @@ private fun CimocRoot(start: Screen) {
                 }
             )
             if (!keepReader) {
-                actions.setImmersive(false)
-                actions.setKeepScreenOn(false)
                 actions.setBrightness(null)
                 session.reader.reset()
+            }
+            if (!keepReader && !isWebReader) {
+                actions.setImmersive(false)
+                actions.setKeepScreenOn(false)
             }
         }
 
@@ -109,6 +117,12 @@ private fun CimocRoot(start: Screen) {
                             label = { Text("搜索") }
                         )
                         NavigationBarItem(
+                            selected = tab == Tab.Browser,
+                            onClick = { navigator.replaceAll(Screen.Browser) },
+                            icon = { Icon(Icons.Default.Language, contentDescription = "浏览") },
+                            label = { Text("浏览") }
+                        )
+                        NavigationBarItem(
                             selected = tab == Tab.Sources,
                             onClick = { navigator.replaceAll(Screen.Sources) },
                             icon = { Icon(Icons.Default.Explore, contentDescription = "图源") },
@@ -125,7 +139,7 @@ private fun CimocRoot(start: Screen) {
             }
         ) { padding ->
             val contentModifier = Modifier.padding(padding).then(
-                if (isReader) Modifier else Modifier.windowInsetsPadding(WindowInsets.statusBars)
+                if (isReader || isWebReader || isWebBrowser) Modifier else Modifier.windowInsetsPadding(WindowInsets.statusBars)
             )
             Box(contentModifier) {
                 CurrentScreen()

@@ -16,7 +16,9 @@ class SourceListViewModel(
 ) {
     data class UiState(
         val items: List<SourceItem> = emptyList(),
-        val loading: Boolean = false
+        val loading: Boolean = false,
+        val importing: Boolean = false,
+        val message: String? = null
     )
 
     private val job = SupervisorJob()
@@ -25,6 +27,7 @@ class SourceListViewModel(
     val ui: StateFlow<UiState> = _ui
 
     fun load() {
+        sources.warm()
         _ui.update { it.copy(loading = true) }
         scope.launch {
             val list = runCatching { sources.listAll() }.getOrDefault(emptyList())
@@ -36,6 +39,37 @@ class SourceListViewModel(
         scope.launch {
             runCatching { sources.setEnabled(item.type, !item.enable) }
             load()
+        }
+    }
+
+    fun import(input: String) {
+        val text = input.trim()
+        if (text.isEmpty()) {
+            _ui.update { it.copy(message = "请输入脚本或地址") }
+            return
+        }
+        _ui.update { it.copy(importing = true, message = null) }
+        scope.launch {
+            val result = runCatching { sources.import(text) }
+            if (result.isSuccess) {
+                _ui.update { it.copy(importing = false, message = "已引入") }
+                load()
+            } else {
+                _ui.update { it.copy(importing = false, message = "引入失败") }
+            }
+        }
+    }
+
+    fun remove(item: SourceItem) {
+        if (!item.custom) return
+        scope.launch {
+            val result = runCatching { sources.removeCustom(item.type) }
+            if (result.isSuccess) {
+                _ui.update { it.copy(message = "已删除") }
+                load()
+            } else {
+                _ui.update { it.copy(message = "删除失败") }
+            }
         }
     }
 

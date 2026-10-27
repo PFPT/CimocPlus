@@ -54,6 +54,8 @@ class SourceProbe @Inject constructor(
         }
     }
 
+    fun homepage(type: Int): String = probeUrl(type)
+
     private fun probeUrl(type: Int): String {
         val parser = runCatching { sourceManager.getParser(type) }.getOrNull()
         val fromParser = parser?.getUrl("") ?: ""

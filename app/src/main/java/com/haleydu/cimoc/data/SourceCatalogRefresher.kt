@@ -35,7 +35,6 @@ class SourceCatalogRefresher @Inject constructor(
         val now = System.currentTimeMillis()
         val last = preferenceManager.getLong(PreferenceManager.PREF_SOURCE_CATALOG_REFRESH_AT, 0L)
         if (!force && now - last < COOLDOWN_MS) return
-        preferenceManager.putLong(PreferenceManager.PREF_SOURCE_CATALOG_REFRESH_AT, now)
         try {
             val fetched = sourceConfigManager.fetchRemote()
             sourceConfigManager.applyToDatabase()
@@ -45,6 +44,7 @@ class SourceCatalogRefresher @Inject constructor(
                 sourceHealthManager.resetAll()
                 preferenceManager.putInt(PreferenceManager.PREF_SOURCE_CATALOG_VERSION, CATALOG_VERSION)
             }
+            preferenceManager.putLong(PreferenceManager.PREF_SOURCE_CATALOG_REFRESH_AT, System.currentTimeMillis())
         } catch (_: Exception) {
         }
     }

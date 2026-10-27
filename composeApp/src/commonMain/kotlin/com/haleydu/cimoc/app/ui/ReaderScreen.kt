@@ -9,8 +9,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.rememberTransformableState
-import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -75,7 +73,6 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -133,12 +130,30 @@ fun ReaderScreen(
         }
     }
     val stale = state.comic != null && state.comic?.id != null && state.comic?.id != args.comicId
+    val chapterKey = state.chapter?.path ?: args.path
+    val reportPage = state.seekPage == null && !state.loading && !state.loadingMore
     LaunchedEffect(state.auto, state.page, state.pages.size, state.loading, stale) {
         if (!state.auto || state.pages.isEmpty() || state.loading || stale) return@LaunchedEffect
         delay(state.autoInterval * 1000L)
         vm.turnPage(true)
     }
     val start = (state.page - 1).coerceAtLeast(0)
+    LaunchedEffect(chapterKey, state.page, state.pages.size, stale) {
+        if (stale || state.pages.isEmpty()) return@LaunchedEffect
+        var left = 2
+        for (page in state.pages.drop(state.page.coerceAtLeast(0))) {
+            if (left == 0) break
+            if (!page.lazy) continue
+            if (!resolved[page.index].isNullOrEmpty()) {
+                left--
+                continue
+            }
+            left--
+            vm.resolveLazy(page) { url ->
+                if (url.isNotEmpty()) resolved[page.index] = url
+            }
+        }
+    }
     val prefetchUrls = if (stale) emptyList() else state.pages.drop(start).take(4).mapNotNull { page ->
         val url = if (page.lazy) resolved[page.index] else page.displayUrl
         url?.takeIf { it.isNotEmpty() }
@@ -161,11 +176,12 @@ fun ReaderScreen(
                 CircularProgressIndicator()
             }
             state.mode == ReaderMode.PAGE -> {
-                key(args.comicId, args.path) {
+                key(args.comicId, chapterKey) {
                 val pagerState = rememberPagerState(
-                    initialPage = (state.page - 1).coerceAtLeast(0)
+                    initialPage = (state.page - 1).coerceIn(0, (state.pages.size - 1).coerceAtLeast(0))
                 ) { state.pages.size.coerceAtLeast(1) }
-                LaunchedEffect(pagerState) {
+                LaunchedEffect(pagerState, reportPage) {
+                    if (!reportPage) return@LaunchedEffect
                     snapshotFlow { pagerState.currentPage }.distinctUntilChanged().collect { vm.setPage(it + 1) }
                 }
                 LaunchedEffect(state.seekPage, state.pages.size) {
@@ -180,7 +196,7 @@ fun ReaderScreen(
                     atEnd = pagerState.currentPage >= lastIndex,
                     reverseLayout = state.reverse,
                     vertical = state.vertical,
-                    enabled = edgeArmed && !state.loadingMore,
+                    enabled = edgeArmed && state.seekPage == null && !state.loadingMore,
                     onPrev = { vm.loadAdjacent(false) },
                     onNext = { vm.loadAdjacent(true) }
                 )
@@ -192,37 +208,67 @@ fun ReaderScreen(
                             handleReaderTap(offset, size.width.toFloat(), size.height.toFloat(), state.vertical, vm)
                         }
                     }
+                val pageTap = { offset: Offset, width: Float, height: Float ->
+                    handleReaderTap(offset, width, height, state.vertical, vm)
+                }
+                val pageFling = { velocityX: Float, velocityY: Float ->
+                    val next = if (state.vertical) {
+                        if (state.reverse) velocityY > 0f else velocityY < 0f
+                    } else {
+                        if (state.reverse) velocityX > 0f else velocityX < 0f
+                    }
+                    vm.turnPage(next)
+                }
                 if (state.vertical) {
                     VerticalPager(
                         state = pagerState,
                         reverseLayout = state.reverse,
                         beyondViewportPageCount = 1,
+                        userScrollEnabled = false,
                         modifier = pagerModifier
                     ) { index ->
-                        ReaderPagerPage(state.pages.getOrNull(index), resolved, state.headers, state.whiteEdge, vm::resolveLazy)
+                        ReaderPagerPage(
+                            state.pages.getOrNull(index),
+                            resolved,
+                            state.headers,
+                            state.whiteEdge,
+                            vm::resolveLazy,
+                            vertical = true,
+                            onTap = pageTap,
+                            onFling = pageFling
+                        )
                     }
                 } else {
                     HorizontalPager(
                         state = pagerState,
                         reverseLayout = state.reverse,
                         beyondViewportPageCount = 1,
+                        userScrollEnabled = false,
                         modifier = pagerModifier
                     ) { index ->
-                        ReaderPagerPage(state.pages.getOrNull(index), resolved, state.headers, state.whiteEdge, vm::resolveLazy)
+                        ReaderPagerPage(
+                            state.pages.getOrNull(index),
+                            resolved,
+                            state.headers,
+                            state.whiteEdge,
+                            vm::resolveLazy,
+                            vertical = false,
+                            onTap = pageTap,
+                            onFling = pageFling
+                        )
                     }
                 }
                 }
             }
             else -> {
-                val listState = remember(args.comicId, args.path) {
-                    androidx.compose.foundation.lazy.LazyListState()
+                val listState = remember(args.comicId, chapterKey) {
+                    androidx.compose.foundation.lazy.LazyListState(
+                        firstVisibleItemIndex = (state.page - 1).coerceIn(0, (state.pages.size - 1).coerceAtLeast(0))
+                    )
                 }
                 val scope = rememberCoroutineScope()
-                var scale by remember(args.comicId, args.path) { mutableStateOf(1f) }
-                val transform = rememberTransformableState { zoom, _, _ ->
-                    scale = (scale * zoom).coerceIn(1f, 3f)
-                }
-                LaunchedEffect(listState) {
+                LaunchedEffect(listState, reportPage) {
+                    if (!reportPage) return@LaunchedEffect
                     snapshotFlow { listState.firstVisibleItemIndex }.distinctUntilChanged().collect { vm.setPage(it + 1) }
                 }
                 LaunchedEffect(state.seekPage, state.pages.size) {
@@ -236,7 +282,7 @@ fun ReaderScreen(
                     atEnd = !listState.canScrollForward,
                     reverseLayout = false,
                     vertical = true,
-                    enabled = edgeArmed && !state.loadingMore,
+                    enabled = edgeArmed && state.seekPage == null && !state.loadingMore,
                     onPrev = { vm.loadAdjacent(false) },
                     onNext = { vm.loadAdjacent(true) }
                 )
@@ -246,8 +292,6 @@ fun ReaderScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .nestedScroll(edgeScroll)
-                        .graphicsLayer { scaleX = scale; scaleY = scale }
-                        .transformable(transform)
                         .pointerInput(state.reverse) {
                             detectTapGestures { offset ->
                                 handleReaderTap(offset, size.width.toFloat(), size.height.toFloat(), true, vm)
@@ -394,22 +438,22 @@ private fun rememberChapterEdgeConnection(
                 source: NestedScrollSource
             ): Offset {
                 val axis = if (vertical) available.y else available.x
-                dispatch(axis, 24f)
+                dispatch(axis, 24f, source)
                 return Offset.Zero
             }
 
             override suspend fun onPreFling(available: Velocity): Velocity {
                 val axis = if (vertical) available.y else available.x
-                return if (dispatch(axis, 400f)) available else Velocity.Zero
+                return if (dispatch(axis, 400f, NestedScrollSource.Fling)) available else Velocity.Zero
             }
 
             override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
                 val axis = if (vertical) available.y else available.x
-                return if (dispatch(axis, 280f)) available else Velocity.Zero
+                return if (dispatch(axis, 280f, NestedScrollSource.Fling)) available else Velocity.Zero
             }
 
-            private fun dispatch(axis: Float, threshold: Float): Boolean {
-                if (!enabled) return false
+            private fun dispatch(axis: Float, threshold: Float, source: NestedScrollSource): Boolean {
+                if (!enabled || !isUserChapterScroll(source)) return false
                 val towardNext = if (reverseLayout) axis > threshold else axis < -threshold
                 val towardPrev = if (reverseLayout) axis < -threshold else axis > threshold
                 return when {
@@ -426,6 +470,12 @@ private fun rememberChapterEdgeConnection(
             }
         }
     }
+}
+
+private fun isUserChapterScroll(source: NestedScrollSource): Boolean {
+    return source == NestedScrollSource.Drag ||
+        source == NestedScrollSource.Fling ||
+        source == NestedScrollSource.Wheel
 }
 
 private fun handleReaderTap(
@@ -574,7 +624,10 @@ private fun ReaderPagerPage(
     headers: Map<String, String>,
     whiteEdge: Boolean,
     resolveLazy: (PageImage, (String) -> Unit) -> Unit,
-    fillWidth: Boolean = false
+    fillWidth: Boolean = false,
+    vertical: Boolean = false,
+    onTap: ((Offset, Float, Float) -> Unit)? = null,
+    onFling: ((Float, Float) -> Unit)? = null
 ) {
     if (page == null) return
     val resolvedUrl = resolved[page.index]
@@ -595,6 +648,9 @@ private fun ReaderPagerPage(
         headers = headers,
         whiteEdge = whiteEdge,
         fillWidth = fillWidth,
+        vertical = vertical,
+        onTap = onTap,
+        onFling = onFling,
         modifier = if (fillWidth) Modifier.fillMaxWidth() else Modifier.fillMaxSize()
     )
 }

@@ -49,6 +49,7 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -106,9 +107,11 @@ class DownloadService : Service() {
             val list = IntentCompat.getParcelableArrayListExtra(intent, Extra.EXTRA_TASK, Task::class.java)
             if (list != null) {
                 for (task in list) {
+                    val taskId = task.id ?: continue
+                    if (mWorkerArray.get(taskId) != null) continue
                     val worker = Worker(task)
                     val future = mExecutorService.submit(worker)
-                    addWorker(task.id!!, worker, future)
+                    addWorker(taskId, worker, future)
                 }
             }
         }
@@ -189,8 +192,10 @@ class DownloadService : Service() {
     inner class Worker(task: Task) : Runnable {
         var mTask: Task = task
         private var mParse: Parser = mSourceManager.getParser(task.source)
+        private val jmttClient: OkHttpClient by lazy { buildJmttClient() }
 
         override fun run() {
+            val imagePool = Executors.newFixedThreadPool(IMAGE_PARALLELISM)
             try {
                 val list = onDownloadParse()
                 val size = list.size
@@ -199,31 +204,54 @@ class DownloadService : Service() {
                     if (dir != null) {
                         mTask.max = size
                         mTask.state = Task.STATE_DOING
-                        var success = false
-                        var i = mTask.progress
-                        while (i < size) {
-                            onDownloadProgress(i)
-                            val image = list[i]
-                            var count = 0
-                            success = false
-                            while (count++ < 20 && !success) {
-                                val urls = image.urls
-                                var j = 0
-                                while (!success && j < urls!!.size) {
-                                    val url = if (image.lazy) MangaImages.getLazyUrl(mHttpClient, mParse, urls[j]) else urls[j]
-                                    val request = buildRequest(mParse.getHeader(url ?: ""), url)
-                                    success = RequestAndWrite(dir, request, i + 1, url)
-                                    j++
+                        val start = mTask.progress.coerceIn(0, size)
+                        val doneFlags = BooleanArray(size) { index -> index < start }
+                        val failed = AtomicBoolean(false)
+                        val pause = AtomicReference<InterruptedIOException?>(null)
+                        val futures = ArrayList<Future<*>>(size - start)
+                        for (index in start until size) {
+                            val image = list[index]
+                            futures.add(imagePool.submit {
+                                if (failed.get() || pause.get() != null) return@submit
+                                try {
+                                    val ok = downloadImage(dir, image, index)
+                                    if (!ok) {
+                                        failed.set(true)
+                                        return@submit
+                                    }
+                                    synchronized(doneFlags) {
+                                        doneFlags[index] = true
+                                        var prefix = 0
+                                        while (prefix < size && doneFlags[prefix]) prefix++
+                                        onDownloadProgress(prefix)
+                                    }
+                                } catch (e: InterruptedIOException) {
+                                    pause.set(e)
+                                    failed.set(true)
+                                } catch (_: Exception) {
+                                    failed.set(true)
                                 }
-                            }
-                            if (!success) {
-                                AppEventBus.post(AppEvent(AppEvent.EVENT_TASK_STATE_CHANGE, Task.STATE_ERROR, mTask.id))
-                                break
-                            }
-                            i++
+                            })
                         }
-                        if (success) {
-                            onDownloadProgress(size)
+                        try {
+                            for (future in futures) {
+                                future.get()
+                            }
+                        } catch (e: InterruptedException) {
+                            imagePool.shutdownNow()
+                            throw InterruptedIOException()
+                        }
+                        val paused = pause.get()
+                        if (paused != null) throw paused
+                        if (failed.get()) {
+                            AppEventBus.post(AppEvent(AppEvent.EVENT_TASK_STATE_CHANGE, Task.STATE_ERROR, mTask.id))
+                        } else {
+                            markChapterDownloaded(size)
+                            mTask.progress = size
+                            mTask.max = size
+                            mTask.state = Task.STATE_FINISH
+                            mTaskManager.update(mTask)
+                            AppEventBus.post(AppEvent(AppEvent.EVENT_TASK_STATE_CHANGE, Task.STATE_FINISH, mTask.id))
                         }
                     } else {
                         AppEventBus.post(AppEvent(AppEvent.EVENT_TASK_STATE_CHANGE, Task.STATE_ERROR, mTask.id))
@@ -232,9 +260,29 @@ class DownloadService : Service() {
                     AppEventBus.post(AppEvent(AppEvent.EVENT_TASK_STATE_CHANGE, Task.STATE_ERROR, mTask.id))
                 }
             } catch (e: InterruptedIOException) {
+                imagePool.shutdownNow()
                 AppEventBus.post(AppEvent(AppEvent.EVENT_TASK_STATE_CHANGE, Task.STATE_PAUSE, mTask.id))
+            } finally {
+                imagePool.shutdownNow()
             }
             completeDownload(mTask.id!!)
+        }
+
+        private fun downloadImage(dir: DocumentFile, image: ImageUrl, index: Int): Boolean {
+            var count = 0
+            while (count++ < 20) {
+                if (Thread.currentThread().isInterrupted) throw InterruptedIOException()
+                val urls = image.urls ?: continue
+                var j = 0
+                while (j < urls.size) {
+                    val raw = urls[j]
+                    val url = if (image.lazy) MangaImages.getLazyUrl(mHttpClient, mParse, raw) else raw
+                    val request = buildRequest(mParse.getHeader(url ?: ""), url)
+                    if (RequestAndWrite(dir, request, index + 1, url)) return true
+                    j++
+                }
+            }
+            return false
         }
 
         @Throws(InterruptedIOException::class)
@@ -243,23 +291,7 @@ class DownloadService : Service() {
                 var response: Response? = null
                 try {
                     if (mTask.source == 72) {
-                        val mJMTTHttpClient = OkHttpClient().newBuilder()
-                            .followRedirects(true)
-                            .followSslRedirects(true)
-                            .retryOnConnectionFailure(true)
-                            .addInterceptor { chain ->
-                                val url1 = chain.request().url.toString()
-                                val response1 = chain.proceed(chain.request())
-                                if (!url1.lowercase().contains("media/photos")) return@addInterceptor response1
-                                val cha = url1.substring(url1.indexOf("photos/") + 7, url1.lastIndexOf("/")).toInt()
-                                if (cha < 220980) return@addInterceptor response1
-                                val res = JMTTUtil().decodeImage(response1.body!!.byteStream())
-                                val mediaType = "image/avif,image/webp,image/apng,image/*,*/*".toMediaTypeOrNull()
-                                val outputBytes = res.toResponseBody(mediaType)
-                                response1.newBuilder().body(outputBytes).build()
-                            }
-                            .build()
-                        response = mJMTTHttpClient.newCall(request).execute()
+                        response = jmttClient.newCall(request).execute()
                     } else {
                         response = mHttpClient.newCall(request).execute()
                     }
@@ -312,10 +344,40 @@ class DownloadService : Service() {
             return MangaImages.getImageUrls(mHttpClient, mParse, mTask.source, mTask.cid ?: "", mTask.path, mTask.title, mChapterManager)
         }
 
+        private fun buildJmttClient(): OkHttpClient {
+            return OkHttpClient().newBuilder()
+                .followRedirects(true)
+                .followSslRedirects(true)
+                .retryOnConnectionFailure(true)
+                .addInterceptor { chain ->
+                    val url1 = chain.request().url.toString()
+                    val response1 = chain.proceed(chain.request())
+                    if (!url1.lowercase().contains("media/photos")) return@addInterceptor response1
+                    val cha = url1.substring(url1.indexOf("photos/") + 7, url1.lastIndexOf("/")).toInt()
+                    if (cha < 220980) return@addInterceptor response1
+                    val res = JMTTUtil().decodeImage(response1.body!!.byteStream())
+                    val mediaType = "image/avif,image/webp,image/apng,image/*,*/*".toMediaTypeOrNull()
+                    val outputBytes = res.toResponseBody(mediaType)
+                    response1.newBuilder().body(outputBytes).build()
+                }
+                .build()
+        }
+
+        private var persistedProgress = mTask.progress
+
         private fun onDownloadProgress(progress: Int) {
             mTask.progress = progress
-            mTaskManager.update(mTask)
+            val done = mTask.max != 0 && progress >= mTask.max
+            if (done || progress - persistedProgress >= 5) {
+                mTaskManager.update(mTask)
+                persistedProgress = progress
+            }
             AppEventBus.post(AppEvent(AppEvent.EVENT_TASK_PROCESS, mTask.id, progress, mTask.max))
+        }
+
+        private fun markChapterDownloaded(count: Int) {
+            val sourceComic = (mTask.source.toString() + "000" + mTask.key).toLongOrNull() ?: return
+            mChapterManager.markDownloaded(sourceComic, mTask.path, count)
         }
     }
 
@@ -326,6 +388,7 @@ class DownloadService : Service() {
 
     companion object {
         private const val NOTIFICATION_DOWNLOAD = "NOTIFICATION_DOWNLOAD"
+        private const val IMAGE_PARALLELISM = 3
         private val sRunning = AtomicBoolean(false)
         @Volatile
         private var sInstance: DownloadService? = null

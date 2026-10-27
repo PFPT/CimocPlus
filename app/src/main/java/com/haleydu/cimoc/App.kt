@@ -22,6 +22,7 @@ import com.haleydu.cimoc.saf.DocumentFile
 import com.haleydu.cimoc.utils.DocumentUtils
 import com.haleydu.cimoc.utils.StringUtils
 import dagger.hilt.android.HiltAndroidApp
+import kotlin.concurrent.thread
 import okhttp3.OkHttpClient
 import javax.inject.Inject
 
@@ -36,9 +37,6 @@ class App : MultiDexApplication(), AppGetter, Thread.UncaughtExceptionHandler {
 
     @Inject
     lateinit var sourceConfigManager: SourceConfigManager
-
-    @Inject
-    lateinit var sourceProbe: com.haleydu.cimoc.data.SourceProbe
 
     @Inject
     lateinit var database: CimocDatabase
@@ -62,8 +60,12 @@ class App : MultiDexApplication(), AppGetter, Thread.UncaughtExceptionHandler {
         AppCompatDelegate.setDefaultNightMode(
             if (night) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
         )
-        UpdateHelper.update(mPreferenceManager!!, sourceConfigManager, database.sourceDao())
-        sourceProbe.probeAsync()
+        val prefs = preferenceManager
+        val config = sourceConfigManager
+        val sourceDao = database.sourceDao()
+        thread(name = "cimoc-startup", isDaemon = true) {
+            UpdateHelper.update(prefs, config, sourceDao)
+        }
         initPixels()
 
         manager_wifi = getSystemService(WIFI_SERVICE) as WifiManager

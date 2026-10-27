@@ -29,12 +29,13 @@ object MangaImages {
             val request = parser.getImagesRequest(cid, path)
             response = client.newCall(request!!).execute()
             if (response.isSuccessful) {
+                val html = response.body?.string().orEmpty()
                 val chapter = mChapterManager.getChapter(path, title)
-                if (chapter != null && chapter.size >= 1) {
-                    list.addAll(parser.parseImages(response.body!!.string(), chapter[0]) ?: emptyList())
+                if (chapter.isNotEmpty()) {
+                    list.addAll(parser.parseImages(html, chapter[0]) ?: emptyList())
                 }
-                if (list.size == 0) {
-                    list.addAll(parser.parseImages(response.body!!.string()) ?: emptyList())
+                if (list.isEmpty()) {
+                    list.addAll(parser.parseImages(html) ?: emptyList())
                 }
             } else {
                 throw Manga.NetworkErrorException()

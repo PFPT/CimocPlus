@@ -21,7 +21,7 @@ import coil3.compose.SubcomposeAsyncImage
 import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import coil3.request.ImageRequest
-import coil3.request.crossfade
+import coil3.size.Precision
 
 @Composable
 actual fun ComicCover(
@@ -37,7 +37,10 @@ actual fun ComicCover(
     val context = LocalContext.current
     var retry by remember(url) { mutableStateOf(0) }
     val request = remember(url, headers, retry) {
-        val builder = ImageRequest.Builder(context).data(url).crossfade(true)
+        val builder = ImageRequest.Builder(context)
+            .data(url)
+            .size(360, 480)
+            .precision(Precision.INEXACT)
         if (headers.isNotEmpty()) {
             builder.httpHeaders(
                 NetworkHeaders.Builder().apply {

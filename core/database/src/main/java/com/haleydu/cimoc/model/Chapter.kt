@@ -8,7 +8,13 @@ import androidx.room.Ignore
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "CHAPTER", indices = [Index("SOURCE_COMIC")])
+@Entity(
+    tableName = "CHAPTER",
+    indices = [
+        Index("SOURCE_COMIC"),
+        Index(value = ["SOURCE_COMIC", "PATH"], unique = true, name = "index_CHAPTER_SOURCE_COMIC_PATH")
+    ]
+)
 class Chapter : Parcelable {
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "_id")

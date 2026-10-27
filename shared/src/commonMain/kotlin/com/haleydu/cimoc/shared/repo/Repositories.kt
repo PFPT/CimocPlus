@@ -6,6 +6,7 @@ import com.haleydu.cimoc.shared.model.DownloadTaskItem
 import com.haleydu.cimoc.shared.model.ExploreFilter
 import com.haleydu.cimoc.shared.model.LoadResult
 import com.haleydu.cimoc.shared.model.PageImage
+import com.haleydu.cimoc.shared.model.SearchStats
 import com.haleydu.cimoc.shared.model.SourceItem
 import com.haleydu.cimoc.shared.model.TagItem
 import kotlinx.coroutines.flow.Flow
@@ -35,17 +36,30 @@ interface SourceRepository {
     suspend fun listEnable(): List<SourceItem>
     suspend fun setEnabled(type: Int, enable: Boolean)
     fun sourceTitle(type: Int): String
+    suspend fun homepage(type: Int): String
+    fun warm()
+    suspend fun import(input: String): Int
+    suspend fun removeCustom(type: Int)
 }
 
 interface MangaRepository {
-    fun search(sources: List<Int>, keyword: String, page: Int, strict: Boolean): Flow<ComicItem>
-    suspend fun loadDetail(item: ComicItem): LoadResult<Pair<ComicItem, List<ChapterItem>>>
+    fun search(
+        sources: List<Int>,
+        keyword: String,
+        page: Int,
+        strict: Boolean,
+        stats: SearchStats? = null,
+        recordHealth: Boolean = true
+    ): Flow<ComicItem>
+    suspend fun loadRank(): LoadResult<List<ComicItem>>
+    suspend fun loadDetail(item: ComicItem, recordHealth: Boolean = true): LoadResult<Pair<ComicItem, List<ChapterItem>>>
     suspend fun loadPages(item: ComicItem, chapter: ChapterItem): LoadResult<List<PageImage>>
     suspend fun resolveLazy(source: Int, url: String): String?
     fun imageHeaders(source: Int): Map<String, String>
     suspend fun markRead(item: ComicItem, path: String): Long
     suspend fun saveProgress(comicId: Long, page: Int)
     suspend fun checkFavorites(): Int
+    suspend fun matchUrl(url: String): ComicItem?
 }
 
 interface ExploreRepository {
@@ -59,6 +73,7 @@ interface DownloadRepository {
     suspend fun pause(id: Long)
     suspend fun retry(id: Long)
     suspend fun delete(id: Long)
+    suspend fun delete(ids: List<Long>)
 }
 
 interface TagRepository {
@@ -74,6 +89,8 @@ interface SettingsRepository {
     fun setBool(key: String, value: Boolean)
     fun int(key: String, default: Int = 0): Int
     fun setInt(key: String, value: Int)
+    fun string(key: String, default: String = ""): String
+    fun setString(key: String, value: String)
     suspend fun backupFavorites(): LoadResult<Int>
     suspend fun restoreFavorites(filename: String): LoadResult<Unit>
     suspend fun listBackupFiles(): List<String>

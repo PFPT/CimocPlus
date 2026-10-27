@@ -19,7 +19,7 @@ import com.haleydu.cimoc.model.Task
 
 @Database(
     entities = [Comic::class, Chapter::class, Tag::class, TagRef::class, Source::class, Task::class, ImageUrl::class, SourceRule::class, SourceHealth::class],
-    version = 16,
+    version = 17,
     exportSchema = false
 )
 @TypeConverters(ImageUrl.StringConverter::class)
@@ -82,6 +82,28 @@ abstract class CimocDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "DELETE FROM CHAPTER WHERE PATH IS NOT NULL AND PATH != '' AND _id NOT IN (" +
+                        "SELECT keep_id FROM (" +
+                        "SELECT COALESCE(MIN(CASE WHEN COMPLETE != 0 THEN _id END), MIN(_id)) AS keep_id " +
+                        "FROM CHAPTER WHERE PATH IS NOT NULL AND PATH != '' " +
+                        "GROUP BY SOURCE_COMIC, PATH))"
+                )
+                db.execSQL(
+                    "DELETE FROM CHAPTER WHERE PATH = '' AND _id NOT IN (" +
+                        "SELECT keep_id FROM (" +
+                        "SELECT COALESCE(MIN(CASE WHEN COMPLETE != 0 THEN _id END), MIN(_id)) AS keep_id " +
+                        "FROM CHAPTER WHERE PATH = '' GROUP BY SOURCE_COMIC))"
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_CHAPTER_SOURCE_COMIC_PATH` " +
+                        "ON `CHAPTER` (`SOURCE_COMIC`, `PATH`)"
+                )
+            }
+        }
+
         @Volatile
         private var instance: CimocDatabase? = null
 
@@ -89,7 +111,13 @@ abstract class CimocDatabase : RoomDatabase() {
         fun getInstance(context: Context): CimocDatabase {
             return instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(context.applicationContext, CimocDatabase::class.java, "cimoc.db")
-                    .addMigrations(MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16)
+                    .addMigrations(
+                        MIGRATION_12_13,
+                        MIGRATION_13_14,
+                        MIGRATION_14_15,
+                        MIGRATION_15_16,
+                        MIGRATION_16_17
+                    )
                     .allowMainThreadQueries()
                     .build()
                     .also { instance = it }

@@ -21,6 +21,8 @@ class TaskManager @Inject constructor(
         return mTaskDao.list(k)
     }
 
+    fun load(key: Long, path: String): Task? = mTaskDao.load(key, path)
+
     fun insert(task: Task) {
         val id = mTaskDao.insert(task)
         task.id = id
@@ -61,8 +63,13 @@ class TaskManager @Inject constructor(
     fun insertIfNotExist(entities: Iterable<Task>) {
         database.runInTransaction {
             for (task in entities) {
-                if (mTaskDao.load(task.key, task.path) == null) {
-                    mTaskDao.insert(task)
+                val existing = mTaskDao.load(task.key, task.path)
+                if (existing == null) {
+                    task.id = mTaskDao.insert(task)
+                } else {
+                    task.id = existing.id
+                    task.progress = existing.progress
+                    task.max = existing.max
                 }
             }
         }

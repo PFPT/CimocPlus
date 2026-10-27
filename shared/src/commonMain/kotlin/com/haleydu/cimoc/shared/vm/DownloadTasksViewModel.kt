@@ -16,7 +16,9 @@ class DownloadTasksViewModel(
 ) {
     data class UiState(
         val items: List<DownloadTaskItem> = emptyList(),
-        val loading: Boolean = true
+        val loading: Boolean = true,
+        val selecting: Boolean = false,
+        val selected: Set<Long> = emptySet()
     )
 
     private val job = SupervisorJob()
@@ -27,7 +29,14 @@ class DownloadTasksViewModel(
     init {
         scope.launch {
             downloads.observeTasks().collect { list ->
-                _ui.update { it.copy(items = list, loading = false) }
+                _ui.update { state ->
+                    val ids = list.map { it.id }.toSet()
+                    state.copy(
+                        items = list,
+                        loading = false,
+                        selected = state.selected.filter { it in ids }.toSet()
+                    )
+                }
             }
         }
     }
@@ -42,6 +51,38 @@ class DownloadTasksViewModel(
 
     fun delete(id: Long) {
         scope.launch { runCatching { downloads.delete(id) } }
+    }
+
+    fun enterSelect() {
+        _ui.update { it.copy(selecting = true, selected = emptySet()) }
+    }
+
+    fun exitSelect() {
+        _ui.update { it.copy(selecting = false, selected = emptySet()) }
+    }
+
+    fun toggleSelect(id: Long) {
+        _ui.update {
+            val next = if (id in it.selected) it.selected - id else it.selected + id
+            it.copy(selected = next)
+        }
+    }
+
+    fun selectAll() {
+        _ui.update { it.copy(selected = it.items.map { task -> task.id }.toSet()) }
+    }
+
+    fun clearSelection() {
+        _ui.update { it.copy(selected = emptySet()) }
+    }
+
+    fun deleteSelected() {
+        val ids = _ui.value.selected.toList()
+        if (ids.isEmpty()) return
+        scope.launch {
+            runCatching { downloads.delete(ids) }
+            _ui.update { it.copy(selecting = false, selected = emptySet()) }
+        }
     }
 
     fun clear() {

@@ -30,6 +30,21 @@ class ComicManager @Inject constructor(
 
     fun listFavoriteOrdered(): List<Comic> = mComicDao.listFavoriteOrdered()
 
+    fun listFavoritePage(offset: Int, limit: Int): List<Comic> = mComicDao.listFavoritePage(offset, limit)
+
+    fun listHistoryPage(offset: Int, limit: Int): List<Comic> = mComicDao.listHistoryPage(offset, limit)
+
+    fun listDownloadPage(offset: Int, limit: Int): List<Comic> = mComicDao.listDownloadPage(offset, limit)
+
+    fun listLocalPage(offset: Int, limit: Int): List<Comic> = mComicDao.listLocalPage(offset, limit)
+
+    fun listFinishPage(offset: Int, limit: Int): List<Comic> = mComicDao.listFinishPage(offset, limit)
+
+    fun listContinuePage(offset: Int, limit: Int): List<Comic> = mComicDao.listContinuePage(offset, limit)
+
+    fun listFavoriteByTagPage(id: Long, offset: Int, limit: Int): List<Comic> =
+        mComicDao.listFavoriteByTagPage(id, offset, limit)
+
     fun pagingFavorite(): PagingSource<Int, Comic> = mComicDao.pagingFavorite()
 
     fun pagingHistory(): PagingSource<Int, Comic> = mComicDao.pagingHistory()

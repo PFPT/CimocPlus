@@ -2,6 +2,7 @@ package com.haleydu.cimoc.app.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 
 @Composable
 expect fun ReaderPageCanvas(
@@ -9,7 +10,10 @@ expect fun ReaderPageCanvas(
     headers: Map<String, String>,
     modifier: Modifier = Modifier,
     whiteEdge: Boolean = false,
-    fillWidth: Boolean = false
+    fillWidth: Boolean = false,
+    vertical: Boolean = false,
+    onTap: ((Offset, Float, Float) -> Unit)? = null,
+    onFling: ((Float, Float) -> Unit)? = null
 )
 
 @Composable

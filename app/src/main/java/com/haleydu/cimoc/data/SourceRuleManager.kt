@@ -70,6 +70,14 @@ class SourceRuleManager @Inject constructor(
         sourceManager.clearParserCache()
     }
 
+    fun deleteCustom(type: Int) {
+        if (type < TYPE_JS_START) throw IllegalArgumentException("builtin")
+        val id = sourceDao.load(type)?.id
+        if (id != null) sourceDao.deleteById(id)
+        sourceRuleDao.deleteByType(type)
+        sourceManager.clearParserCache()
+    }
+
     private fun isRemoteUrl(text: String): Boolean {
         val lower = text.lowercase()
         return lower.startsWith("http://") || lower.startsWith("https://")

@@ -156,11 +156,12 @@ object Download {
 
     @JvmStatic
     fun getChapterDir(root: DocumentFile?, comic: Comic, chapter: Chapter, title: String): DocumentFile? {
+        val path = chapter.path?.takeIf { it.isNotEmpty() } ?: return null
         var result = DocumentUtils.findFile(
             root, DOWNLOAD,
             comic.source.toString(),
             comic.cid.replace("[:/(\\\\)(\\?)<>\"(\\|)(\\.)]".toRegex(), ""),
-            DecryptionUtils.urlDecrypt(chapter.path!!.replace("[:/(\\\\)(\\?)<>\"(\\|)(\\.)]".toRegex(), "-"))
+            DecryptionUtils.urlDecrypt(path.replace("[:/(\\\\)(\\?)<>\"(\\|)(\\.)]".toRegex(), "-"))
         )
         if (result == null) {
             result = DocumentUtils.findFile(root, DOWNLOAD, title, comic.title, chapter.title ?: "")
@@ -170,16 +171,13 @@ object Download {
 
     @JvmStatic
     fun images(root: DocumentFile?, comic: Comic, chapter: Chapter, title: String): List<ImageUrl> {
-        val dir = getChapterDir(root, comic, chapter, title)
-        val files = dir!!.listFiles(
+        val dir = getChapterDir(root, comic, chapter, title) ?: return emptyList()
+        val files = dir.listFiles(
             DocumentFile.DocumentFileFilter { file -> !file.name.endsWith("cdif") },
             Comparator { lhs, rhs -> lhs.name.compareTo(rhs.name) }
         )
-        val list = Storage.buildImageUrlFromDocumentFile(files, chapter.path ?: "", chapter.count, chapter)
-        if (list.isNotEmpty()) {
-            return list
-        }
-        throw RuntimeException()
+        val max = if (chapter.count > 0) chapter.count else Int.MAX_VALUE
+        return Storage.buildImageUrlFromDocumentFile(files, chapter.path ?: "", max, chapter)
     }
 
     @JvmStatic

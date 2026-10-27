@@ -3,25 +3,36 @@ package com.haleydu.cimoc.app.ui
 import android.graphics.Bitmap
 import kotlin.math.min
 
+fun needsReaderPixelFix(url: String, whiteEdge: Boolean): Boolean {
+    return whiteEdge || isJmttScrambled(url)
+}
+
 fun fixReaderBitmap(source: Bitmap, url: String, whiteEdge: Boolean): Bitmap {
-    var working = decodeJmtt(source, url) ?: source
+    val decoded = decodeJmtt(source, url)
+    var working = decoded ?: source
     if (whiteEdge) {
         val box = cropWhiteEdge(working)
-        if (box[2] > 0 && box[3] > 0 && (box[0] != 0 || box[1] != 0 || box[2] != working.width || box[3] != working.height)) {
-            working = Bitmap.createBitmap(working, box[0], box[1], box[2], box[3])
+        val changed = box[0] != 0 || box[1] != 0 || box[2] != working.width || box[3] != working.height
+        if (box[2] > 0 && box[3] > 0 && changed) {
+            val cropped = Bitmap.createBitmap(working, box[0], box[1], box[2], box[3])
+            if (working !== source && working !== cropped) working.recycle()
+            working = cropped
         }
     }
     return working
 }
 
-private fun decodeJmtt(source: Bitmap, url: String): Bitmap? {
-    val scrambleId = 220980
-    if (!url.contains("media/photos")) return null
+private fun isJmttScrambled(url: String): Boolean {
+    if (!url.contains("media/photos")) return false
     val start = url.indexOf("photos/") + 7
     val end = url.lastIndexOf("/")
-    if (start < 7 || end <= start) return null
-    val chapter = url.substring(start, end).toIntOrNull() ?: return null
-    if (chapter <= scrambleId) return null
+    if (start < 7 || end <= start) return false
+    val chapter = url.substring(start, end).toIntOrNull() ?: return false
+    return chapter > 220980
+}
+
+private fun decodeJmtt(source: Bitmap, url: String): Bitmap? {
+    if (!isJmttScrambled(url)) return null
     val width = source.width
     val height = source.height
     val result = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565)
