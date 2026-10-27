@@ -2,6 +2,11 @@
 .gradle/
 build/
 build.nosync/
+.kotlin/
+
+# macOS
+.DS_Store
+**/.DS_Store
 
 # Built application files
 *.apk
