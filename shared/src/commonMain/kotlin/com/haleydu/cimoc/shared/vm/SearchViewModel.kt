@@ -4,6 +4,8 @@ import com.haleydu.cimoc.shared.model.ComicItem
 import com.haleydu.cimoc.shared.model.PrefKeys
 import com.haleydu.cimoc.shared.model.SearchStats
 import com.haleydu.cimoc.shared.model.SourceItem
+import com.haleydu.cimoc.shared.model.selectedSearchTypes
+import com.haleydu.cimoc.shared.model.sourcesForSearch
 import com.haleydu.cimoc.shared.repo.MangaRepository
 import com.haleydu.cimoc.shared.repo.SettingsRepository
 import com.haleydu.cimoc.shared.repo.SourceRepository
@@ -53,15 +55,9 @@ class SearchViewModel(
 
     fun loadSources() {
         scope.launch {
-            val list = runCatching { sources.listEnable() }.getOrDefault(emptyList())
+            val list = sourcesForSearch(runCatching { sources.listEnable() }.getOrDefault(emptyList()))
             _ui.update {
-                val enabled = list.map { source -> source.type }.toSet()
-                val healthy = list.filter { source -> !source.invalid }.map { source -> source.type }.toSet()
-                val selected = if (it.selectedTypes.isEmpty()) {
-                    healthy
-                } else {
-                    it.selectedTypes.filter { type -> type in enabled }.toSet().ifEmpty { healthy }
-                }
+                val selected = selectedSearchTypes(list, it.selectedTypes)
                 it.copy(
                     enabledSources = list,
                     selectedTypes = selected,

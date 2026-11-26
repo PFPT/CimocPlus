@@ -2,109 +2,115 @@ package com.haleydu.cimoc.model
 
 import org.json.JSONObject
 
-class SourceConfig(@JvmField val key: String, @JvmField val type: Int, @JvmField val title: String, `object`: JSONObject) {
+class SourceConfig(
+    @JvmField val key: String,
+    @JvmField val type: Int,
+    @JvmField val title: String,
+    values: Map<String, String>
+) {
+    constructor(key: String, type: Int, title: String, `object`: JSONObject) : this(key, type, title, fromJson(`object`))
 
     @JvmField
-    val baseUrl: String = trimSlash(opt(`object`, "baseUrl"))
+    val baseUrl: String = trimSlash(value(values, "baseUrl"))
 
     @JvmField
-    val serverUrl: String = opt(`object`, "serverUrl")
+    val serverUrl: String = value(values, "serverUrl")
 
     @JvmField
-    val search: String = opt(`object`, "search")
+    val search: String = value(values, "search")
 
     @JvmField
-    val searchKey: String = opt(`object`, "searchKey")
+    val searchKey: String = value(values, "searchKey")
 
     @JvmField
-    val searchInfoList: String = opt(`object`, "searchInfoList")
+    val searchInfoList: String = value(values, "searchInfoList")
 
     @JvmField
-    val searchInfoCid: String = opt(`object`, "searchInfoCid")
+    val searchInfoCid: String = value(values, "searchInfoCid")
 
     @JvmField
-    val searchInfoTitle: String = opt(`object`, "searchInfoTitle")
+    val searchInfoTitle: String = value(values, "searchInfoTitle")
 
     @JvmField
-    val searchInfoCover: String = opt(`object`, "searchInfoCover")
+    val searchInfoCover: String = value(values, "searchInfoCover")
 
     @JvmField
-    val searchInfoAuthor: String = opt(`object`, "searchInfoAuthor")
+    val searchInfoAuthor: String = value(values, "searchInfoAuthor")
 
     @JvmField
-    val searchInfoUpdate: String = opt(`object`, "searchInfoUpdate")
+    val searchInfoUpdate: String = value(values, "searchInfoUpdate")
 
     @JvmField
-    val parseInfoTitle: String = opt(`object`, "parseInfoTitle")
+    val parseInfoTitle: String = value(values, "parseInfoTitle")
 
     @JvmField
-    val parseInfoCover: String = opt(`object`, "parseInfoCover")
+    val parseInfoCover: String = value(values, "parseInfoCover")
 
     @JvmField
-    val parseInfoIntro: String = opt(`object`, "parseInfoIntro")
+    val parseInfoIntro: String = value(values, "parseInfoIntro")
 
     @JvmField
-    val parseInfoAuthor: String = opt(`object`, "parseInfoAuthor")
+    val parseInfoAuthor: String = value(values, "parseInfoAuthor")
 
     @JvmField
-    val parseInfoUpdate: String = opt(`object`, "parseInfoUpdate")
+    val parseInfoUpdate: String = value(values, "parseInfoUpdate")
 
     @JvmField
-    val parseInfoStatus: String = opt(`object`, "parseInfoStatus")
+    val parseInfoStatus: String = value(values, "parseInfoStatus")
 
     @JvmField
-    val parseInfoTags: String = opt(`object`, "parseInfoTags")
+    val parseInfoTags: String = value(values, "parseInfoTags")
 
     @JvmField
-    val parseChapterList1: String = opt(`object`, "parseChapterList1")
+    val parseChapterList1: String = value(values, "parseChapterList1")
 
     @JvmField
-    val parseChapterList2: String = opt(`object`, "parseChapterList2")
+    val parseChapterList2: String = value(values, "parseChapterList2")
 
     @JvmField
-    val parseChapterList3: String = opt(`object`, "parseChapterList3")
+    val parseChapterList3: String = value(values, "parseChapterList3")
 
     @JvmField
-    val parseChapterPath: String = opt(`object`, "parseChapterPath")
+    val parseChapterPath: String = value(values, "parseChapterPath")
 
     @JvmField
-    val parseChapterTitle: String = opt(`object`, "parseChapterTitle")
+    val parseChapterTitle: String = value(values, "parseChapterTitle")
 
     @JvmField
-    val parseImageList: String = opt(`object`, "parseImageList")
+    val parseImageList: String = value(values, "parseImageList")
 
     @JvmField
-    val parseImageUrl: String = firstNonEmpty(opt(`object`, "parseImageUrl"), opt(`object`, "parseImageSrc"))
+    val parseImageUrl: String = firstNonEmpty(value(values, "parseImageUrl"), value(values, "parseImageSrc"))
 
     @JvmField
-    val parseImageFaultImage: String = opt(`object`, "parseImageFaultImage")
+    val parseImageFaultImage: String = value(values, "parseImageFaultImage")
 
     @JvmField
-    val imageServerUrl: String = firstNonEmpty(opt(`object`, "imageServerUrl"), serverUrl)
+    val imageServerUrl: String = firstNonEmpty(value(values, "imageServerUrl"), serverUrl)
 
     @JvmField
-    val parseCategoryPath: String = opt(`object`, "parseCategoryPath")
+    val parseCategoryPath: String = value(values, "parseCategoryPath")
 
     @JvmField
-    val parseCategoryInfoList: String = firstNonEmpty(opt(`object`, "parseCategoryInfoList"), searchInfoList)
+    val parseCategoryInfoList: String = firstNonEmpty(value(values, "parseCategoryInfoList"), searchInfoList)
 
     @JvmField
-    val parseCategoryInfoCid: String = firstNonEmpty(opt(`object`, "parseCategoryInfoCid"), searchInfoCid)
+    val parseCategoryInfoCid: String = firstNonEmpty(value(values, "parseCategoryInfoCid"), searchInfoCid)
 
     @JvmField
-    val parseCategoryInfoCidPre: String = opt(`object`, "parseCategoryInfoCidPre")
+    val parseCategoryInfoCidPre: String = value(values, "parseCategoryInfoCidPre")
 
     @JvmField
-    val parseCategoryInfoTitle: String = firstNonEmpty(opt(`object`, "parseCategoryInfoTitle"), searchInfoTitle)
+    val parseCategoryInfoTitle: String = firstNonEmpty(value(values, "parseCategoryInfoTitle"), searchInfoTitle)
 
     @JvmField
-    val parseCategoryInfoCover: String = firstNonEmpty(opt(`object`, "parseCategoryInfoCover"), searchInfoCover)
+    val parseCategoryInfoCover: String = firstNonEmpty(value(values, "parseCategoryInfoCover"), searchInfoCover)
 
     @JvmField
-    val parseCategoryInfoAuthor: String = firstNonEmpty(opt(`object`, "parseCategoryInfoAuthor"), searchInfoAuthor)
+    val parseCategoryInfoAuthor: String = firstNonEmpty(value(values, "parseCategoryInfoAuthor"), searchInfoAuthor)
 
     @JvmField
-    val parseCategoryInfoUpdate: String = firstNonEmpty(opt(`object`, "parseCategoryInfoUpdate"), searchInfoUpdate)
+    val parseCategoryInfoUpdate: String = firstNonEmpty(value(values, "parseCategoryInfoUpdate"), searchInfoUpdate)
 
     fun hasCategory(): Boolean = parseCategoryPath.isNotEmpty()
 
@@ -119,9 +125,18 @@ class SourceConfig(@JvmField val key: String, @JvmField val type: Int, @JvmField
     }
 
     companion object {
-        private fun opt(`object`: JSONObject, name: String): String {
-            val value = `object`.optString(name, "")
-            return value?.trim() ?: ""
+        private fun fromJson(`object`: JSONObject): Map<String, String> {
+            val names = `object`.keys()
+            val values = HashMap<String, String>()
+            while (names.hasNext()) {
+                val name = names.next()
+                values[name] = `object`.optString(name, "").trim()
+            }
+            return values
+        }
+
+        private fun value(values: Map<String, String>, name: String): String {
+            return values[name]?.trim().orEmpty()
         }
 
         private fun firstNonEmpty(a: String?, b: String?): String {

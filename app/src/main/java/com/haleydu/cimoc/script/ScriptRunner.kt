@@ -9,9 +9,12 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.mozilla.javascript.BaseFunction
 import org.mozilla.javascript.Context
+import org.mozilla.javascript.Script
 import org.mozilla.javascript.Scriptable
 import org.mozilla.javascript.ScriptableObject
 import org.mozilla.javascript.Undefined
+import java.security.MessageDigest
+import java.util.LinkedHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
@@ -24,6 +27,11 @@ class ScriptRunner @Inject constructor(
     private val jsoup: JsJsoup,
     private val console: JsConsole
 ) {
+    private val compiled = object : LinkedHashMap<String, Script>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Script>?): Boolean {
+            return size > 64
+        }
+    }
 
     suspend fun invoke(script: String, function: String, vararg args: Any?): String =
         withContext(Dispatchers.IO) {
@@ -35,7 +43,7 @@ class ScriptRunner @Inject constructor(
     fun invokeBlocking(script: String, function: String, vararg args: Any?): String {
         val future = executor.submit<String> {
             withEngine { context, scope ->
-                context.evaluateString(scope, script, "script", 1, null)
+                execScript(context, scope, script)
                 val call = "$function(${args.joinToString(",") { jsLiteral(it) }})"
                 val result = context.evaluateString(scope, "String($call)", "call", 1, null)
                 Context.toString(result) ?: ""
@@ -52,7 +60,7 @@ class ScriptRunner @Inject constructor(
     fun hasFunction(script: String, function: String): Boolean {
         return try {
             withEngine { context, scope ->
-                context.evaluateString(scope, script, "script", 1, null)
+                execScript(context, scope, script)
                 val result = context.evaluateString(
                     scope,
                     "typeof $function === 'function'",
@@ -69,13 +77,39 @@ class ScriptRunner @Inject constructor(
 
     fun extractMeta(script: String): ScriptMeta {
         return withEngine { context, scope ->
-            context.evaluateString(scope, script, "script", 1, null)
+            execScript(context, scope, script)
             ScriptMeta(
                 intValue(context, scope, "TYPE") ?: intValue(context, scope, "type"),
                 stringValue(context, scope, "TITLE") ?: stringValue(context, scope, "title"),
                 stringValue(context, scope, "VERSION") ?: stringValue(context, scope, "version")
             )
         }
+    }
+
+    private fun execScript(context: Context, scope: Scriptable, script: String) {
+        compile(context, script).exec(context, scope)
+    }
+
+    private fun compile(context: Context, script: String): Script {
+        val key = sha256(script)
+        synchronized(compiled) {
+            compiled[key]?.let { return it }
+        }
+        val parsed = context.compileString(script, "script", 1, null)
+        synchronized(compiled) {
+            compiled[key] = parsed
+        }
+        return parsed
+    }
+
+    private fun sha256(script: String): String {
+        val digest = MessageDigest.getInstance("SHA-256").digest(script.toByteArray())
+        val out = StringBuilder(digest.size * 2)
+        for (byte in digest) {
+            out.append("0123456789abcdef"[(byte.toInt() shr 4) and 0x0F])
+            out.append("0123456789abcdef"[byte.toInt() and 0x0F])
+        }
+        return out.toString()
     }
 
     private fun <T> withEngine(block: (Context, Scriptable) -> T): T {

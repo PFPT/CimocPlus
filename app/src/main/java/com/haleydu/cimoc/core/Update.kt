@@ -48,7 +48,7 @@ class Update {
         AppDialog.INSTANCE.showDialog(getContext(), view)
     }
 
-    fun getContext(): Context = App.getActivity()
+    fun getContext(): Context = App.getAppContext()
 
     companion object {
         private const val UPDATE_URL = "https://api.github.com/repos/Haleydu/cimoc/releases/latest"

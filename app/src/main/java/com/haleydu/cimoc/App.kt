@@ -1,11 +1,9 @@
 package com.haleydu.cimoc
 
-import android.app.Activity
 import android.content.Context
 import android.content.res.Resources
 import android.net.wifi.WifiManager
 import android.os.Build
-import android.os.Bundle
 import android.util.DisplayMetrics
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.multidex.MultiDex
@@ -49,9 +47,11 @@ class App : MultiDexApplication(), AppGetter, Thread.UncaughtExceptionHandler {
 
     private var mDocumentFile: DocumentFile? = null
     private lateinit var mActivityLifecycle: ActivityLifecycle
+    private var previousHandler: Thread.UncaughtExceptionHandler? = null
 
     override fun onCreate() {
         super.onCreate()
+        previousHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler(this)
         mActivityLifecycle = ActivityLifecycle()
         registerActivityLifecycleCallbacks(mActivityLifecycle)
@@ -70,29 +70,6 @@ class App : MultiDexApplication(), AppGetter, Thread.UncaughtExceptionHandler {
 
         manager_wifi = getSystemService(WIFI_SERVICE) as WifiManager
         mApp = this
-        registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
-            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
-            }
-
-            override fun onActivityStarted(activity: Activity) {
-                sActivity = activity
-            }
-
-            override fun onActivityResumed(activity: Activity) {
-            }
-
-            override fun onActivityPaused(activity: Activity) {
-            }
-
-            override fun onActivityStopped(activity: Activity) {
-            }
-
-            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {
-            }
-
-            override fun onActivityDestroyed(activity: Activity) {
-            }
-        })
     }
 
     override fun uncaughtException(t: Thread, e: Throwable) {
@@ -112,8 +89,10 @@ class App : MultiDexApplication(), AppGetter, Thread.UncaughtExceptionHandler {
             DocumentUtils.writeStringToFile(contentResolver, file, sb.toString())
         } catch (_: Exception) {
         }
-        mActivityLifecycle.clear()
-        System.exit(1)
+        val next = previousHandler
+        if (next != null && next !== this) {
+            next.uncaughtException(t, e)
+        }
     }
 
     override val appInstance: App
@@ -165,7 +144,6 @@ class App : MultiDexApplication(), AppGetter, Thread.UncaughtExceptionHandler {
         private var mPreferenceManager: PreferenceManager? = null
         private var manager_wifi: WifiManager? = null
         private var mApp: App? = null
-        private var sActivity: Activity? = null
         private var UPDATE_CURRENT_URL = "https://api.github.com/repos/Haleydu/Cimoc/releases/latest"
 
         @JvmStatic
@@ -176,9 +154,6 @@ class App : MultiDexApplication(), AppGetter, Thread.UncaughtExceptionHandler {
 
         @JvmStatic
         fun getAppResources(): Resources = mApp!!.resources
-
-        @JvmStatic
-        fun getActivity(): Activity = sActivity!!
 
         @JvmStatic
         fun getManager_wifi(): WifiManager = manager_wifi!!

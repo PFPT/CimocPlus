@@ -28,6 +28,10 @@ android {
         jvmTarget = '17'
     }
 
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
+
     buildFeatures {
         buildConfig true
         viewBinding false
@@ -164,5 +168,6 @@ dependencies {
     implementation 'com.google.firebase:firebase-config:21.0.0'
     implementation 'com.king.app:app-updater:1.0.8-androidx'
     implementation 'com.king.app:app-dialog:1.0.8-androidx'
+    testImplementation 'junit:junit:4.13.2'
 
 }

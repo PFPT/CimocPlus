@@ -1,7 +1,9 @@
 package com.haleydu.cimoc.di
 
 import android.content.Context
-import android.net.wifi.WifiManager
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.os.Build
 import com.haleydu.cimoc.network.NetworkPolicy
 import dagger.Module
 import dagger.Provides
@@ -37,7 +39,7 @@ object NetworkModule {
     ): OkHttpClient {
         val cacheDir = File(context.cacheDir, "http")
         return OkHttpClient.Builder()
-            .cache(Cache(cacheDir, 256L * 1024L * 1024L))
+            .cache(Cache(cacheDir, 50L * 1024L * 1024L))
             .connectionPool(ConnectionPool(8, 5, TimeUnit.MINUTES))
             .followRedirects(true)
             .followSslRedirects(true)
@@ -63,15 +65,14 @@ object NetworkModule {
             .addNetworkInterceptor { chain ->
                 val response = chain.proceed(chain.request())
                 val type = response.header("Content-Type").orEmpty()
-                val cacheControl = if (type.startsWith("image/")) {
-                    "public, max-age=604800"
+                if (type.startsWith("image/")) {
+                    response
                 } else {
-                    "no-store"
+                    response.newBuilder()
+                        .removeHeader("Pragma")
+                        .header("Cache-Control", "no-store")
+                        .build()
                 }
-                response.newBuilder()
-                    .removeHeader("Pragma")
-                    .header("Cache-Control", cacheControl)
-                    .build()
             }
             .build()
     }
@@ -92,13 +93,24 @@ class WifiOnlyInterceptor(
     context: Context,
     private val networkPolicy: NetworkPolicy
 ) : Interceptor {
-    private val wifiManager =
-        context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+    private val connectivity =
+        context.applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
     override fun intercept(chain: Interceptor.Chain): Response {
-        if (!wifiManager.isWifiEnabled && networkPolicy.isConnectOnlyWifi()) {
+        if (networkPolicy.isConnectOnlyWifi() && !onWifi()) {
             throw IOException("wifi only")
         }
         return chain.proceed(chain.request())
+    }
+
+    @Suppress("DEPRECATION")
+    private fun onWifi(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            val info = connectivity.activeNetworkInfo
+            return info != null && info.isConnected && info.type == ConnectivityManager.TYPE_WIFI
+        }
+        val network = connectivity.activeNetwork ?: return false
+        val caps = connectivity.getNetworkCapabilities(network) ?: return false
+        return caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
     }
 }
