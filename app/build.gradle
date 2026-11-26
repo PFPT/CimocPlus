@@ -6,21 +6,14 @@ apply plugin: 'com.google.gms.google-services'
 apply plugin: 'com.google.firebase.crashlytics'
 apply plugin: 'dagger.hilt.android.plugin'
 
-def buildVersion = 329
-def version = "v1.5.2"
-
-def cmdGetTagname = 'git describe --tags'
-def cmdGetCommitNums = 'git rev-list HEAD --count'
-if(System.getenv("TRAVIS_BUILD_NUMBER") != null){
-    buildVersion = System.getenv("TRAVIS_BUILD_NUMBER").trim().toInteger()
-    version = cmdGetTagname.execute().text.trim()
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
 }
-else {
-    buildVersion = cmdGetCommitNums.execute().text.trim().toInteger()
-    cmdGetTagname = 'git describe --abbrev=0'
 
-    version = cmdGetTagname.execute().text.trim()
-}
+def buildVersion = (findProperty("VERSION_CODE") ?: System.getenv("VERSION_CODE") ?: "329").toString().trim().toInteger()
+def version = (findProperty("VERSION_NAME") ?: System.getenv("VERSION_NAME") ?: "v1.5.2").toString().trim()
 
 android {
     namespace 'com.haleydu.cimoc'
@@ -52,16 +45,19 @@ android {
     }
     signingConfigs {
         release {
-            storeFile file("../hellovr10.jks")
-            storePassword '123456'
-            keyAlias 'vr'
-            keyPassword '123456'
-        }
-        debug {
-            storeFile file("../hellovr10.jks")
-            storePassword '123456'
-            keyAlias 'vr'
-            keyPassword '123456'
+            if (keystorePropertiesFile.exists()) {
+                def storePath = keystoreProperties.getProperty("storeFile")
+                def storePass = keystoreProperties.getProperty("storePassword")
+                def alias = keystoreProperties.getProperty("keyAlias")
+                def keyPass = keystoreProperties.getProperty("keyPassword")
+                if (!storePath || !storePass || !alias || !keyPass) {
+                    throw new GradleException("keystore.properties must set storeFile, storePassword, keyAlias, and keyPassword")
+                }
+                storeFile rootProject.file(storePath)
+                storePassword storePass
+                keyAlias alias
+                keyPassword keyPass
+            }
         }
     }
     buildTypes {
@@ -70,14 +66,18 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             shrinkResources true
             zipAlignEnabled true
-            signingConfig signingConfigs.release
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
         }
         debug {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             shrinkResources false
             zipAlignEnabled false
-            signingConfig signingConfigs.debug
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
         }
 
         android.applicationVariants.all { variant ->

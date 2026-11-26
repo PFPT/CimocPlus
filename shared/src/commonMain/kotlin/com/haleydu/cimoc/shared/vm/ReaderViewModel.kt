@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class ReaderViewModel(
     private val comics: ComicRepository,
@@ -141,11 +142,12 @@ class ReaderViewModel(
             }
             val chapter = chapters.firstOrNull { it.path == path }
                 ?: ChapterItem(title = comic.chapter.orEmpty(), path = path)
+            val headers = withContext(Dispatchers.IO) { manga.imageHeaders(comic.source) }
             _ui.update {
                 it.copy(
                     comic = comic,
                     chapter = chapter,
-                    headers = manga.imageHeaders(comic.source),
+                    headers = headers,
                     page = comic.page.coerceAtLeast(1)
                 )
             }

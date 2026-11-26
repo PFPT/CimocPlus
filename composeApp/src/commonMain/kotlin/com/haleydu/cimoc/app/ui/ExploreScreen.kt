@@ -22,9 +22,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -35,8 +37,12 @@ import com.haleydu.cimoc.app.nav.Screen
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExploreScreen(type: Int, onBack: () -> Unit, onOpen: (Screen.Detail) -> Unit) {
-    val vm = LocalCimocSession.current.explore
+    val session = LocalCimocSession.current
+    val vm = remember(type) { session.explore() }
     val state by vm.ui.collectAsState()
+    DisposableEffect(vm) {
+        onDispose { vm.clear() }
+    }
     LaunchedEffect(type) { vm.open(type) }
 
     Scaffold(

@@ -56,10 +56,11 @@ class SearchViewModel(
             val list = runCatching { sources.listEnable() }.getOrDefault(emptyList())
             _ui.update {
                 val enabled = list.map { source -> source.type }.toSet()
+                val healthy = list.filter { source -> !source.invalid }.map { source -> source.type }.toSet()
                 val selected = if (it.selectedTypes.isEmpty()) {
-                    enabled
+                    healthy
                 } else {
-                    it.selectedTypes.filter { type -> type in enabled }.toSet().ifEmpty { enabled }
+                    it.selectedTypes.filter { type -> type in enabled }.toSet().ifEmpty { healthy }
                 }
                 it.copy(
                     enabledSources = list,
@@ -191,7 +192,7 @@ class SearchViewModel(
         val failed = stats.failed
         val allFailed = failed >= types.size
         _items.value = results
-        if (page == 1 && !(results.isEmpty() && allFailed)) {
+        if (page == 1) {
             rememberHistory(keyword)
         }
         _ui.update {
@@ -227,6 +228,11 @@ class SearchViewModel(
         val next = (listOf(keyword) + readHistory().filter { it != keyword }).take(HISTORY_LIMIT)
         settings.setString(PrefKeys.SEARCH_HISTORY, next.joinToString("\n"))
         _ui.update { it.copy(history = next) }
+    }
+
+    fun clearHistory() {
+        settings.setString(PrefKeys.SEARCH_HISTORY, "")
+        _ui.update { it.copy(history = emptyList()) }
     }
 
     fun clear() {

@@ -30,7 +30,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,6 +44,8 @@ import com.haleydu.cimoc.app.LocalCimocSession
 import com.haleydu.cimoc.app.image.ComicCover
 import com.haleydu.cimoc.app.nav.Screen
 import com.haleydu.cimoc.shared.model.ComicItem
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,9 +63,14 @@ fun RankScreen(onBack: () -> Unit, onOpen: (Screen.Detail) -> Unit) {
         vm.consumeOpen()
         onOpen(comic.toDetail())
     }
-    val headers = remember(state.items.firstOrNull()?.source) {
-        val source = state.items.firstOrNull()?.source ?: return@remember emptyMap()
-        repos.manga.imageHeaders(source)
+    val source = state.items.firstOrNull()?.source
+    var headers by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    LaunchedEffect(source) {
+        headers = if (source == null) {
+            emptyMap()
+        } else {
+            withContext(Dispatchers.IO) { repos.manga.imageHeaders(source) }
+        }
     }
 
     Scaffold(

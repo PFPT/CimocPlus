@@ -123,6 +123,9 @@ open class GenericHtmlParser(source: Source?, config: SourceConfig) : MangaParse
             emptyTo(cover, comic.cover),
             update, intro, author, finish
         )
+        if (mConfig.parseInfoTags.isNotEmpty()) {
+            comic.genres = tagTexts(body, mConfig.parseInfoTags)
+        }
         return comic
     }
 
@@ -429,6 +432,22 @@ open class GenericHtmlParser(source: Source?, config: SourceConfig) : MangaParse
             text = node.attr(selector, "title")
         }
         return text
+    }
+
+    private fun tagTexts(node: Node, selector: String): List<String> {
+        val nodes = try {
+            node.list(selector)
+        } catch (_: Exception) {
+            emptyList()
+        }
+        val raw = if (nodes.isEmpty()) {
+            listOf(firstText(node, selector))
+        } else {
+            nodes.map { it.text() }
+        }
+        return raw.flatMap { text ->
+            text.split(Regex("[,/|、]")).map { it.trim() }
+        }.filter { it.isNotEmpty() }.distinct()
     }
 
     private fun firstText(node: Node, selector: String?): String {

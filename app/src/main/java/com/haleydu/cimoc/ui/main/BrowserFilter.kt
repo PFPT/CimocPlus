@@ -30,6 +30,7 @@ import com.haleydu.cimoc.source.U17
 import com.haleydu.cimoc.source.YKMH
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlin.concurrent.thread
 
 @AndroidEntryPoint
 class BrowserFilter : AppCompatActivity() {
@@ -39,8 +40,19 @@ class BrowserFilter : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        openReaderByIntent(intent)
-        finish()
+        val incoming = intent
+        thread(name = "browser-filter", isDaemon = true) {
+            val resolved = resolve(incoming)
+            runOnUiThread {
+                if (resolved.invalid) {
+                    Toast.makeText(this, "url不合法", Toast.LENGTH_SHORT).show()
+                }
+                for (match in resolved.matches) {
+                    openDetailActivity(match.first, match.second)
+                }
+                finish()
+            }
+        }
     }
 
     private fun openDetailActivity(source: Int, comicId: String) {
@@ -71,42 +83,34 @@ class BrowserFilter : AppCompatActivity() {
         HotManga.TYPE
     )
 
-    private fun openReader(uri: Uri) {
-        try {
-            for (type in registeredTypes()) {
-                val parser = sourceManager.getParser(type)
-                if (parser.isHere(uri)) {
-                    val comicId = parser.getComicId(uri) ?: continue
-                    openDetailActivity(type, comicId)
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    private fun openReaderByIntent(intent: Intent) {
+    private fun resolve(intent: Intent): Resolved {
+        val matches = ArrayList<Pair<Int, String>>()
         val action = intent.action
         val type = intent.type
         if (Intent.ACTION_VIEW == action) {
-            val uri = intent.data
-            if (uri != null) {
-                openReader(uri)
-            } else {
-                Toast.makeText(this, "url不合法", Toast.LENGTH_SHORT).show()
-            }
+            val uri = intent.data ?: return Resolved(matches, invalid = true)
+            collect(uri, matches)
+            return Resolved(matches, invalid = false)
         }
         if (Intent.ACTION_SEND == action && "text/plain" == type) {
-            try {
-                openReader(
-                    Uri.parse(
-                        intent.getStringExtra(Intent.EXTRA_TEXT)!!
-                            .replace("https://m.ykmh.commanhua", "https://m.ykmh.com/manhua")
-                    )
-                )
-            } catch (_: Exception) {
-                Toast.makeText(this, "url不合法", Toast.LENGTH_SHORT).show()
-            }
+            val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: return Resolved(matches, invalid = true)
+            val uri = runCatching {
+                Uri.parse(text.replace("https://m.ykmh.commanhua", "https://m.ykmh.com/manhua"))
+            }.getOrNull() ?: return Resolved(matches, invalid = true)
+            collect(uri, matches)
+        }
+        return Resolved(matches, invalid = false)
+    }
+
+    private fun collect(uri: Uri, matches: MutableList<Pair<Int, String>>) {
+        for (type in registeredTypes()) {
+            val parser = runCatching { sourceManager.getParser(type) }.getOrNull() ?: continue
+            val here = runCatching { parser.isHere(uri) }.getOrDefault(false)
+            if (!here) continue
+            val comicId = runCatching { parser.getComicId(uri) }.getOrNull() ?: continue
+            matches.add(type to comicId)
         }
     }
+
+    private data class Resolved(val matches: List<Pair<Int, String>>, val invalid: Boolean)
 }

@@ -203,13 +203,16 @@ private class AndroidSourceRepository(
 ) : SourceRepository {
     override suspend fun listAll(): List<SourceItem> = withContext(Dispatchers.IO) {
         val invalid = sourceHealthManager.invalidTypes()
-        sourceManager.list().orEmpty().map { it.toItem(invalid.contains(it.type)) }
+        val web = sourceRuleManager.webTypes()
+        sourceManager.list().orEmpty().map { it.toItem(invalid.contains(it.type), it.type in web) }
     }
 
     override suspend fun listEnable(): List<SourceItem> = withContext(Dispatchers.IO) {
         val invalid = sourceHealthManager.invalidTypes()
+        val web = sourceRuleManager.webTypes()
         sourceHealthManager.sortSources(sourceManager.listEnable().orEmpty())
-            .map { it.toItem(invalid.contains(it.type)) }
+            .filter { it.type !in web }
+            .map { it.toItem(invalid.contains(it.type), false) }
     }
 
     override suspend fun setEnabled(type: Int, enable: Boolean) = withContext(Dispatchers.IO) {
@@ -233,6 +236,18 @@ private class AndroidSourceRepository(
 
     override suspend fun import(input: String): Int = withContext(Dispatchers.IO) {
         sourceRuleManager.import(input)
+    }
+
+    override suspend fun importIfScript(input: String): Int? = withContext(Dispatchers.IO) {
+        sourceRuleManager.importIfScript(input)
+    }
+
+    override suspend fun saveSite(host: String): Int = withContext(Dispatchers.IO) {
+        sourceRuleManager.saveSite(host)
+    }
+
+    override suspend fun isWeb(type: Int): Boolean = withContext(Dispatchers.IO) {
+        sourceRuleManager.isWeb(type)
     }
 
     override suspend fun removeCustom(type: Int) = withContext(Dispatchers.IO) {
@@ -266,16 +281,39 @@ private class AndroidMangaRepository(
                     gate.acquire()
                     try {
                         val parser = sourceManager.getParser(type)
+                        var hit = false
+                        var broke = false
                         mangaService.getSearchResult(parser, keyword, page, strict)
-                            .catch {
+                            .catch { error ->
+                                if (error is kotlinx.coroutines.CancellationException) throw error
+                                broke = true
                                 failed.incrementAndGet()
+                                if (recordHealth) {
+                                    val kind = if (error is Manga.NetworkErrorException) {
+                                        SourceHealthManager.KIND_NETWORK
+                                    } else {
+                                        SourceHealthManager.KIND_PARSE
+                                    }
+                                    sourceHealthManager.recordFailure(type, kind)
+                                }
                             }
-                            .collect { send(it.toItem()) }
+                            .collect {
+                                hit = true
+                                send(it.toItem())
+                            }
+                        if (recordHealth && hit && !broke) {
+                            sourceHealthManager.recordSuccess(type, 0)
+                        }
                     } catch (e: Exception) {
                         if (e is kotlinx.coroutines.CancellationException) throw e
                         failed.incrementAndGet()
                         if (recordHealth) {
-                            sourceHealthManager.recordFailure(type, SourceHealthManager.KIND_PARSE)
+                            val kind = if (e is Manga.NetworkErrorException) {
+                                SourceHealthManager.KIND_NETWORK
+                            } else {
+                                SourceHealthManager.KIND_PARSE
+                            }
+                            sourceHealthManager.recordFailure(type, kind)
                         }
                     } finally {
                         gate.release()
@@ -289,8 +327,19 @@ private class AndroidMangaRepository(
     override suspend fun loadRank(): LoadResult<List<ComicItem>> = withContext(Dispatchers.IO) {
         try {
             val list = mangaService.loadTencentRank()
-            if (list.isEmpty()) LoadResult.Err("热度榜加载失败") else LoadResult.Ok(list.map { it.toItem() })
-        } catch (_: Exception) {
+            if (list.isEmpty()) {
+                sourceHealthManager.recordFailure(com.haleydu.cimoc.source.Tencent.TYPE, SourceHealthManager.KIND_EMPTY)
+                LoadResult.Err("热度榜加载失败")
+            } else {
+                LoadResult.Ok(list.map { it.toItem() })
+            }
+        } catch (e: Exception) {
+            val kind = if (e is Manga.NetworkErrorException) {
+                SourceHealthManager.KIND_NETWORK
+            } else {
+                SourceHealthManager.KIND_PARSE
+            }
+            sourceHealthManager.recordFailure(com.haleydu.cimoc.source.Tencent.TYPE, kind)
             LoadResult.Err("热度榜加载失败")
         }
     }
@@ -324,7 +373,7 @@ private class AndroidMangaRepository(
                         android.os.SystemClock.elapsedRealtime() - start
                     )
                 }
-                LoadResult.Ok(comic.toItem() to chapters.map { it.toItem() })
+                LoadResult.Ok(comic.toItem().copy(genres = comic.genres) to chapters.map { it.toItem() })
             } catch (e: Manga.NetworkErrorException) {
                 if (recordHealth) {
                     sourceHealthManager.recordFailure(comic.source, SourceHealthManager.KIND_NETWORK)
@@ -420,20 +469,38 @@ private class AndroidMangaRepository(
     }
 
     override suspend fun resolveLazy(source: Int, url: String): String? = withContext(Dispatchers.IO) {
-        runCatching { mangaService.loadLazyUrl(sourceManager.getParser(source), url) }.getOrNull()
+        try {
+            mangaService.loadLazyUrl(sourceManager.getParser(source), url)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            val kind = if (e is Manga.NetworkErrorException) {
+                SourceHealthManager.KIND_NETWORK
+            } else {
+                SourceHealthManager.KIND_PARSE
+            }
+            sourceHealthManager.recordFailure(source, kind)
+            null
+        }
     }
 
     override suspend fun matchUrl(url: String): ComicItem? = withContext(Dispatchers.IO) {
         val uri = runCatching { Uri.parse(url) }.getOrNull() ?: return@withContext null
         if (uri.host.isNullOrEmpty()) return@withContext null
+        var webHit: ComicItem? = null
         for (source in sourceManager.list()) {
             val parser = runCatching { sourceManager.getParser(source.type) }.getOrNull() ?: continue
             val here = runCatching { parser.isHere(uri) }.getOrDefault(false)
             if (!here) continue
             val cid = runCatching { parser.getComicId(uri) }.getOrNull()?.takeIf { it.isNotEmpty() } ?: continue
-            return@withContext ComicItem(source = source.type, cid = cid, title = "")
+            val item = ComicItem(source = source.type, cid = cid, title = "")
+            if (cid.startsWith("http://") || cid.startsWith("https://")) {
+                if (webHit == null) webHit = item
+                continue
+            }
+            return@withContext item
         }
-        null
+        webHit
     }
 
     override fun imageHeaders(source: Int): Map<String, String> {
@@ -583,15 +650,13 @@ private class AndroidDownloadRepository(
                     runtime[taskId] = Task.STATE_WAIT
                     tasks.add(task)
                 }
-                runCatching {
-                    val app = context.applicationContext as App
-                    Download.updateComicIndex(
-                        app.contentResolver,
-                        app.documentFile,
-                        chapters.map { Chapter(it.title, it.path) },
-                        comic
-                    )
-                }
+                val app = context.applicationContext as App
+                Download.updateComicIndex(
+                    app.contentResolver,
+                    app.documentFile,
+                    chapters.map { Chapter(it.title, it.path) },
+                    comic
+                )
                 if (tasks.isNotEmpty()) {
                     val intent = DownloadService.createIntent(context, tasks)
                     DownloadService.start(context, intent)
@@ -745,6 +810,15 @@ private class AndroidTagRepository(
         if (ids.isEmpty()) return@withContext
         tagRefManager.insert(ids.map { TagRef(null, it, comicId) })
     }
+
+    override suspend fun attach(comicId: Long, titles: List<String>) = withContext(Dispatchers.IO) {
+        for (raw in titles) {
+            val tag = create(raw) ?: continue
+            if (tagRefManager.load(tag.id, comicId) == null) {
+                tagRefManager.insert(TagRef(null, tag.id, comicId))
+            }
+        }
+    }
 }
 
 private class AndroidSettingsRepository(
@@ -816,7 +890,8 @@ private fun Comic.toItem() = ComicItem(
     highlight = highlight,
     local = local,
     finish = finish == true,
-    page = page ?: 1
+    page = page ?: 1,
+    genres = genres
 )
 
 private fun Chapter.toItem() = ChapterItem(
@@ -836,11 +911,12 @@ private fun ImageUrl.toItem() = PageImage(
     lazy = lazy
 )
 
-private fun Source.toItem(invalid: Boolean) = SourceItem(
+private fun Source.toItem(invalid: Boolean, web: Boolean) = SourceItem(
     id = id,
     type = type,
     title = title ?: "",
     enable = enable,
     invalid = invalid,
-    custom = type >= SourceRuleManager.TYPE_JS_START
+    custom = type >= SourceRuleManager.TYPE_JS_START,
+    web = web
 )

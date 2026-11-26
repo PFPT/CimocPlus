@@ -4,7 +4,9 @@ import com.haleydu.cimoc.db.SourceRuleDao
 import com.haleydu.cimoc.model.Source
 import com.haleydu.cimoc.model.SourceRule
 import com.haleydu.cimoc.script.JsHttpClient
+import com.haleydu.cimoc.script.ScriptHosts
 import com.haleydu.cimoc.script.ScriptRunner
+import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,6 +25,43 @@ class SourceRuleManager @Inject constructor(
         val remote = isRemoteUrl(text)
         val script = if (remote) httpClient.get(text) else text
         return importScript(script, if (remote) text else null)
+    }
+
+    fun importIfScript(input: String): Int? {
+        val text = input.trim()
+        if (text.isEmpty()) return null
+        val remote = isRemoteUrl(text)
+        val script = if (remote) {
+            try {
+                httpClient.get(text)
+            } catch (_: Exception) {
+                return null
+            }
+        } else {
+            text
+        }
+        if (!ScriptHosts.looksLikeScript(script)) return null
+        return importScript(script, if (remote) text else null)
+    }
+
+    fun saveSite(host: String): Int {
+        val clean = ScriptHosts.normalizeHost(host)
+        if (clean.isEmpty()) throw IllegalArgumentException("empty")
+        val existing = sourceRuleDao.list().firstOrNull { rule ->
+            ScriptHosts.hostOf(rule.scriptContent)?.let { ScriptHosts.normalizeHost(it) == clean } == true
+        }
+        if (existing != null) return existing.type
+        val script = "var TITLE = ${JSONObject.quote(clean)};\nvar HOST = ${JSONObject.quote(clean)};\n"
+        return importScript(script, null)
+    }
+
+    fun webTypes(): Set<Int> {
+        return sourceRuleDao.list().filter { ScriptHosts.isSiteScript(it.scriptContent) }.map { it.type }.toSet()
+    }
+
+    fun isWeb(type: Int): Boolean {
+        val rule = sourceRuleDao.load(type) ?: return false
+        return ScriptHosts.isSiteScript(rule.scriptContent)
     }
 
     fun importScript(script: String, remoteUrl: String? = null): Int {

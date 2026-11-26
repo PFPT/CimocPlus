@@ -17,7 +17,8 @@ data class ComicItem(
     val highlight: Boolean = false,
     val local: Boolean = false,
     val finish: Boolean = false,
-    val page: Int = 1
+    val page: Int = 1,
+    val genres: List<String> = emptyList()
 )
 
 data class ChapterItem(
@@ -45,7 +46,8 @@ data class SourceItem(
     val title: String,
     val enable: Boolean,
     val invalid: Boolean = false,
-    val custom: Boolean = false
+    val custom: Boolean = false,
+    val web: Boolean = false
 )
 
 class SearchStats {

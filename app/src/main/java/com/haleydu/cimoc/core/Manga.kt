@@ -4,6 +4,7 @@ import okhttp3.Headers
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
+import java.io.InterruptedIOException
 import java.util.regex.Pattern
 
 class Manga {
@@ -53,8 +54,9 @@ class Manga {
                 } else if (retry) {
                     return getResponseBody(client, nextFallbackRequest(request), false)
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
+            } catch (e: InterruptedIOException) {
+                throw e
+            } catch (_: Exception) {
                 if (retry) {
                     return getResponseBody(client, nextFallbackRequest(request), false)
                 }

@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class DetailViewModel(
     private val comics: ComicRepository,
@@ -80,24 +81,35 @@ class DetailViewModel(
                 author = seed.author ?: author,
                 highlight = false
             )
+            val sourceTitle = withContext(Dispatchers.IO) { sources.sourceTitle(merged.source) }
             _ui.update {
                 it.copy(
                     comic = merged,
-                    sourceTitle = sources.sourceTitle(merged.source)
+                    sourceTitle = sourceTitle
                 )
             }
-            loadTags(merged.id)
             when (val result = manga.loadDetail(merged)) {
-                is LoadResult.Ok -> _ui.update {
-                    it.copy(
-                        comic = result.value.first.copy(highlight = false),
-                        chapters = result.value.second,
-                        loading = false,
-                        error = if (result.value.second.isEmpty()) "暂无章节" else null
-                    )
+                is LoadResult.Ok -> {
+                    val comic = result.value.first.copy(highlight = false)
+                    val comicId = comic.id
+                    if (comicId != null && comicId > 0 && comic.genres.isNotEmpty()) {
+                        runCatching { tags.attach(comicId, comic.genres) }
+                    }
+                    loadTags(comicId)
+                    _ui.update {
+                        it.copy(
+                            comic = comic,
+                            chapters = result.value.second,
+                            loading = false,
+                            error = if (result.value.second.isEmpty()) "暂无章节" else null
+                        )
+                    }
                 }
-                is LoadResult.Err -> _ui.update {
-                    it.copy(loading = false, error = result.message)
+                is LoadResult.Err -> {
+                    loadTags(merged.id)
+                    _ui.update {
+                        it.copy(loading = false, error = result.message)
+                    }
                 }
             }
         }

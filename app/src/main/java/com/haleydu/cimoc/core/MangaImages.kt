@@ -40,10 +40,19 @@ object MangaImages {
             } else {
                 throw Manga.NetworkErrorException()
             }
+            if (list.isEmpty()) {
+                throw Manga.ParseErrorException()
+            }
         } catch (e: InterruptedIOException) {
             throw e
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (e: Manga.NetworkErrorException) {
+            throw e
+        } catch (e: Manga.ParseErrorException) {
+            throw e
+        } catch (_: java.io.IOException) {
+            throw Manga.NetworkErrorException()
+        } catch (_: Exception) {
+            throw Manga.ParseErrorException()
         } finally {
             response?.close()
         }
@@ -64,9 +73,14 @@ object MangaImages {
             }
         } catch (e: InterruptedIOException) {
             throw e
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
+        } catch (e: Manga.NetworkErrorException) {
+            throw e
+        } catch (e: Manga.ParseErrorException) {
+            throw e
+        } catch (_: java.io.IOException) {
+            throw Manga.NetworkErrorException()
+        } catch (_: Exception) {
+            throw Manga.ParseErrorException()
         } finally {
             response?.close()
         }

@@ -66,13 +66,36 @@ fun SearchScreen(onOpen: (Screen.Detail) -> Unit, onRank: () -> Unit) {
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { vm.search(input) })
         )
-        if (state.enabledSources.isNotEmpty()) {
+        val healthy = state.enabledSources.filter { !it.invalid }
+        val broken = state.enabledSources.filter { it.invalid }
+        if (healthy.isNotEmpty()) {
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(state.enabledSources, key = { it.type }) { source ->
+                items(healthy, key = { it.type }) { source ->
+                    FilterChip(
+                        selected = source.type in state.selectedTypes,
+                        onClick = { vm.toggleSource(source.type) },
+                        label = { Text(source.title) }
+                    )
+                }
+            }
+        }
+        if (broken.isNotEmpty()) {
+            Text(
+                "失效",
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.labelMedium
+            )
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(broken, key = { it.type }) { source ->
                     FilterChip(
                         selected = source.type in state.selectedTypes,
                         onClick = { vm.toggleSource(source.type) },
@@ -91,7 +114,14 @@ fun SearchScreen(onOpen: (Screen.Detail) -> Unit, onRank: () -> Unit) {
             TextButton(onClick = { vm.clearSources() }) { Text("清空") }
             TextButton(onClick = onRank) { Text("热度榜") }
         }
-        if (input.isBlank() && state.history.isNotEmpty()) {
+        if (state.history.isNotEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("历史", style = MaterialTheme.typography.labelMedium)
+                TextButton(onClick = { vm.clearHistory() }) { Text("清空") }
+            }
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 12.dp),

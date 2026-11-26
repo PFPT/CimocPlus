@@ -61,6 +61,10 @@ class Comic {
     @JvmField
     var note: Any? = null
 
+    @Ignore
+    @JvmField
+    var genres: List<String> = emptyList()
+
     @ColumnInfo(name = "INTRO")
     var intro: String? = null
 

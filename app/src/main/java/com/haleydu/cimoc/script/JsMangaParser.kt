@@ -1,5 +1,6 @@
 package com.haleydu.cimoc.script
 
+import android.net.Uri
 import android.util.Pair
 import com.haleydu.cimoc.model.Chapter
 import com.haleydu.cimoc.model.Comic
@@ -10,6 +11,7 @@ import com.haleydu.cimoc.parser.MangaCategory
 import com.haleydu.cimoc.parser.MangaParser
 import com.haleydu.cimoc.parser.Category
 import com.haleydu.cimoc.parser.SearchIterator
+import com.haleydu.cimoc.parser.UrlFilter
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
@@ -24,8 +26,34 @@ class JsMangaParser(
 
     private val supportCache = HashMap<String, Boolean>()
 
+    private var siteHost: String? = null
+
     init {
         mTitle = source.title
+        val host = ScriptHosts.hostOf(rule.scriptContent)
+        if (!host.isNullOrBlank() && !supports(FN_SEARCH) && !supports(FN_DETAIL)) {
+            val normalized = ScriptHosts.normalizeHost(host)
+            siteHost = normalized
+            filter.add(UrlFilter(normalized))
+        }
+    }
+
+    override fun isHere(uri: Uri): Boolean {
+        val host = siteHost ?: return super.isHere(uri)
+        val page = uri.host ?: return false
+        val normalized = ScriptHosts.normalizeHost(page)
+        return normalized == host || normalized.endsWith(".$host")
+    }
+
+    override fun getComicId(uri: Uri): String? {
+        if (siteHost != null) return uri.toString()
+        return super.getComicId(uri)
+    }
+
+    override fun getUrl(cid: String): String {
+        val host = siteHost ?: return super.getUrl(cid)
+        if (cid.startsWith("http://") || cid.startsWith("https://")) return cid
+        return "https://$host/"
     }
 
     private fun supports(name: String): Boolean {
@@ -50,6 +78,7 @@ class JsMangaParser(
             obj.optString("author", comic.author),
             finishValue(obj)
         )
+        comic.genres = readGenres(obj)
     }
 
     fun chapterList(comic: Comic, sourceComic: Long): List<Chapter> {
@@ -176,6 +205,17 @@ class JsMangaParser(
         } catch (_: Exception) {
             null
         }
+    }
+
+    private fun readGenres(obj: JSONObject): List<String> {
+        val array = obj.optJSONArray("tags") ?: obj.optJSONArray("genre")
+        val raw = if (array != null) {
+            (0 until array.length()).map { array.optString(it) }
+        } else {
+            val text = obj.optString("tags").ifEmpty { obj.optString("genre") }
+            text.split(Regex("[,/|、]"))
+        }
+        return raw.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
     }
 
     private fun finishValue(obj: JSONObject): Boolean {

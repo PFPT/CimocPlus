@@ -14,8 +14,10 @@ data class BrowserMark(
 
 object BrowserMarks {
     private const val KEY = "pref_browser_marks"
+    private const val QUERY_KEY = "pref_browser_queries"
     private const val SEP = "\u001f"
     private const val HISTORY_LIMIT = 40
+    private const val QUERY_LIMIT = 20
 
     var revision by mutableStateOf(0)
         private set
@@ -24,6 +26,24 @@ object BrowserMarks {
         val raw = settings.string(KEY)
         if (raw.isEmpty()) return emptyList()
         return raw.lineSequence().mapNotNull { parse(it) }.toList()
+    }
+
+    fun queries(settings: SettingsRepository): List<String> {
+        return settings.string(QUERY_KEY)
+            .lineSequence()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .take(QUERY_LIMIT)
+            .toList()
+    }
+
+    fun rememberQuery(settings: SettingsRepository, raw: String) {
+        val trimmed = raw.trim()
+        if (trimmed.isEmpty() || trimmed.startsWith("http://") || trimmed.startsWith("https://")) return
+        val next = (listOf(trimmed) + queries(settings).filter { it != trimmed }).take(QUERY_LIMIT)
+        settings.setString(QUERY_KEY, next.joinToString("\n"))
+        revision++
     }
 
     fun remember(settings: SettingsRepository, url: String, title: String) {
@@ -86,7 +106,11 @@ object BrowserMarks {
         return max + 1
     }
 
-    private fun keep(url: String) = url.isNotEmpty() && !url.startsWith("about:")
+    private fun keep(url: String): Boolean {
+        if (url.isEmpty() || url.startsWith("about:")) return false
+        val host = pageHost(url) ?: return false
+        return !isSearchHost(host)
+    }
 
     private fun clean(title: String) = title.replace(SEP, " ").replace("\n", " ").trim()
 }

@@ -16,20 +16,9 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.haleydu.cimoc.app.nav.Screen
-import com.haleydu.cimoc.core.MangaService
-import com.haleydu.cimoc.data.ChapterManager
-import com.haleydu.cimoc.data.ComicManager
-import com.haleydu.cimoc.data.ImageUrlManager
-import com.haleydu.cimoc.data.PreferenceManager
 import com.haleydu.cimoc.data.SourceCatalogRefresher
-import com.haleydu.cimoc.data.SourceHealthManager
-import com.haleydu.cimoc.data.SourceManager
-import com.haleydu.cimoc.data.SourceProbe
-import com.haleydu.cimoc.data.SourceRuleManager
-import com.haleydu.cimoc.data.TagManager
-import com.haleydu.cimoc.data.TagRefManager
-import com.haleydu.cimoc.data.TaskManager
 import com.haleydu.cimoc.global.Extra
+import com.haleydu.cimoc.shared.repo.CimocRepositories
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import dagger.hilt.android.AndroidEntryPoint
@@ -39,19 +28,8 @@ import kotlin.concurrent.thread
 @AndroidEntryPoint
 class CimocComposeActivity : AppCompatActivity() {
 
-    @Inject lateinit var comicManager: ComicManager
-    @Inject lateinit var chapterManager: ChapterManager
-    @Inject lateinit var imageUrlManager: ImageUrlManager
-    @Inject lateinit var sourceManager: SourceManager
-    @Inject lateinit var mangaService: MangaService
-    @Inject lateinit var sourceHealthManager: SourceHealthManager
-    @Inject lateinit var sourceProbe: SourceProbe
-    @Inject lateinit var sourceRuleManager: SourceRuleManager
+    @Inject lateinit var repos: CimocRepositories
     @Inject lateinit var sourceCatalogRefresher: SourceCatalogRefresher
-    @Inject lateinit var preferenceManager: PreferenceManager
-    @Inject lateinit var taskManager: TaskManager
-    @Inject lateinit var tagManager: TagManager
-    @Inject lateinit var tagRefManager: TagRefManager
     @Inject lateinit var imageLoader: ImageLoader
 
     private var backHandler: () -> Boolean = { false }
@@ -65,22 +43,6 @@ class CimocComposeActivity : AppCompatActivity() {
         SingletonImageLoader.setSafe { imageLoader }
         WindowCompat.setDecorFitsSystemWindows(window, false)
         requestStorageIfNeeded()
-        val repos = createCimocRepositories(
-            this,
-            comicManager,
-            chapterManager,
-            imageUrlManager,
-            sourceManager,
-            mangaService,
-            sourceHealthManager,
-            sourceProbe,
-            sourceRuleManager,
-            sourceCatalogRefresher,
-            taskManager,
-            preferenceManager,
-            tagManager,
-            tagRefManager
-        )
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (!backHandler()) {

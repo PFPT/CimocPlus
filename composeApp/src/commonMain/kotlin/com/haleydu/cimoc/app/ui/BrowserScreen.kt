@@ -34,6 +34,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import com.haleydu.cimoc.app.LocalCimocActions
 import com.haleydu.cimoc.app.LocalCimocRepos
 import com.haleydu.cimoc.app.nav.Screen
+import com.haleydu.cimoc.shared.model.ComicItem
 import kotlinx.coroutines.launch
 
 @Composable
@@ -62,12 +64,14 @@ fun BrowserScreen(onOpen: (Screen) -> Unit) {
     val settings = LocalCimocRepos.current.settings
     var input by remember { mutableStateOf("") }
     val marks = remember(BrowserMarks.revision) { BrowserMarks.load(settings) }
+    val queries = remember(BrowserMarks.revision) { BrowserMarks.queries(settings) }
     val pins = marks.filter { it.pinned }
     val recent = marks.filter { !it.pinned }
 
     fun openInput() {
         val target = browserTarget(input)
         if (target.isEmpty()) return
+        BrowserMarks.rememberQuery(settings, input)
         onOpen(Screen.WebBrowser(target))
     }
 
@@ -87,6 +91,30 @@ fun BrowserScreen(onOpen: (Screen) -> Unit) {
             modifier = Modifier.fillMaxWidth().padding(top = 20.dp)
         )
         LazyColumn(Modifier.fillMaxWidth().weight(1f).padding(top = 16.dp)) {
+            if (queries.isNotEmpty()) {
+                item(key = "queries") {
+                    Text(
+                        "搜索",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                }
+                items(queries, key = { "query_$it" }) { query ->
+                    Text(
+                        query,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                input = query
+                                openInput()
+                            }
+                            .padding(vertical = 10.dp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
             if (pins.isNotEmpty()) {
                 item(key = "pins") {
                     Text(
@@ -137,11 +165,18 @@ fun WebBrowserScreen(
     var comicReady by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var hint by remember { mutableStateOf<String?>(null) }
+    var hintError by remember { mutableStateOf(true) }
     var navEpoch by remember { mutableIntStateOf(0) }
+
+    fun showHint(text: String, error: Boolean) {
+        hint = text
+        hintError = error
+    }
 
     fun openInput() {
         val target = browserTarget(input)
         if (target.isEmpty()) return
+        BrowserMarks.rememberQuery(settings, input)
         hint = null
         editing = false
         handle.load(target)
@@ -173,7 +208,7 @@ fun WebBrowserScreen(
             val extracted = runCatching { handle.extract() }.getOrNull()
             busy = false
             if (extracted == null || extracted.imageUrls.isEmpty()) {
-                hint = "这一页没有找到漫画图片"
+                showHint("这一页没有找到漫画图片", true)
             } else {
                 onOpenReader(
                     Screen.WebReader(
@@ -189,6 +224,58 @@ fun WebBrowserScreen(
 
     val marks = remember(BrowserMarks.revision) { BrowserMarks.load(settings) }
     val pinned = marks.any { it.url == pageUrl && it.pinned }
+
+    fun savePage() {
+        if (busy) return
+        scope.launch {
+            busy = true
+            hint = null
+            val page = handle.currentUrl().ifEmpty { url }
+            val matched = runCatching { repos.manga.matchUrl(page) }.getOrNull()
+            if (matched != null && matched.cid.isNotEmpty() && !repos.sources.isWeb(matched.source)) {
+                repos.comics.favorite(
+                    matched.copy(title = pageTitle.ifEmpty { matched.title })
+                )
+                busy = false
+                onOpenDetail(
+                    Screen.Detail(
+                        id = matched.id ?: -1L,
+                        source = matched.source,
+                        cid = matched.cid,
+                        title = pageTitle.ifEmpty { matched.title }
+                    )
+                )
+                return@launch
+            }
+            val imported = runCatching { repos.sources.importIfScript(page) }.getOrNull()
+            if (imported != null) {
+                busy = false
+                showHint("已加入图源列表", false)
+                return@launch
+            }
+            val host = pageHost(page)
+            if (host.isNullOrBlank() || isSearchHost(host)) {
+                busy = false
+                showHint("这一页不能保存为图源", true)
+                return@launch
+            }
+            val type = runCatching { repos.sources.saveSite(host) }.getOrNull()
+            if (type == null) {
+                busy = false
+                showHint("保存失败", true)
+                return@launch
+            }
+            repos.comics.favorite(
+                ComicItem(
+                    source = type,
+                    cid = page,
+                    title = pageTitle.ifEmpty { host }
+                )
+            )
+            busy = false
+            showHint("已收藏并保存图源", false)
+        }
+    }
 
     LaunchedEffect(loading) {
         if (loading) {
@@ -254,7 +341,7 @@ fun WebBrowserScreen(
             Text(
                 it,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                color = MaterialTheme.colorScheme.error,
+                color = if (hintError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -290,6 +377,9 @@ fun WebBrowserScreen(
                 } else {
                     Icon(Icons.Default.MenuBook, contentDescription = "阅读")
                 }
+            }
+            TextButton(onClick = { savePage() }, enabled = !busy) {
+                Text("保存")
             }
         }
     }

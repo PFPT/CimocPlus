@@ -23,8 +23,8 @@ local.properties
 # Android Studio captures folder
 captures/
 
-# Keystore files
-# *.jks
+*.jks
+*.keystore
 
 # Android Studio Navigation editor temp files
 .navigation/

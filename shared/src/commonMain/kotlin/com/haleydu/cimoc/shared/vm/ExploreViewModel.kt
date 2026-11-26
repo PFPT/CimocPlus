@@ -8,10 +8,12 @@ import com.haleydu.cimoc.shared.repo.SourceRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class ExploreViewModel(
     private val explore: ExploreRepository,
@@ -38,7 +40,7 @@ class ExploreViewModel(
         _ui.update {
             it.copy(
                 source = type,
-                title = sources.sourceTitle(type),
+                title = "",
                 items = emptyList(),
                 page = 0,
                 ended = false,
@@ -49,6 +51,9 @@ class ExploreViewModel(
             )
         }
         scope.launch {
+            val title = withContext(Dispatchers.IO) { sources.sourceTitle(type) }
+            if (_ui.value.source != type) return@launch
+            _ui.update { it.copy(title = title) }
             val filters = runCatching { explore.loadFilters(type) }.getOrDefault(emptyList())
             if (_ui.value.source != type) return@launch
             val selected = filters.associate { filter ->
@@ -108,6 +113,10 @@ class ExploreViewModel(
                 }
             }
         }
+    }
+
+    fun clear() {
+        scope.cancel()
     }
 
     private fun filterArgs(state: UiState): List<String> {

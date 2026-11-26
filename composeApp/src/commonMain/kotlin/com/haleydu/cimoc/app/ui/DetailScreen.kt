@@ -2,6 +2,8 @@ package com.haleydu.cimoc.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -275,6 +277,24 @@ fun DetailScreen(
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.primary
                             )
+                        }
+                        val assigned = state.tags.filter { it.id in state.comicTagIds }
+                        if (assigned.isNotEmpty()) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState())
+                                    .padding(top = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                assigned.forEach { tag ->
+                                    FilterChip(
+                                        selected = true,
+                                        onClick = { vm.openTagDialog() },
+                                        label = { Text(tag.title) }
+                                    )
+                                }
+                            }
                         }
                         state.error?.let {
                             Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp))

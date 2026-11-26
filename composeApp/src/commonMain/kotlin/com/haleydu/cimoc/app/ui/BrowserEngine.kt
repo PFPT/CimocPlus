@@ -30,6 +30,24 @@ interface WebExtractSession {
 const val BrowserUserAgent =
     "Mozilla/5.0 (Linux; Android 13; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
 
+fun pageHost(url: String): String? {
+    val rest = url.substringAfter("://", "")
+    if (rest.isEmpty()) return null
+    return rest.substringBefore("/").substringBefore("?").substringBefore(":").takeIf { it.isNotEmpty() }
+}
+
+fun isSearchHost(host: String): Boolean {
+    val name = host.trim().lowercase().removePrefix("www.")
+    return name == "quark.cn" ||
+        name.endsWith(".quark.cn") ||
+        name == "baidu.com" ||
+        name.endsWith(".baidu.com") ||
+        name == "google.com" ||
+        name.endsWith(".google.com") ||
+        name == "bing.com" ||
+        name.endsWith(".bing.com")
+}
+
 fun browserTarget(raw: String): String {
     val trimmed = raw.trim()
     if (trimmed.isEmpty()) return ""

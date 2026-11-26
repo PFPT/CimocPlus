@@ -332,7 +332,7 @@ private fun WebView.applyBrowserSettings(multipleWindows: Boolean = false) {
     settings.loadsImagesAutomatically = true
     settings.useWideViewPort = true
     settings.loadWithOverviewMode = true
-    settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+    settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
     settings.userAgentString = BrowserUserAgent
     settings.mediaPlaybackRequiresUserGesture = true
     settings.javaScriptCanOpenWindowsAutomatically = true
@@ -393,9 +393,8 @@ private fun client(
             if (!url.isNullOrEmpty()) onFinished(url)
         }
 
-        @SuppressLint("WebViewClientOnReceivedSslError")
         override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) {
-            handler.proceed()
+            handler.cancel()
         }
     }
 }

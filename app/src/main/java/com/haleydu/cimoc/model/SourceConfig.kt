@@ -53,6 +53,9 @@ class SourceConfig(@JvmField val key: String, @JvmField val type: Int, @JvmField
     val parseInfoStatus: String = opt(`object`, "parseInfoStatus")
 
     @JvmField
+    val parseInfoTags: String = opt(`object`, "parseInfoTags")
+
+    @JvmField
     val parseChapterList1: String = opt(`object`, "parseChapterList1")
 
     @JvmField

@@ -79,9 +79,8 @@ class ScriptRunner @Inject constructor(
     }
 
     private fun <T> withEngine(block: (Context, Scriptable) -> T): T {
-        val context = Context.enter()
+        val context = enterSandboxedRhino()
         try {
-            context.optimizationLevel = -1
             val scope = context.initSafeStandardObjects()
             install(scope)
             return block(context, scope)

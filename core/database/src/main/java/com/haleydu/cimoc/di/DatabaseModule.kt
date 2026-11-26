@@ -1,7 +1,9 @@
 package com.haleydu.cimoc.di
 
 import android.content.Context
+import androidx.room.Room
 import com.haleydu.cimoc.db.CimocDatabase
+import com.haleydu.cimoc.db.CimocMigrations
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -16,7 +18,9 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): CimocDatabase =
-        CimocDatabase.getInstance(context)
+        Room.databaseBuilder(context.applicationContext, CimocDatabase::class.java, "cimoc.db")
+            .addMigrations(*CimocMigrations.ALL)
+            .build()
 
     @Provides
     fun provideComicDao(database: CimocDatabase) = database.comicDao()

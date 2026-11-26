@@ -1,7 +1,7 @@
 package com.haleydu.cimoc.utils
 
 import android.util.Base64
-import org.mozilla.javascript.ClassShutter
+import com.haleydu.cimoc.script.enterSandboxedRhino
 import org.mozilla.javascript.Context
 import org.mozilla.javascript.Scriptable
 import java.io.UnsupportedEncodingException
@@ -78,14 +78,9 @@ object DecryptionUtils {
 
     @JvmStatic
     fun evalDecrypt(jsCode: String, varName: String?): String {
-        val rhino = Context.enter()
+        val rhino = enterSandboxedRhino()
         try {
-            rhino.optimizationLevel = -1
             val scope: Scriptable = rhino.initSafeStandardObjects()
-            val setter = rhino.classShutterSetter
-            if (setter != null) {
-                setter.setClassShutter(ClassShutter { false })
-            }
             try {
                 val `object` = rhino.evaluateString(scope, jsCode, null, 1, null)
                 return if (varName == null) {

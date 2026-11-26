@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class LibraryViewModel(
     private val comics: ComicRepository,
@@ -162,14 +163,14 @@ class LibraryViewModel(
         }
     }
 
-    private fun titlesFor(comics: List<ComicItem>): Map<Int, String> {
+    private suspend fun titlesFor(comics: List<ComicItem>): Map<Int, String> = withContext(Dispatchers.IO) {
         val titles = HashMap<Int, String>()
         for (comic in comics) {
             if (comic.source !in titles) {
                 titles[comic.source] = sources.sourceTitle(comic.source)
             }
         }
-        return titles
+        titles
     }
 
     private fun loadTags() {

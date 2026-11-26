@@ -41,7 +41,6 @@ class SourceCatalogRefresher @Inject constructor(
             sourceRuleManager.refreshRemote()
             sourceManager.clearParserCache()
             if (fetched) {
-                sourceHealthManager.resetAll()
                 preferenceManager.putInt(PreferenceManager.PREF_SOURCE_CATALOG_VERSION, CATALOG_VERSION)
             }
             preferenceManager.putLong(PreferenceManager.PREF_SOURCE_CATALOG_REFRESH_AT, System.currentTimeMillis())

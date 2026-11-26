@@ -17,7 +17,9 @@ import com.haleydu.cimoc.App
 import com.haleydu.cimoc.R
 import com.haleydu.cimoc.core.Download
 import com.haleydu.cimoc.core.MangaImages
+import com.haleydu.cimoc.core.Manga
 import com.haleydu.cimoc.data.ChapterManager
+import com.haleydu.cimoc.data.SourceHealthManager
 import com.haleydu.cimoc.data.PreferenceManager
 import com.haleydu.cimoc.data.SourceManager
 import com.haleydu.cimoc.data.TaskManager
@@ -42,9 +44,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
-import java.io.IOException
 import java.io.InterruptedIOException
-import java.net.SocketTimeoutException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
@@ -67,6 +67,9 @@ class DownloadService : Service() {
 
     @Inject
     lateinit var mChapterManager: ChapterManager
+
+    @Inject
+    lateinit var mSourceHealthManager: SourceHealthManager
 
     @Inject
     lateinit var mHttpClient: OkHttpClient
@@ -191,7 +194,7 @@ class DownloadService : Service() {
 
     inner class Worker(task: Task) : Runnable {
         var mTask: Task = task
-        private var mParse: Parser = mSourceManager.getParser(task.source)
+        private val mParse: Parser by lazy { mSourceManager.getParser(task.source) }
         private val jmttClient: OkHttpClient by lazy { buildJmttClient() }
 
         override fun run() {
@@ -207,6 +210,7 @@ class DownloadService : Service() {
                         val start = mTask.progress.coerceIn(0, size)
                         val doneFlags = BooleanArray(size) { index -> index < start }
                         val failed = AtomicBoolean(false)
+                        val failKind = AtomicReference(SourceHealthManager.KIND_NETWORK)
                         val pause = AtomicReference<InterruptedIOException?>(null)
                         val futures = ArrayList<Future<*>>(size - start)
                         for (index in start until size) {
@@ -228,6 +232,9 @@ class DownloadService : Service() {
                                 } catch (e: InterruptedIOException) {
                                     pause.set(e)
                                     failed.set(true)
+                                } catch (e: Manga.ParseErrorException) {
+                                    failKind.set(SourceHealthManager.KIND_PARSE)
+                                    failed.set(true)
                                 } catch (_: Exception) {
                                     failed.set(true)
                                 }
@@ -244,6 +251,7 @@ class DownloadService : Service() {
                         val paused = pause.get()
                         if (paused != null) throw paused
                         if (failed.get()) {
+                            mSourceHealthManager.recordFailure(mTask.source, failKind.get())
                             AppEventBus.post(AppEvent(AppEvent.EVENT_TASK_STATE_CHANGE, Task.STATE_ERROR, mTask.id))
                         } else {
                             markChapterDownloaded(size)
@@ -257,11 +265,18 @@ class DownloadService : Service() {
                         AppEventBus.post(AppEvent(AppEvent.EVENT_TASK_STATE_CHANGE, Task.STATE_ERROR, mTask.id))
                     }
                 } else {
+                    mSourceHealthManager.recordFailure(mTask.source, SourceHealthManager.KIND_EMPTY)
                     AppEventBus.post(AppEvent(AppEvent.EVENT_TASK_STATE_CHANGE, Task.STATE_ERROR, mTask.id))
                 }
             } catch (e: InterruptedIOException) {
                 imagePool.shutdownNow()
                 AppEventBus.post(AppEvent(AppEvent.EVENT_TASK_STATE_CHANGE, Task.STATE_PAUSE, mTask.id))
+            } catch (e: Manga.NetworkErrorException) {
+                mSourceHealthManager.recordFailure(mTask.source, SourceHealthManager.KIND_NETWORK)
+                AppEventBus.post(AppEvent(AppEvent.EVENT_TASK_STATE_CHANGE, Task.STATE_ERROR, mTask.id))
+            } catch (_: Exception) {
+                mSourceHealthManager.recordFailure(mTask.source, SourceHealthManager.KIND_PARSE)
+                AppEventBus.post(AppEvent(AppEvent.EVENT_TASK_STATE_CHANGE, Task.STATE_ERROR, mTask.id))
             } finally {
                 imagePool.shutdownNow()
             }
@@ -302,12 +317,8 @@ class DownloadService : Service() {
                         DocumentUtils.writeBinaryToFile(mContentResolver, file!!, response.body!!.byteStream())
                         return true
                     }
-                } catch (e: SocketTimeoutException) {
-                    e.printStackTrace()
                 } catch (e: InterruptedIOException) {
                     throw e
-                } catch (e: IOException) {
-                    e.printStackTrace()
                 } finally {
                     response?.close()
                 }

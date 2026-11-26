@@ -39,6 +39,9 @@ interface SourceRepository {
     suspend fun homepage(type: Int): String
     fun warm()
     suspend fun import(input: String): Int
+    suspend fun importIfScript(input: String): Int?
+    suspend fun saveSite(host: String): Int
+    suspend fun isWeb(type: Int): Boolean
     suspend fun removeCustom(type: Int)
 }
 
@@ -82,6 +85,7 @@ interface TagRepository {
     suspend fun delete(id: Long)
     suspend fun tagsOf(comicId: Long): List<TagItem>
     suspend fun setTags(comicId: Long, ids: List<Long>)
+    suspend fun attach(comicId: Long, titles: List<String>)
 }
 
 interface SettingsRepository {

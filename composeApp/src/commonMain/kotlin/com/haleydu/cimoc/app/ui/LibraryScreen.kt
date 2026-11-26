@@ -129,16 +129,21 @@ fun LibraryScreen(onOpen: (Screen) -> Unit) {
                 LibraryViewModel.Tab.Local -> "暂无本地漫画"
             },
             onClick = { comic ->
-                onOpen(
-                    Screen.Detail(
-                        id = comic.id ?: -1L,
-                        source = comic.source,
-                        cid = comic.cid,
-                        title = comic.title,
-                        cover = comic.cover,
-                        author = comic.author
+                val cid = comic.cid
+                if (cid.startsWith("http://") || cid.startsWith("https://")) {
+                    onOpen(Screen.WebBrowser(cid))
+                } else {
+                    onOpen(
+                        Screen.Detail(
+                            id = comic.id ?: -1L,
+                            source = comic.source,
+                            cid = cid,
+                            title = comic.title,
+                            cover = comic.cover,
+                            author = comic.author
+                        )
                     )
-                )
+                }
             },
             onLongClick = { comic ->
                 when (state.tab) {

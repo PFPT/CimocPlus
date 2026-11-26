@@ -1,0 +1,587 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 17,
+    "identityHash": "11daead47c3d39b987190a6c734adadf",
+    "entities": [
+      {
+        "tableName": "COMIC",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT, `SOURCE` INTEGER NOT NULL, `CID` TEXT NOT NULL, `TITLE` TEXT NOT NULL, `COVER` TEXT NOT NULL, `HIGHLIGHT` INTEGER NOT NULL, `LOCAL` INTEGER NOT NULL, `UPDATE` TEXT, `FINISH` INTEGER, `FAVORITE` INTEGER, `HISTORY` INTEGER, `DOWNLOAD` INTEGER, `LAST` TEXT, `PAGE` INTEGER, `CHAPTER` TEXT, `URL` TEXT, `INTRO` TEXT, `AUTHOR` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "_id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "source",
+            "columnName": "SOURCE",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cid",
+            "columnName": "CID",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "TITLE",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cover",
+            "columnName": "COVER",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "highlight",
+            "columnName": "HIGHLIGHT",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "local",
+            "columnName": "LOCAL",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "update",
+            "columnName": "UPDATE",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "finish",
+            "columnName": "FINISH",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "favorite",
+            "columnName": "FAVORITE",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "history",
+            "columnName": "HISTORY",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "download",
+            "columnName": "DOWNLOAD",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "last",
+            "columnName": "LAST",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "page",
+            "columnName": "PAGE",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "chapter",
+            "columnName": "CHAPTER",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "url",
+            "columnName": "URL",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "intro",
+            "columnName": "INTRO",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "author",
+            "columnName": "AUTHOR",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_COMIC_SOURCE_CID",
+            "unique": false,
+            "columnNames": [
+              "SOURCE",
+              "CID"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_COMIC_SOURCE_CID` ON `${TABLE_NAME}` (`SOURCE`, `CID`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "CHAPTER",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT, `SOURCE_COMIC` INTEGER NOT NULL, `TITLE` TEXT, `PATH` TEXT, `COUNT` INTEGER NOT NULL, `COMPLETE` INTEGER NOT NULL, `DOWNLOAD` INTEGER NOT NULL, `TID` INTEGER NOT NULL, `SOURCE_GROUP` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "_id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "sourceComic",
+            "columnName": "SOURCE_COMIC",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "TITLE",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "path",
+            "columnName": "PATH",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "count",
+            "columnName": "COUNT",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "complete",
+            "columnName": "COMPLETE",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "download",
+            "columnName": "DOWNLOAD",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tid",
+            "columnName": "TID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceGroup",
+            "columnName": "SOURCE_GROUP",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_CHAPTER_SOURCE_COMIC",
+            "unique": false,
+            "columnNames": [
+              "SOURCE_COMIC"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_CHAPTER_SOURCE_COMIC` ON `${TABLE_NAME}` (`SOURCE_COMIC`)"
+          },
+          {
+            "name": "index_CHAPTER_SOURCE_COMIC_PATH",
+            "unique": true,
+            "columnNames": [
+              "SOURCE_COMIC",
+              "PATH"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_CHAPTER_SOURCE_COMIC_PATH` ON `${TABLE_NAME}` (`SOURCE_COMIC`, `PATH`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "TAG",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT, `TITLE` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "_id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "TITLE",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "_id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "TAG_REF",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT, `TID` INTEGER NOT NULL, `CID` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "_id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "tid",
+            "columnName": "TID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cid",
+            "columnName": "CID",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "_id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "SOURCE",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT, `TITLE` TEXT NOT NULL, `TYPE` INTEGER NOT NULL, `ENABLE` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "_id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "TITLE",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "TYPE",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "enable",
+            "columnName": "ENABLE",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_SOURCE_TYPE",
+            "unique": true,
+            "columnNames": [
+              "TYPE"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_SOURCE_TYPE` ON `${TABLE_NAME}` (`TYPE`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "TASK",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT, `KEY` INTEGER NOT NULL, `PATH` TEXT NOT NULL, `TITLE` TEXT NOT NULL, `PROGRESS` INTEGER NOT NULL, `MAX` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "_id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "key",
+            "columnName": "KEY",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "path",
+            "columnName": "PATH",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "TITLE",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "progress",
+            "columnName": "PROGRESS",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "max",
+            "columnName": "MAX",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "_id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "IMAGE_URL",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT, `COMIC_CHAPTER` INTEGER NOT NULL, `NUM` INTEGER NOT NULL, `URLS` TEXT, `CHAPTER` TEXT, `STATE` INTEGER NOT NULL, `HEIGHT` INTEGER NOT NULL, `WIDTH` INTEGER NOT NULL, `LAZY` INTEGER NOT NULL, `LOADING` INTEGER NOT NULL, `SUCCESS` INTEGER NOT NULL, `DOWNLOAD` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "_id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "comicChapter",
+            "columnName": "COMIC_CHAPTER",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "num",
+            "columnName": "NUM",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "urls",
+            "columnName": "URLS",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "chapter",
+            "columnName": "CHAPTER",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "STATE",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "height",
+            "columnName": "HEIGHT",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "width",
+            "columnName": "WIDTH",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lazy",
+            "columnName": "LAZY",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "loading",
+            "columnName": "LOADING",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "success",
+            "columnName": "SUCCESS",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "download",
+            "columnName": "DOWNLOAD",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "_id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "SOURCE_RULE",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `TYPE` INTEGER NOT NULL, `SCRIPT` TEXT NOT NULL, `VERSION` TEXT NOT NULL, `REMOTE_URL` TEXT, `UPDATED_AT` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "TYPE",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scriptContent",
+            "columnName": "SCRIPT",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "VERSION",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteUrl",
+            "columnName": "REMOTE_URL",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "UPDATED_AT",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_SOURCE_RULE_TYPE",
+            "unique": true,
+            "columnNames": [
+              "TYPE"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_SOURCE_RULE_TYPE` ON `${TABLE_NAME}` (`TYPE`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "SOURCE_HEALTH",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`TYPE` INTEGER NOT NULL, `FAIL_COUNT` INTEGER NOT NULL, `LATENCY_MS` INTEGER NOT NULL, `SUCCESS_AT` INTEGER NOT NULL, `FAILURE_AT` INTEGER NOT NULL, `ERROR_KIND` TEXT, PRIMARY KEY(`TYPE`))",
+        "fields": [
+          {
+            "fieldPath": "type",
+            "columnName": "TYPE",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "consecutiveFailures",
+            "columnName": "FAIL_COUNT",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastLatencyMs",
+            "columnName": "LATENCY_MS",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSuccessAt",
+            "columnName": "SUCCESS_AT",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastFailureAt",
+            "columnName": "FAILURE_AT",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastErrorKind",
+            "columnName": "ERROR_KIND",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "TYPE"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '11daead47c3d39b987190a6c734adadf')"
+    ]
+  }
+}

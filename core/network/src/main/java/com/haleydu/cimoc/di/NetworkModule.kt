@@ -15,15 +15,8 @@ import okhttp3.OkHttpClient
 import okhttp3.Response
 import java.io.File
 import java.io.IOException
-import java.security.SecureRandom
-import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
-import javax.net.ssl.HostnameVerifier
-import javax.net.ssl.SSLContext
-import javax.net.ssl.SSLSocketFactory
-import javax.net.ssl.TrustManager
-import javax.net.ssl.X509TrustManager
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -42,13 +35,10 @@ object NetworkModule {
         @ApplicationContext context: Context,
         wifiOnlyInterceptor: WifiOnlyInterceptor
     ): OkHttpClient {
-        val trustAllCerts = TrustAllCerts()
         val cacheDir = File(context.cacheDir, "http")
         return OkHttpClient.Builder()
             .cache(Cache(cacheDir, 256L * 1024L * 1024L))
             .connectionPool(ConnectionPool(8, 5, TimeUnit.MINUTES))
-            .sslSocketFactory(createSslSocketFactory(trustAllCerts), trustAllCerts)
-            .hostnameVerifier(HostnameVerifier { _, _ -> true })
             .followRedirects(true)
             .followSslRedirects(true)
             .retryOnConnectionFailure(true)
@@ -96,17 +86,6 @@ object NetworkModule {
         }
     }
 
-    private fun createSslSocketFactory(trustManager: X509TrustManager): SSLSocketFactory {
-        val sc = SSLContext.getInstance("TLS")
-        sc.init(null, arrayOf<TrustManager>(trustManager), SecureRandom())
-        return sc.socketFactory
-    }
-
-    private class TrustAllCerts : X509TrustManager {
-        override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
-        override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
-        override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
-    }
 }
 
 class WifiOnlyInterceptor(

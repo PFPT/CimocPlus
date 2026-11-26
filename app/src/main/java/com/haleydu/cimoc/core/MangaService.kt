@@ -142,12 +142,7 @@ class MangaService @Inject constructor(
 
     suspend fun loadLazyUrl(parser: Parser, url: String): String? = withContext(Dispatchers.IO) {
         val request = Manga.applyHeaders(parser.getLazyRequest(url), parser.getHeader())
-        try {
-            parser.parseLazy(Manga.getResponseBody(httpClient, request), url)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
+        parser.parseLazy(Manga.getResponseBody(httpClient, request), url)
     }
 
     fun loadTencentRank(): List<Comic> {

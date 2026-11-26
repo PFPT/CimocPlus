@@ -17,10 +17,10 @@ class CimocSession : KoinComponent {
     val library: LibraryViewModel get() = get()
     val search: SearchViewModel get() = get()
     val sources: SourceListViewModel get() = get()
-    val explore: ExploreViewModel get() = get()
     val settings: SettingsViewModel get() = get()
     val reader: ReaderViewModel get() = get()
 
+    fun explore(): ExploreViewModel = get()
     fun detail(): DetailViewModel = get()
     fun downloadTasks(): DownloadTasksViewModel = get()
     fun sourceHits(): SourceHitsViewModel = get()

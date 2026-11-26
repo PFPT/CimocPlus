@@ -50,14 +50,10 @@ object Download {
 
     @JvmStatic
     fun updateComicIndex(resolver: ContentResolver, root: DocumentFile?, list: List<Chapter>, comic: Comic) {
-        try {
-            createNoMedia(root)
-            val jsonString = getJsonFromComic(list, comic)
-            val file = createComicIndex(root, comic)
-            DocumentUtils.writeStringToFile(resolver, file, "cimoc".plus(jsonString))
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        createNoMedia(root)
+        val jsonString = getJsonFromComic(list, comic)
+        val file = createComicIndex(root, comic)
+        DocumentUtils.writeStringToFile(resolver, file, "cimoc".plus(jsonString))
     }
 
     @Throws(JSONException::class)
@@ -82,24 +78,17 @@ object Download {
 
     @JvmStatic
     fun updateChapterIndex(resolver: ContentResolver, root: DocumentFile?, task: Task): DocumentFile? {
-        try {
-            val jsonString = getJsonFromChapter(task.title, task.path)
-            val dir1 = DocumentUtils.getOrCreateSubDirectory(root, DOWNLOAD)
-            val dir2 = DocumentUtils.getOrCreateSubDirectory(dir1, task.source.toString())
-            val dir3 = DocumentUtils.getOrCreateSubDirectory(dir2, task.cid!!.replace("[:/(\\\\)(\\?)<>\"(\\|)(\\.)]".toRegex(), ""))
-            val dir4 = DocumentUtils.getOrCreateSubDirectory(
-                dir3,
-                DecryptionUtils.urlDecrypt(task.path.replace("[:/(\\\\)(\\?)<>\"(\\|)(\\.)]".toRegex(), "-"))
-            )
-            if (dir4 != null) {
-                val file = DocumentUtils.getOrCreateFile(dir4, FILE_INDEX)
-                DocumentUtils.writeStringToFile(resolver, file, "cimoc".plus(jsonString))
-                return dir4
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        return null
+        val jsonString = getJsonFromChapter(task.title, task.path)
+        val dir1 = DocumentUtils.getOrCreateSubDirectory(root, DOWNLOAD)
+        val dir2 = DocumentUtils.getOrCreateSubDirectory(dir1, task.source.toString())
+        val dir3 = DocumentUtils.getOrCreateSubDirectory(dir2, task.cid!!.replace("[:/(\\\\)(\\?)<>\"(\\|)(\\.)]".toRegex(), ""))
+        val dir4 = DocumentUtils.getOrCreateSubDirectory(
+            dir3,
+            DecryptionUtils.urlDecrypt(task.path.replace("[:/(\\\\)(\\?)<>\"(\\|)(\\.)]".toRegex(), "-"))
+        ) ?: return null
+        val file = DocumentUtils.getOrCreateFile(dir4, FILE_INDEX)
+        DocumentUtils.writeStringToFile(resolver, file, "cimoc".plus(jsonString))
+        return dir4
     }
 
     @Throws(JSONException::class)
@@ -129,10 +118,10 @@ object Download {
                 if (hasMagicNumber(resolver, file)) {
                     val jsonString = DocumentUtils.readLineFromFile(resolver, file)
                     if (jsonString != null) {
-                        try {
-                            return readPathFromJson(jsonString.substring(5))
-                        } catch (e: Exception) {
-                            e.printStackTrace()
+                        return try {
+                            readPathFromJson(jsonString.substring(5))
+                        } catch (_: Exception) {
+                            null
                         }
                     }
                 }
@@ -220,8 +209,8 @@ object Download {
                         return Task(null, -1, path, title, count, count)
                     }
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
+            } catch (_: Exception) {
+                return null
             }
         }
         return null
@@ -240,8 +229,8 @@ object Download {
                 val cid = jsonObject.getString(JSON_KEY_COMIC_CID)
                 val cover = jsonObject.getString(JSON_KEY_COMIC_COVER)
                 return Comic(source, cid, title, cover, System.currentTimeMillis())
-            } catch (e: Exception) {
-                e.printStackTrace()
+            } catch (_: Exception) {
+                return null
             }
         }
         return null

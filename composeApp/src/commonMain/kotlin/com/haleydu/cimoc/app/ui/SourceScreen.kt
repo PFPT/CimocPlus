@@ -108,7 +108,14 @@ fun SourceScreen(onOpen: (Screen) -> Unit) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onOpen(Screen.Explore(source.type)) }
+                    .clickable {
+                        val home = homes[source.type]
+                        if (source.web && !home.isNullOrEmpty()) {
+                            onOpen(Screen.WebBrowser(home))
+                        } else {
+                            onOpen(Screen.Explore(source.type))
+                        }
+                    }
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
