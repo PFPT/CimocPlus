@@ -66,6 +66,8 @@ fun sourceComicKey(source: Int, id: Long?): Long {
 
 object PrefKeys {
     const val NIGHT = "pref_night"
+    const val THEME = "pref_theme"
+    const val ICON_STYLE = "pref_icon_style"
     const val READER_MODE = "pref_reader_mode"
     const val READER_VOLUME = "pref_reader_volume_key_controls_page_turning"
     const val READER_PRELOAD = "pref_reader_preload"

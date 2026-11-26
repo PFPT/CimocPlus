@@ -1,6 +1,7 @@
 package com.haleydu.cimoc.core
 
 import com.haleydu.cimoc.data.SourceConfigManager
+import com.haleydu.cimoc.data.SourceHealthManager
 import com.haleydu.cimoc.data.SourceManager
 import com.haleydu.cimoc.source.Tencent
 import com.haleydu.cimoc.model.Chapter
@@ -210,7 +211,7 @@ class MangaService @Inject constructor(
         list
     }
 
-    fun checkUpdate(manager: SourceManager, list: List<Comic>): Flow<Comic?> = channelFlow {
+    fun checkUpdate(manager: SourceManager, list: List<Comic>): Flow<UpdateProbe> = channelFlow {
         val client = OkHttpClient.Builder()
             .connectTimeout(1500, TimeUnit.MILLISECONDS)
             .readTimeout(1500, TimeUnit.MILLISECONDS)
@@ -221,7 +222,7 @@ class MangaService @Inject constructor(
                 async {
                     gate.acquire()
                     try {
-                        val updated = try {
+                        val probe = try {
                             val parser = manager.getParser(comic.source)
                             val update = if (parser is JsMangaParser) {
                                 parser.checkUpdate(comic.cid)
@@ -229,20 +230,27 @@ class MangaService @Inject constructor(
                                 val request = Manga.applyHeaders(parser.getCheckRequest(comic.cid), parser.getHeader())
                                 parser.parseCheck(Manga.getResponseBody(client, request))
                             }
-                            if (comic.update != null && update != null && comic.update != update) {
-                                comic.favorite = System.currentTimeMillis()
-                                comic.update = update
-                                comic.highlight = true
-                                comic
-                            } else {
-                                null
+                            when {
+                                update != null && update.isBlank() ->
+                                    UpdateProbe.Failed(comic.source, SourceHealthManager.KIND_EMPTY)
+                                comic.update != null && update != null && comic.update != update -> {
+                                    comic.favorite = System.currentTimeMillis()
+                                    comic.update = update
+                                    comic.highlight = true
+                                    UpdateProbe.Changed(comic)
+                                }
+                                else -> UpdateProbe.Steady(comic.source)
                             }
                         } catch (e: Exception) {
                             if (e is kotlinx.coroutines.CancellationException) throw e
-                            e.printStackTrace()
-                            null
+                            val kind = if (e is Manga.NetworkErrorException || e is java.io.IOException) {
+                                SourceHealthManager.KIND_NETWORK
+                            } else {
+                                SourceHealthManager.KIND_PARSE
+                            }
+                            UpdateProbe.Failed(comic.source, kind)
                         }
-                        send(updated)
+                        send(probe)
                     } finally {
                         gate.release()
                     }
@@ -250,6 +258,12 @@ class MangaService @Inject constructor(
             }.awaitAll()
         }
     }.flowOn(Dispatchers.IO)
+
+    sealed class UpdateProbe {
+        data class Changed(val comic: Comic) : UpdateProbe()
+        data class Steady(val source: Int) : UpdateProbe()
+        data class Failed(val source: Int, val kind: String) : UpdateProbe()
+    }
 
     private companion object {
         const val TENCENT_UA =

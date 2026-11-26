@@ -29,18 +29,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.ScreenRotation
-import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material.icons.filled.ViewDay
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
@@ -81,6 +69,7 @@ import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.haleydu.cimoc.app.LocalCimocActions
+import com.haleydu.cimoc.app.theme.LocalAppIcons
 import com.haleydu.cimoc.app.LocalCimocSession
 import com.haleydu.cimoc.app.nav.Screen
 import com.haleydu.cimoc.shared.model.ChapterItem
@@ -320,7 +309,7 @@ fun ReaderScreen(
                         .padding(16.dp)
                 ) {
                     FloatingActionButton(onClick = { scope.launch { listState.scrollToItem(0) } }) {
-                        Icon(Icons.Default.KeyboardArrowUp, contentDescription = null)
+                        Icon(LocalAppIcons.current.up, contentDescription = null)
                     }
                 }
             }
@@ -347,13 +336,7 @@ fun ReaderScreen(
             exit = slideOutVertically { -it } + fadeOut(),
             modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth()
         ) {
-            ReaderTopHud(
-                state = state,
-                vm = vm,
-                onBack = onBack,
-                onNight = { actions.onNightChanged(vm.toggleNight()) },
-                onSearchSource = onSearchSource
-            )
+            ReaderTopHud(state = state, onBack = onBack)
         }
 
         AnimatedVisibility(
@@ -362,7 +345,12 @@ fun ReaderScreen(
             exit = slideOutVertically { it } + fadeOut(),
             modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
         ) {
-            ReaderBottomHud(state = state, vm = vm)
+            ReaderBottomHud(
+                state = state,
+                vm = vm,
+                onNight = { actions.onNightChanged(vm.toggleNight()) },
+                onSearchSource = onSearchSource
+            )
         }
 
         if (state.chapterSheet) {
@@ -503,15 +491,14 @@ private fun handleReaderTap(
 @Composable
 private fun ReaderTopHud(
     state: ReaderViewModel.UiState,
-    vm: ReaderViewModel,
-    onBack: () -> Unit,
-    onNight: () -> Unit,
-    onSearchSource: (title: String, source: Int, cid: String) -> Unit
+    onBack: () -> Unit
 ) {
+    val panel = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+    val ink = MaterialTheme.colorScheme.onSurface
     Column(
         Modifier
             .fillMaxWidth()
-            .background(Color.Black.copy(alpha = 0.7f))
+            .background(panel)
             .windowInsetsPadding(WindowInsets.statusBars)
     ) {
         Row(
@@ -519,56 +506,71 @@ private fun ReaderTopHud(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
+                Icon(LocalAppIcons.current.back, contentDescription = "返回", tint = ink)
             }
             Text(
                 text = state.chapter?.title ?: state.comic?.title ?: "阅读",
                 modifier = Modifier.weight(1f),
-                color = Color.White,
+                color = ink,
                 maxLines = 1,
                 fontSize = 16.sp
             )
-            IconButton(onClick = { vm.toggleAuto() }) {
-                Icon(if (state.auto) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = "自动翻页", tint = Color.White)
-            }
-            IconButton(onClick = { vm.toggleReaderMode() }) {
-                Icon(Icons.Default.ViewDay, contentDescription = "条漫/分页", tint = Color.White)
-            }
-            IconButton(onClick = { vm.toggleVertical() }) {
-                Icon(Icons.Default.ScreenRotation, contentDescription = "纵向分页", tint = Color.White)
-            }
-            IconButton(onClick = onNight) {
-                Icon(Icons.Default.DarkMode, contentDescription = "夜间", tint = Color.White)
-            }
-            val title = state.comic?.title.orEmpty()
-            val comic = state.comic
-            if (comic != null && !comic.local && title.isNotEmpty()) {
-                IconButton(onClick = { onSearchSource(title, comic.source, comic.cid) }) {
-                    Icon(Icons.Default.SwapHoriz, contentDescription = "换源", tint = Color.White)
-                }
-            }
-            IconButton(onClick = { vm.toggleChapterSheet() }) {
-                Icon(Icons.AutoMirrored.Filled.List, contentDescription = "目录", tint = Color.White)
-            }
         }
     }
 }
 
 @Composable
-private fun ReaderBottomHud(state: ReaderViewModel.UiState, vm: ReaderViewModel) {
+private fun ReaderBottomHud(
+    state: ReaderViewModel.UiState,
+    vm: ReaderViewModel,
+    onNight: () -> Unit,
+    onSearchSource: (title: String, source: Int, cid: String) -> Unit
+) {
     var sliderPage by remember { mutableStateOf<Int?>(null) }
     val max = state.pages.size.coerceAtLeast(1)
     val display = (sliderPage ?: state.page).coerceIn(1, max)
+    val panel = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+    val ink = MaterialTheme.colorScheme.onSurface
+    val icons = LocalAppIcons.current
+    val sliderColors = SliderDefaults.colors(
+        thumbColor = ink,
+        activeTrackColor = ink,
+        inactiveTrackColor = ink.copy(alpha = 0.3f)
+    )
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.Black.copy(alpha = 0.7f))
+            .background(panel)
             .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { vm.toggleAuto() }) {
+                Icon(if (state.auto) icons.pause else icons.play, contentDescription = "自动翻页", tint = ink)
+            }
+            IconButton(onClick = { vm.toggleReaderMode() }) {
+                Icon(icons.pages, contentDescription = "条漫/分页", tint = ink)
+            }
+            IconButton(onClick = { vm.toggleVertical() }) {
+                Icon(icons.rotate, contentDescription = "纵向分页", tint = ink)
+            }
+            IconButton(onClick = onNight) {
+                Icon(icons.night, contentDescription = "夜间", tint = ink)
+            }
+            val title = state.comic?.title.orEmpty()
+            val comic = state.comic
+            if (comic != null && !comic.local && title.isNotEmpty()) {
+                IconButton(onClick = { onSearchSource(title, comic.source, comic.cid) }) {
+                    Icon(icons.swap, contentDescription = "换源", tint = ink)
+                }
+            }
+            IconButton(onClick = { vm.toggleChapterSheet() }) {
+                Icon(icons.list, contentDescription = "目录", tint = ink)
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { vm.loadAdjacent(false) }) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "上一章", tint = Color.White)
+                Icon(icons.left, contentDescription = "上一章", tint = ink)
             }
             Slider(
                 value = display.toFloat(),
@@ -579,20 +581,16 @@ private fun ReaderBottomHud(state: ReaderViewModel.UiState, vm: ReaderViewModel)
                 },
                 valueRange = 1f..max.toFloat(),
                 modifier = Modifier.weight(1f),
-                colors = SliderDefaults.colors(
-                    thumbColor = Color.White,
-                    activeTrackColor = Color.White,
-                    inactiveTrackColor = Color.White.copy(alpha = 0.3f)
-                )
+                colors = sliderColors
             )
             Text(
                 "$display/$max",
                 modifier = Modifier.padding(horizontal = 8.dp),
                 fontSize = 13.sp,
-                color = Color.White
+                color = ink
             )
             IconButton(onClick = { vm.loadAdjacent(true) }) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "下一章", tint = Color.White)
+                Icon(icons.right, contentDescription = "下一章", tint = ink)
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -600,18 +598,14 @@ private fun ReaderBottomHud(state: ReaderViewModel.UiState, vm: ReaderViewModel)
                 if (state.brightness <= 0) "亮度 系统" else "亮度 ${state.brightness}",
                 modifier = Modifier.padding(start = 8.dp, end = 8.dp),
                 fontSize = 12.sp,
-                color = Color.White.copy(alpha = 0.85f)
+                color = ink.copy(alpha = 0.85f)
             )
             Slider(
                 value = state.brightness.toFloat(),
                 onValueChange = { vm.setBrightness(it.toInt()) },
                 valueRange = 0f..100f,
                 modifier = Modifier.weight(1f),
-                colors = SliderDefaults.colors(
-                    thumbColor = Color.White,
-                    activeTrackColor = Color.White,
-                    inactiveTrackColor = Color.White.copy(alpha = 0.3f)
-                )
+                colors = sliderColors
             )
         }
     }

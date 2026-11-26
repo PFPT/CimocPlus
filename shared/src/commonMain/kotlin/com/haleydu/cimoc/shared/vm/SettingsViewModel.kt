@@ -1,5 +1,6 @@
 package com.haleydu.cimoc.shared.vm
 
+import com.haleydu.cimoc.shared.model.Appearance
 import com.haleydu.cimoc.shared.model.LoadResult
 import com.haleydu.cimoc.shared.model.PrefKeys
 import com.haleydu.cimoc.shared.model.ReaderMode
@@ -17,6 +18,8 @@ class SettingsViewModel(
 ) {
     data class UiState(
         val night: Boolean = false,
+        val theme: Int = 0,
+        val iconStyle: Int = 0,
         val readerMode: Int = ReaderMode.STREAM,
         val volumeKeys: Boolean = false,
         val preload: Boolean = false,
@@ -42,6 +45,8 @@ class SettingsViewModel(
         _ui.update {
             it.copy(
                 night = settings.bool(PrefKeys.NIGHT),
+                theme = Appearance.theme(settings.int(PrefKeys.THEME)),
+                iconStyle = Appearance.iconStyle(settings.int(PrefKeys.ICON_STYLE)),
                 readerMode = settings.int(PrefKeys.READER_MODE, ReaderMode.STREAM),
                 volumeKeys = settings.bool(PrefKeys.READER_VOLUME),
                 preload = settings.bool(PrefKeys.READER_PRELOAD),
@@ -66,6 +71,18 @@ class SettingsViewModel(
     fun setNight(value: Boolean) {
         settings.setBool(PrefKeys.NIGHT, value)
         _ui.update { it.copy(night = value) }
+    }
+
+    fun setTheme(value: Int) {
+        val theme = Appearance.theme(value)
+        settings.setInt(PrefKeys.THEME, theme)
+        _ui.update { it.copy(theme = theme) }
+    }
+
+    fun setIconStyle(value: Int) {
+        val style = Appearance.iconStyle(value)
+        settings.setInt(PrefKeys.ICON_STYLE, style)
+        _ui.update { it.copy(iconStyle = style) }
     }
 
     fun setReaderMode(mode: Int) {

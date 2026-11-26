@@ -11,13 +11,11 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -102,8 +100,8 @@ fun ComicCard(
     val progress = comic.chapter?.takeIf { it.isNotEmpty() } ?: comic.last?.takeIf { it.isNotEmpty() }
     Card(
         modifier = Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(10.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column {
@@ -111,20 +109,23 @@ fun ComicCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(3f / 4f)
-                    .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
+                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
             ) {
                 ComicCover(
                     url = comic.cover,
                     modifier = Modifier.fillMaxSize()
                 )
                 if (comic.highlight) {
-                    Box(
+                    Text(
+                        text = "更新",
                         modifier = Modifier
                             .align(Alignment.TopStart)
                             .padding(6.dp)
-                            .size(8.dp)
-                            .clip(CircleShape)
+                            .clip(RoundedCornerShape(6.dp))
                             .background(MaterialTheme.colorScheme.primary)
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                        fontSize = 10.sp,
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
                 if (progress != null) {
@@ -132,9 +133,10 @@ fun ComicCard(
                         text = progress,
                         modifier = Modifier
                             .align(Alignment.BottomStart)
-                            .fillMaxWidth()
-                            .background(Color.Black.copy(alpha = 0.45f))
-                            .padding(horizontal = 6.dp, vertical = 4.dp),
+                            .padding(6.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Color.Black.copy(alpha = 0.62f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         fontSize = 11.sp,

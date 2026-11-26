@@ -2,9 +2,18 @@ package com.haleydu.cimoc.script
 
 object ScriptHosts {
     private val hostPattern = Regex("""var\s+HOST\s*=\s*["']([^"']+)["']""")
+    private val titlePattern = Regex("""var\s+TITLE\s*=\s*["']([^"']+)["']""")
 
     fun hostOf(script: String): String? {
         return hostPattern.find(script)?.groupValues?.get(1)?.trim()?.takeIf { it.isNotEmpty() }
+    }
+
+    fun titleOf(script: String): String? {
+        return titlePattern.find(script)?.groupValues?.get(1)?.trim()?.takeIf { it.isNotEmpty() }
+    }
+
+    fun hostOfUrl(url: String): String? {
+        return runCatching { java.net.URI(url).host }.getOrNull()?.takeIf { it.isNotEmpty() }
     }
 
     fun isSiteScript(script: String): Boolean {

@@ -11,16 +11,10 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -34,7 +28,6 @@ import androidx.compose.ui.unit.sp
 import com.haleydu.cimoc.app.LocalCimocSession
 import com.haleydu.cimoc.app.nav.Screen
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExploreScreen(type: Int, onBack: () -> Unit, onOpen: (Screen.Detail) -> Unit) {
     val session = LocalCimocSession.current
@@ -47,17 +40,7 @@ fun ExploreScreen(type: Int, onBack: () -> Unit, onOpen: (Screen.Detail) -> Unit
 
     Scaffold(
         contentWindowInsets = WindowInsets.navigationBars,
-        topBar = {
-            TopAppBar(
-                title = { Text(state.title.ifEmpty { "浏览" }) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                    }
-                },
-                windowInsets = WindowInsets(0, 0, 0, 0)
-            )
-        }
+        topBar = { PageHeader(state.title.ifEmpty { "浏览" }, onBack = onBack) }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             state.filters.forEach { filter ->

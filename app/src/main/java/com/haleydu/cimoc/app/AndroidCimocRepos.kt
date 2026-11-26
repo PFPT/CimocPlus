@@ -36,7 +36,10 @@ import com.haleydu.cimoc.service.DownloadService
 import com.haleydu.cimoc.shared.model.ChapterItem
 import com.haleydu.cimoc.shared.model.ComicItem
 import com.haleydu.cimoc.shared.model.DownloadTaskItem
+import com.haleydu.cimoc.shared.model.CheckFailure
 import com.haleydu.cimoc.shared.model.ExploreFilter
+import com.haleydu.cimoc.shared.model.FavoriteCheck
+import com.haleydu.cimoc.shared.model.ImportPreview
 import com.haleydu.cimoc.shared.model.LoadResult
 import com.haleydu.cimoc.shared.model.PageImage
 import com.haleydu.cimoc.shared.model.SearchStats
@@ -236,6 +239,10 @@ private class AndroidSourceRepository(
 
     override suspend fun import(input: String): Int = withContext(Dispatchers.IO) {
         sourceRuleManager.import(input)
+    }
+
+    override suspend fun previewImport(input: String): ImportPreview = withContext(Dispatchers.IO) {
+        sourceRuleManager.preview(input)
     }
 
     override suspend fun importIfScript(input: String): Int? = withContext(Dispatchers.IO) {
@@ -538,22 +545,42 @@ private class AndroidMangaRepository(
         comicManager.update(comic)
     }
 
-    override suspend fun checkFavorites(): Int = withContext(Dispatchers.IO) {
-        var count = 0
+    override suspend fun checkFavorites(): FavoriteCheck = withContext(Dispatchers.IO) {
+        var updated = 0
+        val failed = LinkedHashMap<Int, String>()
+        val succeeded = HashSet<Int>()
         var offset = 0
         while (true) {
             val batch = comicManager.listFavoritePage(offset, FAVORITE_PAGE)
             if (batch.isEmpty()) break
-            mangaService.checkUpdate(sourceManager, batch).collect { comic ->
-                if (comic != null) {
-                    comicManager.update(comic)
-                    count++
+            mangaService.checkUpdate(sourceManager, batch).collect { probe ->
+                when (probe) {
+                    is MangaService.UpdateProbe.Changed -> {
+                        comicManager.update(probe.comic)
+                        updated++
+                        succeeded.add(probe.comic.source)
+                        failed.remove(probe.comic.source)
+                    }
+                    is MangaService.UpdateProbe.Steady -> {
+                        succeeded.add(probe.source)
+                        failed.remove(probe.source)
+                    }
+                    is MangaService.UpdateProbe.Failed -> {
+                        if (probe.source !in succeeded) failed[probe.source] = probe.kind
+                    }
                 }
             }
             offset += batch.size
             if (batch.size < FAVORITE_PAGE) break
         }
-        count
+        for ((type, kind) in failed) {
+            sourceHealthManager.recordFailure(type, kind)
+        }
+        val failures = failed.map { (type, kind) ->
+            val title = sourceManager.titleOf(type).ifBlank { "图源 $type" }
+            CheckFailure(title, kind)
+        }
+        FavoriteCheck(updated, failures)
     }
 
     companion object {

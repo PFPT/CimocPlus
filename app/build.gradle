@@ -12,7 +12,7 @@ if (keystorePropertiesFile.exists()) {
     keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
 }
 
-def buildVersion = (findProperty("VERSION_CODE") ?: System.getenv("VERSION_CODE") ?: "329").toString().trim().toInteger()
+def buildVersion = (findProperty("VERSION_CODE") ?: System.getenv("VERSION_CODE") ?: "860").toString().trim().toInteger()
 def version = (findProperty("VERSION_NAME") ?: System.getenv("VERSION_NAME") ?: "v1.5.2").toString().trim()
 
 android {

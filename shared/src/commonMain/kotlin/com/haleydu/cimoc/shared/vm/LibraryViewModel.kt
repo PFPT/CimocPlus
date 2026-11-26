@@ -1,6 +1,8 @@
 package com.haleydu.cimoc.shared.vm
 
+import com.haleydu.cimoc.shared.model.CheckFailure
 import com.haleydu.cimoc.shared.model.ComicItem
+import com.haleydu.cimoc.shared.model.favoriteCheckText
 import com.haleydu.cimoc.shared.model.TagIds
 import com.haleydu.cimoc.shared.model.TagItem
 import com.haleydu.cimoc.shared.repo.ComicRepository
@@ -33,7 +35,8 @@ class LibraryViewModel(
         val tags: List<TagItem> = emptyList(),
         val tagId: Long = TagIds.ALL,
         val checking: Boolean = false,
-        val checkMessage: String? = null
+        val checkMessage: String? = null,
+        val failures: List<CheckFailure> = emptyList()
     )
 
     private val job = SupervisorJob()
@@ -97,13 +100,14 @@ class LibraryViewModel(
         if (_ui.value.checking) return
         _ui.update { it.copy(checking = true, checkMessage = null) }
         scope.launch {
-            val count = runCatching { manga.checkFavorites() }.getOrNull()
-            val message = when (count) {
-                null -> "检查更新失败"
-                0 -> "已是最新"
-                else -> "发现 ${count} 部更新"
+            val check = runCatching { manga.checkFavorites() }.getOrNull()
+            if (check == null) {
+                _ui.update { it.copy(checking = false, checkMessage = "检查更新失败") }
+            } else {
+                _ui.update {
+                    it.copy(checking = false, checkMessage = favoriteCheckText(check), failures = check.failures)
+                }
             }
-            _ui.update { it.copy(checking = false, checkMessage = message) }
             load(Tab.Favorite, _ui.value.tagId)
         }
     }

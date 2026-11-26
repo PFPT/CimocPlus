@@ -25,15 +25,10 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -50,8 +45,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -74,6 +67,7 @@ import androidx.compose.ui.unit.sp
 import com.haleydu.cimoc.app.LocalCimocSession
 import com.haleydu.cimoc.app.image.ComicCover
 import com.haleydu.cimoc.app.nav.Screen
+import com.haleydu.cimoc.app.theme.LocalAppIcons
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -113,31 +107,7 @@ fun DetailScreen(
         contentWindowInsets = WindowInsets.navigationBars,
         snackbarHost = { SnackbarHost(snack) },
         topBar = {
-            TopAppBar(
-                title = { Text(state.comic?.title ?: "详情") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                    }
-                },
-                actions = {
-                    val comic = state.comic
-                    val title = comic?.title.orEmpty()
-                    if (comic != null && !comic.local && title.isNotEmpty()) {
-                        IconButton(onClick = { onSearchSource(title, comic.source, comic.cid) }) {
-                            Icon(Icons.Default.SwapHoriz, contentDescription = "换源")
-                        }
-                    }
-                    IconButton(onClick = { vm.toggleFavorite() }) {
-                        Icon(
-                            if (state.comic?.favorite == true) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = null
-                        )
-                    }
-                },
-                windowInsets = WindowInsets(0, 0, 0, 0),
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-            )
+            PageHeader(state.comic?.title ?: "详情", onBack = onBack)
         },
         bottomBar = {
             if (state.selecting) {
@@ -179,7 +149,7 @@ fun DetailScreen(
             item(key = "detail_header", span = { GridItemSpan(maxLineSpan) }) {
                 val comic = state.comic
                 Column {
-                    Box(Modifier.fillMaxWidth().height(220.dp)) {
+                    Box(Modifier.fillMaxWidth().height(240.dp)) {
                         ComicCover(
                             url = comic?.cover.orEmpty(),
                             modifier = Modifier.fillMaxSize().blur(24.dp),
@@ -192,14 +162,34 @@ fun DetailScreen(
                             contentAlignment = Alignment.BottomStart
                         ) {
                             Row(verticalAlignment = Alignment.Bottom) {
-                                ComicCover(
-                                    url = comic?.cover.orEmpty(),
-                                    modifier = Modifier
-                                        .size(width = 108.dp, height = 144.dp)
-                                        .shadow(8.dp, RoundedCornerShape(8.dp))
-                                        .clip(RoundedCornerShape(8.dp)),
-                                    contentScale = ContentScale.Crop
-                                )
+                                Box {
+                                    ComicCover(
+                                        url = comic?.cover.orEmpty(),
+                                        modifier = Modifier
+                                            .size(width = 132.dp, height = 176.dp)
+                                            .shadow(8.dp, RoundedCornerShape(12.dp))
+                                            .clip(RoundedCornerShape(12.dp)),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    val icons = LocalAppIcons.current
+                                    val title = comic?.title.orEmpty()
+                                    Row(
+                                        modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        if (comic != null && !comic.local && title.isNotEmpty()) {
+                                            CoverAction(onClick = { onSearchSource(title, comic.source, comic.cid) }) {
+                                                Icon(icons.swap, contentDescription = "换源")
+                                            }
+                                        }
+                                        CoverAction(onClick = { vm.toggleFavorite() }) {
+                                            Icon(
+                                                if (comic?.favorite == true) icons.favorite else icons.favoriteOutline,
+                                                contentDescription = if (comic?.favorite == true) "已收藏" else "收藏"
+                                            )
+                                        }
+                                    }
+                                }
                                 Spacer(Modifier.width(16.dp))
                                 Column(Modifier.weight(1f)) {
                                     Text(
@@ -313,7 +303,7 @@ fun DetailScreen(
                         scrollChapters = true
                     }) {
                         Icon(
-                            Icons.Default.SwapVert,
+                            LocalAppIcons.current.sort,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
                             tint = MaterialTheme.colorScheme.primary
@@ -340,8 +330,8 @@ fun DetailScreen(
                         .background(
                             when {
                                 selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
-                                current -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                                else -> Color.Transparent
+                                current -> MaterialTheme.colorScheme.primaryContainer
+                                else -> MaterialTheme.colorScheme.surfaceVariant
                             }
                         )
                         .clickable(enabled = chapter.path.isNotEmpty() && !(state.selecting && chapter.complete)) {
@@ -373,6 +363,20 @@ fun DetailScreen(
             onCreate = { vm.createTag(it) },
             onDismiss = { vm.closeTagDialog() }
         )
+    }
+}
+
+@Composable
+private fun CoverAction(onClick: () -> Unit, content: @Composable () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        content()
     }
 }
 

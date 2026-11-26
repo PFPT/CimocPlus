@@ -14,11 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -32,7 +27,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -45,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.haleydu.cimoc.app.LocalCimocSession
+import com.haleydu.cimoc.app.theme.LocalAppIcons
 import com.haleydu.cimoc.shared.model.DownloadTaskItem
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,17 +75,9 @@ fun TaskScreen(onBack: () -> Unit) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(if (state.selecting) "已选 ${state.selected.size}" else "下载任务") },
-                navigationIcon = {
-                    IconButton(
-                        onClick = {
-                            if (state.selecting) vm.exitSelect() else onBack()
-                        }
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                    }
-                },
+            PageHeader(
+                title = if (state.selecting) "已选 ${state.selected.size}" else "下载任务",
+                onBack = { if (state.selecting) vm.exitSelect() else onBack() },
                 actions = {
                     if (state.selecting) {
                         TextButton(onClick = {
@@ -117,7 +104,11 @@ fun TaskScreen(onBack: () -> Unit) {
             }
             state.items.isEmpty() -> {
                 Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                    Text("暂无下载任务", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "没有下载任务。在漫画详情里选择章节下载。文件不见了就检查授权目录。",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 24.dp)
+                    )
                 }
             }
             else -> {
@@ -164,7 +155,7 @@ private fun TaskRow(
             .then(if (selecting) Modifier.clickable(onClick = onToggle) else Modifier),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
             Row(
@@ -183,17 +174,18 @@ private fun TaskRow(
                     )
                 }
                 if (!selecting) {
+                    val icons = LocalAppIcons.current
                     if (running) {
                         IconButton(onClick = onPause) {
-                            Icon(Icons.Default.Pause, contentDescription = "暂停")
+                            Icon(icons.pause, contentDescription = "暂停")
                         }
                     } else if (task.state != DownloadTaskItem.STATE_FINISH) {
                         IconButton(onClick = onRetry) {
-                            Icon(Icons.Default.Replay, contentDescription = "重试")
+                            Icon(icons.replay, contentDescription = "重试")
                         }
                     }
                     IconButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, contentDescription = "删除")
+                        Icon(icons.delete, contentDescription = "删除")
                     }
                 }
             }

@@ -1,5 +1,6 @@
 package com.haleydu.cimoc.shared.vm
 
+import com.haleydu.cimoc.shared.model.ImportPreview
 import com.haleydu.cimoc.shared.model.SourceItem
 import com.haleydu.cimoc.shared.repo.SourceRepository
 import kotlinx.coroutines.CoroutineScope
@@ -18,7 +19,9 @@ class SourceListViewModel(
         val items: List<SourceItem> = emptyList(),
         val loading: Boolean = false,
         val importing: Boolean = false,
-        val message: String? = null
+        val message: String? = null,
+        val preview: ImportPreview? = null,
+        val staged: String? = null
     )
 
     private val job = SupervisorJob()
@@ -42,22 +45,39 @@ class SourceListViewModel(
         }
     }
 
-    fun import(input: String) {
+    fun stage(input: String) {
         val text = input.trim()
         if (text.isEmpty()) {
             _ui.update { it.copy(message = "请输入脚本或地址") }
             return
         }
-        _ui.update { it.copy(importing = true, message = null) }
+        _ui.update { it.copy(importing = true, message = null, preview = null, staged = null) }
+        scope.launch {
+            val result = runCatching { sources.previewImport(text) }
+            if (result.isSuccess) {
+                _ui.update { it.copy(importing = false, preview = result.getOrThrow(), staged = text) }
+            } else {
+                _ui.update { it.copy(importing = false, message = "这不像图源脚本，没有保存") }
+            }
+        }
+    }
+
+    fun confirmImport() {
+        val text = _ui.value.staged ?: return
+        _ui.update { it.copy(importing = true, preview = null) }
         scope.launch {
             val result = runCatching { sources.import(text) }
             if (result.isSuccess) {
-                _ui.update { it.copy(importing = false, message = "已引入") }
+                _ui.update { it.copy(importing = false, message = "已引入", staged = null) }
                 load()
             } else {
-                _ui.update { it.copy(importing = false, message = "引入失败") }
+                _ui.update { it.copy(importing = false, message = "引入失败", staged = null) }
             }
         }
+    }
+
+    fun dismissPreview() {
+        _ui.update { it.copy(preview = null, staged = null) }
     }
 
     fun remove(item: SourceItem) {

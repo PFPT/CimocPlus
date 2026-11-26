@@ -16,12 +16,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import com.haleydu.cimoc.app.theme.LocalAppIcons
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -142,16 +142,16 @@ fun WebReaderScreen(args: Screen.WebReader, onBack: () -> Unit) {
             modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth()
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().background(Color.Black.copy(alpha = 0.85f)),
+                modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回", tint = Color.White)
+                    Icon(LocalAppIcons.current.back, contentDescription = "返回", tint = MaterialTheme.colorScheme.onSurface)
                 }
                 Text(
                     title,
                     modifier = Modifier.weight(1f),
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     fontSize = 16.sp

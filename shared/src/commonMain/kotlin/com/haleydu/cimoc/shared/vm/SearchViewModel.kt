@@ -154,7 +154,7 @@ class SearchViewModel(
     private suspend fun runSearch(keyword: String, page: Int, append: Boolean) {
         val types = _ui.value.selectedTypes.toList()
         if (types.isEmpty()) {
-            _ui.update { it.copy(loading = false, error = "未选择图源") }
+            _ui.update { it.copy(loading = false, error = "没有选中图源。展开图源筛选，至少留下一个。") }
             return
         }
         val collected = LinkedHashMap<String, ComicItem>()
@@ -199,7 +199,7 @@ class SearchViewModel(
                 ended = !allFailed && collected.size == before,
                 empty = collected.isEmpty(),
                 failedSources = if (!allFailed && failed > 0) failed else 0,
-                error = if (allFailed) "搜索失败，请稍后重试" else null
+                error = if (allFailed) "搜索失败。换一个图源，或检查网络后重试。" else null
             )
         }
     }

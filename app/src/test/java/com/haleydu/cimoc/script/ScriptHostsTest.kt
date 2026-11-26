@@ -11,6 +11,8 @@ class ScriptHostsTest {
     fun readsHostAndTreatsStubAsSite() {
         val script = "var TITLE = \"example.com\";\nvar HOST = \"Example.com\";\n"
         assertEquals("Example.com", ScriptHosts.hostOf(script))
+        assertEquals("example.com", ScriptHosts.titleOf(script))
+        assertEquals("cdn.example.com", ScriptHosts.hostOfUrl("https://cdn.example.com/a.js"))
         assertEquals("example.com", ScriptHosts.normalizeHost("WWW.Example.com"))
         assertTrue(ScriptHosts.isSiteScript(script))
     }

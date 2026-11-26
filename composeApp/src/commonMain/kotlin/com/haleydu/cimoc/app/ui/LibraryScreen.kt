@@ -4,24 +4,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Tab
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,13 +29,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.haleydu.cimoc.app.LocalCimocSession
+import com.haleydu.cimoc.shared.model.checkKindLabel
 import com.haleydu.cimoc.app.nav.Screen
+import com.haleydu.cimoc.app.theme.LocalAppIcons
 import com.haleydu.cimoc.shared.model.ComicItem
 import com.haleydu.cimoc.shared.model.TagIds
 import com.haleydu.cimoc.shared.model.TagItem
 import com.haleydu.cimoc.shared.vm.LibraryViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(onOpen: (Screen) -> Unit) {
     val vm = LocalCimocSession.current.library
@@ -60,43 +55,30 @@ fun LibraryScreen(onOpen: (Screen) -> Unit) {
     Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize()) {
         val tabs = LibraryViewModel.Tab.values()
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            ScrollableTabRow(
-                selectedTabIndex = tabs.indexOf(state.tab).coerceAtLeast(0),
-                edgePadding = 12.dp,
-                modifier = Modifier.weight(1f)
-            ) {
-                tabs.forEach { tab ->
-                    Tab(
-                        selected = state.tab == tab,
-                        onClick = { vm.load(tab) },
-                        text = {
-                            Text(
-                                when (tab) {
-                                    LibraryViewModel.Tab.Favorite -> "收藏"
-                                    LibraryViewModel.Tab.History -> "历史"
-                                    LibraryViewModel.Tab.Download -> "下载"
-                                    LibraryViewModel.Tab.Local -> "本地"
-                                }
-                            )
+        val icons = LocalAppIcons.current
+        PageHeader(
+            title = "书架",
+            actions = {
+                when (state.tab) {
+                    LibraryViewModel.Tab.Favorite -> {
+                        IconButton(onClick = { vm.checkFavorites() }, enabled = !state.checking) {
+                            Icon(icons.refresh, contentDescription = "检查更新")
                         }
-                    )
+                    }
+                    LibraryViewModel.Tab.Download -> {
+                        IconButton(onClick = { onOpen(Screen.DownloadTasks) }) {
+                            Icon(icons.list, contentDescription = "下载任务")
+                        }
+                    }
+                    else -> {}
                 }
             }
-            when (state.tab) {
-                LibraryViewModel.Tab.Favorite -> {
-                    IconButton(onClick = { vm.checkFavorites() }, enabled = !state.checking) {
-                        Icon(Icons.Default.Refresh, contentDescription = "检查更新")
-                    }
-                }
-                LibraryViewModel.Tab.Download -> {
-                    IconButton(onClick = { onOpen(Screen.DownloadTasks) }) {
-                        Icon(Icons.Default.List, contentDescription = "下载任务")
-                    }
-                }
-                else -> {}
-            }
-        }
+        )
+        SegmentedControl(
+            labels = listOf("收藏", "历史", "下载", "本地"),
+            selected = tabs.indexOf(state.tab).coerceAtLeast(0),
+            onSelect = { index -> vm.load(tabs[index]) }
+        )
         if (state.tab == LibraryViewModel.Tab.Favorite) {
             val chips = buildList {
                 add(TagItem(TagIds.ALL, "全部"))
@@ -118,15 +100,22 @@ fun LibraryScreen(onOpen: (Screen) -> Unit) {
                 }
             }
         }
+        if (state.tab == LibraryViewModel.Tab.Favorite && state.failures.isNotEmpty()) {
+            Text(
+                state.failures.joinToString("，") { "${it.title}（${checkKindLabel(it.kind)}）" },
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                color = MaterialTheme.colorScheme.error
+            )
+        }
         ComicGrid(
             items = state.items,
             titles = state.titles,
             loading = state.loading,
             emptyText = when (state.tab) {
-                LibraryViewModel.Tab.Favorite -> "暂无收藏"
-                LibraryViewModel.Tab.History -> "暂无历史"
-                LibraryViewModel.Tab.Download -> "暂无下载"
-                LibraryViewModel.Tab.Local -> "暂无本地漫画"
+                LibraryViewModel.Tab.Favorite -> "还没有收藏。搜索到漫画后可以加入书架。"
+                LibraryViewModel.Tab.History -> "还没有阅读记录。打开一部漫画就会记在这里。"
+                LibraryViewModel.Tab.Download -> "还没有下完的漫画。在详情页开始下载，进度在下载页。"
+                LibraryViewModel.Tab.Local -> "没有本地漫画。授权目录后，已下载的内容会出现在这里。"
             },
             onClick = { comic ->
                 val cid = comic.cid

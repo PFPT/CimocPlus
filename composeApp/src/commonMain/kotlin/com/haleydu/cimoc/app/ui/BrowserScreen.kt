@@ -20,14 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.MenuBook
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,8 +47,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.haleydu.cimoc.app.LocalCimocActions
+import com.haleydu.cimoc.shared.model.ImportPreview
 import com.haleydu.cimoc.app.LocalCimocRepos
 import com.haleydu.cimoc.app.nav.Screen
+import com.haleydu.cimoc.app.theme.LocalAppIcons
 import com.haleydu.cimoc.shared.model.ComicItem
 import kotlinx.coroutines.launch
 
@@ -75,12 +70,8 @@ fun BrowserScreen(onOpen: (Screen) -> Unit) {
         onOpen(Screen.WebBrowser(target))
     }
 
-    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        Text(
-            "浏览",
-            modifier = Modifier.padding(top = 28.dp),
-            style = MaterialTheme.typography.headlineMedium
-        )
+    Column(Modifier.fillMaxSize()) {
+        PageHeader("浏览")
         SlimAddressBar(
             text = input,
             onTextChange = { input = it },
@@ -88,57 +79,41 @@ fun BrowserScreen(onOpen: (Screen) -> Unit) {
             collapsed = null,
             onExpand = {},
             placeholder = "搜索漫画或输入网址",
-            modifier = Modifier.fillMaxWidth().padding(top = 20.dp)
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
         )
-        LazyColumn(Modifier.fillMaxWidth().weight(1f).padding(top = 16.dp)) {
+        LazyColumn(Modifier.fillMaxWidth().weight(1f).padding(top = 8.dp)) {
             if (queries.isNotEmpty()) {
                 item(key = "queries") {
-                    Text(
-                        "搜索",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 13.sp,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-                }
-                items(queries, key = { "query_$it" }) { query ->
-                    Text(
-                        query,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
+                    SectionCard("搜索") {
+                        queries.forEach { query ->
+                            ListRow(query) {
                                 input = query
                                 openInput()
                             }
-                            .padding(vertical = 10.dp),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                        }
+                    }
                 }
             }
             if (pins.isNotEmpty()) {
                 item(key = "pins") {
-                    Text(
-                        "书签",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 13.sp,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-                }
-                items(pins, key = { "pin_${it.url}" }) { mark ->
-                    BrowserMarkRow(mark) { onOpen(Screen.WebBrowser(mark.url)) }
+                    SectionCard("书签") {
+                        pins.forEach { mark ->
+                            ListRow(mark.title.ifBlank { pageLabel("", mark.url) }) {
+                                onOpen(Screen.WebBrowser(mark.url))
+                            }
+                        }
+                    }
                 }
             }
             if (recent.isNotEmpty()) {
                 item(key = "recent") {
-                    Text(
-                        "最近",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 13.sp,
-                        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
-                    )
-                }
-                items(recent, key = { "hist_${it.url}" }) { mark ->
-                    BrowserMarkRow(mark) { onOpen(Screen.WebBrowser(mark.url)) }
+                    SectionCard("最近") {
+                        recent.forEach { mark ->
+                            ListRow(mark.title.ifBlank { pageLabel("", mark.url) }) {
+                                onOpen(Screen.WebBrowser(mark.url))
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -165,6 +140,7 @@ fun WebBrowserScreen(
     var comicReady by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var hint by remember { mutableStateOf<String?>(null) }
+    var scriptConfirm by remember { mutableStateOf<Pair<String, ImportPreview>?>(null) }
     var hintError by remember { mutableStateOf(true) }
     var navEpoch by remember { mutableIntStateOf(0) }
 
@@ -247,10 +223,10 @@ fun WebBrowserScreen(
                 )
                 return@launch
             }
-            val imported = runCatching { repos.sources.importIfScript(page) }.getOrNull()
-            if (imported != null) {
+            val preview = runCatching { repos.sources.previewImport(page) }.getOrNull()
+            if (preview != null) {
                 busy = false
-                showHint("已加入图源列表", false)
+                scriptConfirm = page to preview
                 return@launch
             }
             val host = pageHost(page)
@@ -298,6 +274,28 @@ fun WebBrowserScreen(
                 true
             }
         }
+    }
+
+    val pendingScript = scriptConfirm
+    if (pendingScript != null) {
+        val (scriptInput, preview) = pendingScript
+        AlertDialog(
+            onDismissRequest = { scriptConfirm = null },
+            title = { Text("确认引入") },
+            text = { Text("${preview.title}\n${preview.host}") },
+            confirmButton = {
+                TextButton(onClick = {
+                    scriptConfirm = null
+                    scope.launch {
+                        val saved = runCatching { repos.sources.import(scriptInput) }.isSuccess
+                        showHint(if (saved) "已加入图源列表" else "引入失败", !saved)
+                    }
+                }) { Text("保存") }
+            },
+            dismissButton = {
+                TextButton(onClick = { scriptConfirm = null }) { Text("取消") }
+            }
+        )
     }
 
     Column(
@@ -357,25 +355,26 @@ fun WebBrowserScreen(
                 fontSize = 14.sp
             )
         }
+        val icons = LocalAppIcons.current
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { leaveOrBack() }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "后退")
+                Icon(icons.back, contentDescription = "后退")
             }
             IconButton(onClick = { handle.forward() }, enabled = handle.canForward()) {
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "前进")
+                Icon(icons.forward, contentDescription = "前进")
             }
             IconButton(onClick = onBack) {
-                Icon(Icons.Default.Home, contentDescription = "主页")
+                Icon(icons.home, contentDescription = "主页")
             }
             IconButton(onClick = { openReading() }, enabled = !busy) {
                 if (busy) {
                     CircularProgressIndicator()
                 } else {
-                    Icon(Icons.Default.MenuBook, contentDescription = "阅读")
+                    Icon(icons.library, contentDescription = "阅读")
                 }
             }
             TextButton(onClick = { savePage() }, enabled = !busy) {
@@ -447,33 +446,19 @@ private fun SlimAddressBar(
             )
         }
         if (pinned != null) {
+            val icons = LocalAppIcons.current
             IconButton(onClick = onTogglePin) {
                 Icon(
-                    if (pinned) Icons.Default.Star else Icons.Default.StarBorder,
+                    if (pinned) icons.star else icons.starOutline,
                     contentDescription = "书签",
                     tint = if (pinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
         IconButton(onClick = onSubmit) {
-            Icon(Icons.Default.Search, contentDescription = "打开")
+            Icon(LocalAppIcons.current.search, contentDescription = "打开")
         }
     }
-}
-
-@Composable
-private fun BrowserMarkRow(mark: BrowserMark, onClick: () -> Unit) {
-    val label = mark.title.ifBlank { pageLabel("", mark.url) }
-    Text(
-        label,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        fontSize = 15.sp
-    )
 }
 
 private fun pageLabel(title: String, url: String): String {

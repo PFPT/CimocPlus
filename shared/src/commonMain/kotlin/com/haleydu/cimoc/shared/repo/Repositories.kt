@@ -4,6 +4,8 @@ import com.haleydu.cimoc.shared.model.ChapterItem
 import com.haleydu.cimoc.shared.model.ComicItem
 import com.haleydu.cimoc.shared.model.DownloadTaskItem
 import com.haleydu.cimoc.shared.model.ExploreFilter
+import com.haleydu.cimoc.shared.model.FavoriteCheck
+import com.haleydu.cimoc.shared.model.ImportPreview
 import com.haleydu.cimoc.shared.model.LoadResult
 import com.haleydu.cimoc.shared.model.PageImage
 import com.haleydu.cimoc.shared.model.SearchStats
@@ -39,6 +41,7 @@ interface SourceRepository {
     suspend fun homepage(type: Int): String
     fun warm()
     suspend fun import(input: String): Int
+    suspend fun previewImport(input: String): ImportPreview
     suspend fun importIfScript(input: String): Int?
     suspend fun saveSite(host: String): Int
     suspend fun isWeb(type: Int): Boolean
@@ -61,7 +64,7 @@ interface MangaRepository {
     fun imageHeaders(source: Int): Map<String, String>
     suspend fun markRead(item: ComicItem, path: String): Long
     suspend fun saveProgress(comicId: Long, page: Int)
-    suspend fun checkFavorites(): Int
+    suspend fun checkFavorites(): FavoriteCheck
     suspend fun matchUrl(url: String): ComicItem?
 }
 

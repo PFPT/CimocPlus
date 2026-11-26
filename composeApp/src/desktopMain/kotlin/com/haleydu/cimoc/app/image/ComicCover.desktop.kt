@@ -4,8 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
+import com.haleydu.cimoc.app.theme.LocalAppIcons
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -62,7 +61,7 @@ actual fun ComicCover(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Default.Refresh,
+                    LocalAppIcons.current.refresh,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )

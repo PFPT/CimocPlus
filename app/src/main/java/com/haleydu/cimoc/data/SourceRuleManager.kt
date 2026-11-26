@@ -4,6 +4,7 @@ import com.haleydu.cimoc.db.SourceRuleDao
 import com.haleydu.cimoc.model.Source
 import com.haleydu.cimoc.model.SourceRule
 import com.haleydu.cimoc.script.JsHttpClient
+import com.haleydu.cimoc.shared.model.ImportPreview
 import com.haleydu.cimoc.script.ScriptHosts
 import com.haleydu.cimoc.script.ScriptRunner
 import org.json.JSONObject
@@ -24,7 +25,19 @@ class SourceRuleManager @Inject constructor(
         if (text.isEmpty()) throw IllegalArgumentException("empty")
         val remote = isRemoteUrl(text)
         val script = if (remote) httpClient.get(text) else text
+        if (!ScriptHosts.looksLikeScript(script)) throw IllegalArgumentException("not a script")
         return importScript(script, if (remote) text else null)
+    }
+
+    fun preview(input: String): ImportPreview {
+        val text = input.trim()
+        if (text.isEmpty()) throw IllegalArgumentException("empty")
+        val remote = isRemoteUrl(text)
+        val script = if (remote) httpClient.get(text) else text
+        if (!ScriptHosts.looksLikeScript(script)) throw IllegalArgumentException("not a script")
+        val title = ScriptHosts.titleOf(script) ?: "未命名脚本"
+        val host = (ScriptHosts.hostOf(script) ?: if (remote) ScriptHosts.hostOfUrl(text) else null) ?: "无域名"
+        return ImportPreview(title, host)
     }
 
     fun importIfScript(input: String): Int? {

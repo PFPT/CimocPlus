@@ -53,7 +53,6 @@ class CimocComposeActivity : AppCompatActivity() {
             }
         })
         val start = startScreen()
-        val dark = repos.settings.bool(com.haleydu.cimoc.shared.model.PrefKeys.NIGHT)
         setContent {
             CimocApp(
                 repos = repos,
@@ -73,7 +72,6 @@ class CimocComposeActivity : AppCompatActivity() {
                     setKeepScreenOn = { applyKeepScreenOn(it) },
                     setBrightness = { applyBrightness(it) }
                 ),
-                dark = dark,
                 start = start
             )
         }
